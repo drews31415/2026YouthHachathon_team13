@@ -1,0 +1,98 @@
+/* Readable default controls; compact decoration is never the only information. */
+.header-heading p { font-size: 14px; color: #63758b; }
+.rail-item, .text-toggle { color: #5b7088; }
+.rail-item span { font-size: 12px; }
+.simulation-badge, .map-demo-tag { color: #52657b; font-size: 12px; }
+.place-field-body label, .result-context, .walking-label { font-size: 12px; color: #64758b; }
+.place-input-row input { font-size: 18px; height: 29px; }
+.place-input-row input:focus-visible { outline: 2px solid #9abdf1; border-radius: 3px; }
+.place-input-row input::placeholder { font-size: 15px; }
+.location-button, .preferences-button { font-size: 12px; min-height: 44px; }
+.clear-input { width: 44px; height: 44px; margin-right: -9px; color: #6b8099; }
+.swap-button { width: 44px; height: 44px; top: 49px; right: -8px; }
+.place-field-body { padding-right: 14px; }
+.primary-button { min-height: 50px; font-size: 16px; }
+.route-title, .route-card.normal .route-title { font-size: 15px; }
+.route-card-caption, .comparison-note, .safety-note, .inline-message, .inline-error { font-size: 13px; color: #62758b; line-height: 1.75; }
+.route-card-metrics>span:not(.extra-pill) { font-size: 13px; color: #64758b; }
+.route-card-metrics .extra-pill { font-size: 12px; }
+.comparison-note strong { color: #405974; }
+.navigation-button { min-height: 48px; font-size: 15px; }
+.result-notice strong { font-size: 16px; }
+.result-notice p, .preferences-panel small, .scenario-options small, .drawer-data-note { font-size: 13px; color: #63758b; }
+.preferences-panel { font-size: 14px; }
+.speed-label select { min-height: 44px; font-size: 14px; }
+.check-row { min-height: 44px; }
+.place-dropdown button strong { font-size: 15px; }
+.place-dropdown button small, .dropdown-caption { font-size: 12px; color: #63758b; }
+.planner-footer>span, .planner-footer button, .page-footer, .page-footer>span:last-child { font-size: 11px; color: #64758b; }
+.weather-card>div:nth-child(2)>span, .weather-card strong small { font-size: 12px; color: #63758b; }
+.weather-card button { width: 44px; height: 44px; }
+.weather-card { max-width: calc(100% - 40px); }
+.map-tools button { width: 44px; height: 44px; }
+.map-legend>span, .risk-toggle, .risk-toggle>span { font-size: 12px; color: #53697d; }
+.map-legend { flex-wrap: wrap; gap: 10px; }
+.risk-toggle { min-height: 44px; }
+.area-chip, .area-chip-sub { font-size: 12px; color: #53697d; }
+.map-insight strong { font-size: 15px; }
+.map-insight small, .map-insight>div:nth-child(2)>span { font-size: 12px; color: #63758b; }
+.map-insight>button { min-width: 44px; min-height: 44px; }
+.leaflet-control-attribution { font-size: 11px!important; color: #405e56!important; background: #fffffff2!important; }
+.leaflet-control-attribution a { color: #315b4e!important; }
+.tile-warning { font-size: 13px; }
+.demo-drawer { margin: 0; border: 0; max-height: 100dvh; height: 100dvh; max-width: 100%; color: var(--navy); }
+.demo-drawer::backdrop { background: #172a4155; backdrop-filter: blur(2px); }
+.drawer-intro, .dialog-intro, .info-principles p { font-size: 15px; color: #586f87; }
+.scenario-options strong { font-size: 16px; }
+.data-details dl>div { font-size: 13px; }
+.data-details dt, .data-details dd { color: #586f87; }
+.icon-button { min-width: 44px; min-height: 44px; }
+.demo-nav-pill, .back-button, .voice-button, .step-progress>span { font-size: 13px; }
+.route-steps strong { font-size: 15px; }
+.route-steps small { font-size: 13px; color: #62758b; }
+.step-buttons>button { min-height: 48px; font-size: 14px; }
+.large-text .route-title, .large-text .route-card.normal .route-title { font-size: 18px; }
+.large-text .route-card-caption, .large-text .comparison-note, .large-text .safety-note,
+.large-text .scenario-options small, .large-text .info-principles p, .large-text .result-notice p { font-size: 16px; }
+.large-text .location-button, .large-text .preferences-button { font-size: 14px; }
+.large-text .place-input-row input { font-size: 21px; }
+.large-text .navigation-button, .large-text .primary-button { font-size: 18px; }
+.large-text .place-field-body label { font-size: 14px; }
+@media (max-width: 760px) {
+  .planner { display: contents; }
+  .search-section { order: 1; border-radius: 14px 14px 0 0; background: #fff; }
+  .map-section { order: 2; height: 370px; border-radius: 0; }
+  .results-section { order: 3; background: #fff; }
+  .planner-footer { order: 4; background: #fff; border-radius: 0 0 14px 14px; }
+  .navigation-section { order: 1; background: #fff; min-height: 0; }
+  .header-actions { gap: 6px; }
+  .header-actions>.simulation-badge { font-size: 10px; }
+  .text-toggle { font-size: 12px; min-height: 44px; }
+  .mobile-info { min-width: 30px; min-height: 44px; }
+  .map-legend>span { font-size: 11px; }
+  .map-legend { padding: 9px; gap: 8px; }
+  .map-bottomline { align-items: flex-end; }
+  .risk-toggle>span { display: none; }
+  .map-tools { top: 144px; }
+  .mobile-demo-button { font-size: 13px; min-height: 44px; bottom: 83px; }
+  .map-demo-tag { font-size: 10px; }
+  .map-topline { gap: 6px; }
+  .area-chip { font-size: 12px; padding: 9px; }
+  .area-chip-sub { display: none; }
+  .swap-button { top: 53px; right: -6px; }
+  .header-heading h1 { font-size: 24px; }
+  .header-heading p { font-size: 13px; }
+  .search-section, .results-section { padding-left: 20px; padding-right: 20px; }
+  .map-insight { display: none; }
+  .large-text .map-legend>span { font-size: 11px; }
+  .large-text .location-button, .large-text .preferences-button { font-size: 13px; }
+  .large-text .route-card-metrics .extra-pill { font-size: 12px; }
+}
+@media(max-width:385px) {
+  .mobile-brand { font-size: 15px; }
+  .header-actions>.simulation-badge { font-size: 9px; }
+  .header-heading h1 { font-size: 22px; }
+  .location-button, .preferences-button { font-size: 11px; }
+  .map-legend>span { font-size: 10px; }
+  .large-text .route-title { font-size: 17px; }
+}
