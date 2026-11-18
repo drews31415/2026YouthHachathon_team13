@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import 'leaflet/dist/leaflet.css';
 import './styles.css';
 import './readability.css';
+import './components/real-data.css';
+import './real-layout.css';
 import App from './App';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

@@ -1,124 +1,152 @@
 import { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
-import { Layers3, LocateFixed, Minus, Plus, Snowflake, MapPin, Maximize2 } from 'lucide-react';
-import type { ModelRun, Network, Place, Route, RouteStep } from '../core/types';
+import { Layers3, LocateFixed, Minus, Plus, MapPin, Maximize2, MousePointer2, Info } from 'lucide-react';
+import type { Coordinate, ModelRun, Network, Place, Route, RouteStep, WalkSegment } from '../core/types';
 
 interface Props {
-  network: Network; run: ModelRun; normal: Route | null; recommended: Route | null;
-  selected: 'normal' | 'recommended'; origin?: Place; destination?: Place;
-  step?: RouteStep; recenterKey: number;
+  network: Network;
+  run: ModelRun;
+  normal: Route | null;
+  recommended: Route | null;
+  selected: 'normal' | 'recommended';
+  origin?: Place;
+  destination?: Place;
+  step?: RouteStep;
+  recenterKey: number;
+  onSelectCoordinate?: (coordinate: Coordinate) => void;
+  selectionMode?: 'origin' | 'destination' | null;
 }
-const latlngs = (coordinates: [number, number][]) => coordinates.map(([lng, lat]) => [lat, lng] as L.LatLngTuple);
-const escape = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
-const riskNames = { high: '결빙 위험 높음 · 시뮬레이션', medium: '결빙 위험 주의 · 시뮬레이션', low: '상대적 위험 낮음 · 시뮬레이션', unknown: '위험 판단 정보 부족' };
 
-export function WalkingMap({ network, run, normal, recommended, selected, origin, destination, step, recenterKey }: Props) {
+const latlngs = (coordinates: Coordinate[]) => coordinates.map(([lng, lat]) => [lat, lng] as L.LatLngTuple);
+const escape = (value: string | number) => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!));
+
+function segmentPopup(segment: WalkSegment) {
+  const tags = Object.entries(segment.tags).filter(([key]) => ['highway', 'foot', 'access', 'sidewalk', 'incline', 'wheelchair', 'surface', 'oneway:foot'].includes(key));
+  const sourceUrl = `https://www.openstreetmap.org/way/${encodeURIComponent(segment.wayId)}`;
+  return `<div class="risk-popup real-segment-popup"><span>실제 OpenStreetMap 보행망 구간</span><strong>${escape(segment.name)}</strong><dl><div><dt>구간 거리</dt><dd>${Math.round(segment.lengthM)}m</dd></div><div><dt>계단</dt><dd>${segment.stairs === true ? '계단 태그 있음' : segment.stairs === false ? '계단 아님 태그 확인' : '자료 미기재'}</dd></div><div><dt>경사</dt><dd>${segment.slope === null ? '자료 미기재' : `${escape(segment.slope)}%`}</dd></div><div><dt>노면 결빙</dt><dd>관측자료 없음 · 판단 불가</dd></div></dl>${tags.length ? `<div class="osm-tags">${tags.map(([key, value]) => `<code>${escape(key)}=${escape(value)}</code>`).join('')}</div>` : ''}<a href="${sourceUrl}" target="_blank" rel="noopener noreferrer">OSM 원본 way ${escape(segment.wayId)} ↗</a><small>자료 미기재를 통행 가능·위험 낮음으로 해석하지 않습니다.</small></div>`;
+}
+
+export function WalkingMap({ network, run, normal, recommended, selected, origin, destination, step, recenterKey, onSelectCoordinate, selectionMode = null }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layers = useRef<L.LayerGroup | null>(null);
-  const [showRisk, setShowRisk] = useState(true);
+  const selection = useRef({ onSelectCoordinate, selectionMode });
+  const [showCoverage, setShowCoverage] = useState(false);
   const [tilesFailed, setTilesFailed] = useState(false);
-  const [resizeVersion, setResizeVersion] = useState(0);
+  selection.current = { onSelectCoordinate, selectionMode };
+
+  function fitNetwork() {
+    const [[west, south], [east, north]] = network.bounds;
+    mapRef.current?.fitBounds([[south, west], [north, east]], { padding: [48, 78] });
+  }
+
+  function fitRoute() {
+    const route = selected === 'recommended' ? recommended : normal;
+    if (route?.coordinates.length) mapRef.current?.fitBounds(L.latLngBounds(latlngs(route.coordinates)), { padding: [65, 85], maxZoom: 18 });
+    else fitNetwork();
+  }
 
   useEffect(() => {
     if (!host.current) return;
-    const map = L.map(host.current, { zoomControl: false, attributionControl: true, scrollWheelZoom: true, minZoom: 13, maxZoom: 19 });
+    const map = L.map(host.current, { zoomControl: false, attributionControl: true, scrollWheelZoom: true, minZoom: 12, maxZoom: 19, preferCanvas: true, renderer: L.canvas({ tolerance: 6 }) });
     mapRef.current = map;
-    const tile = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
-      maxZoom: 19,
+    const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors', maxZoom: 19,
     }).addTo(map);
-    tile.on('tileerror', () => setTilesFailed(true));
-    tile.on('tileload', () => setTilesFailed(false));
+    tiles.on('tileerror', () => setTilesFailed(true));
+    tiles.on('tileload', () => setTilesFailed(false));
     layers.current = L.layerGroup().addTo(map);
     const [[west, south], [east, north]] = network.bounds;
-    map.fitBounds([[south, west], [north, east]], { padding: [56, 100] });
-    const resize = new ResizeObserver(() => { map.invalidateSize(); setResizeVersion(version => version + 1); });
+    map.fitBounds([[south, west], [north, east]], { padding: [48, 78] });
+    map.on('click', event => {
+      const { selectionMode: mode, onSelectCoordinate: onSelect } = selection.current;
+      if (mode && onSelect) onSelect([event.latlng.lng, event.latlng.lat]);
+    });
+    const resize = new ResizeObserver(() => map.invalidateSize());
     resize.observe(host.current);
     return () => { resize.disconnect(); map.remove(); mapRef.current = null; layers.current = null; };
   }, [network]);
 
   useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (selectionMode) { map.closePopup(); map.getContainer().classList.add('coordinate-selection-active'); }
+    else map.getContainer().classList.remove('coordinate-selection-active');
+  }, [selectionMode]);
+
+  useEffect(() => {
     const group = layers.current;
     if (!group) return;
     group.clearLayers();
-    const riskById = new Map(run.estimates.map(item => [item.segmentId, item]));
+    const riskById = new Map(run.estimates.map(estimate => [estimate.segmentId, estimate]));
     network.segments.forEach(segment => {
-      const risk = riskById.get(segment.id);
       const points = latlngs(segment.coordinates);
-      L.polyline(points, { color: '#ffffff', weight: 7, opacity: .92, interactive: false }).addTo(group);
-      L.polyline(points, { color: '#aabcb8', weight: 2, opacity: .5, interactive: false }).addTo(group);
-      if (showRisk && risk && risk.level !== 'low') {
-        const color = risk.level === 'high' ? '#159bb9' : risk.level === 'medium' ? '#d38b29' : '#7c8495';
-        const line = L.polyline(points, { color, weight: 7, opacity: .7, dashArray: risk.level === 'unknown' ? '3 8' : '1 10', lineCap: 'round' }).addTo(group);
-        line.bindPopup(`<div class="risk-popup"><span>${escape(riskNames[risk.level])}</span><strong>${escape(segment.name)}</strong><ul>${risk.reasons.map(reason => `<li>${escape(reason)}</li>`).join('')}</ul><small>실제 노면을 확인한 결과가 아닙니다.</small></div>`);
-      }
-    });
-    const routeLine = (route: Route, active: boolean) => {
-      const coords = latlngs(route.coordinates);
-      if (active) L.polyline(coords, { color: '#fff', weight: 12, opacity: .98, interactive: false }).addTo(group);
-      L.polyline(coords, {
-        color: route.type === 'recommended' ? '#1765ef' : active ? '#53677e' : '#84929b',
-        weight: active ? 7 : 4, opacity: active ? 1 : .75, dashArray: route.type === 'normal' ? '7 9' : undefined,
-        lineJoin: 'round', interactive: false,
+      const missingSurface = riskById.get(segment.id)?.level === 'unknown';
+      const line = L.polyline(points, {
+        color: showCoverage && missingSurface ? '#8a7b9b' : '#748b94',
+        weight: showCoverage && missingSurface ? 3 : 1.3,
+        opacity: showCoverage && missingSurface ? .65 : .3,
+        dashArray: showCoverage && missingSurface ? '3 6' : undefined,
+        interactive: !selectionMode, bubblingMouseEvents: false,
       }).addTo(group);
+      if (!selectionMode) line.bindPopup(() => segmentPopup(segment), { maxWidth: 280 });
+    });
+
+    const routeLine = (route: Route, active: boolean) => {
+      const points = latlngs(route.coordinates);
+      if (active) L.polyline(points, { color: '#fff', weight: 10, opacity: .95, interactive: false }).addTo(group);
+      L.polyline(points, { color: active ? '#1765ef' : '#8e9da9', weight: active ? 6 : 3.5, opacity: active ? 1 : .65, dashArray: active ? undefined : '7 8', lineJoin: 'round', interactive: false }).addTo(group);
+      if (active && route.coordinates.length) {
+        const start = route.coordinates[0];
+        const finish = route.coordinates[route.coordinates.length - 1];
+        L.circleMarker([start[1], start[0]], { radius: 5, weight: 2, color: '#fff', fillColor: '#1765ef', fillOpacity: 1, interactive: !selectionMode }).addTo(group)
+          .bindTooltip('보행망 경로 시작점 · 장소까지의 접속로는 포함되지 않습니다.', { direction: 'top', className: 'endpoint-label' });
+        L.circleMarker([finish[1], finish[0]], { radius: 5, weight: 2, color: '#fff', fillColor: '#1765ef', fillOpacity: 1, interactive: !selectionMode }).addTo(group)
+          .bindTooltip('보행망 경로 끝점 · 장소까지의 접속로는 포함되지 않습니다.', { direction: 'top', className: 'endpoint-label' });
+      }
     };
     const inactive = selected === 'recommended' ? normal : recommended;
     const active = selected === 'recommended' ? recommended : normal;
     if (inactive) routeLine(inactive, false);
     if (active) routeLine(active, true);
 
-    if (showRisk) {
-      network.segments.filter(segment => riskById.get(segment.id)?.level === 'high').forEach(segment => {
-        const risk = riskById.get(segment.id)!;
-        const first = segment.coordinates[0];
-        const last = segment.coordinates[segment.coordinates.length - 1];
-        const center = [(first[0] + last[0]) / 2, (first[1] + last[1]) / 2];
-        const icon = L.divIcon({ className: 'risk-marker', html: '<span aria-hidden="true">❄</span>', iconSize: [34, 34], iconAnchor: [17, 17] });
-        L.marker([center[1], center[0]], { icon, title: `${segment.name}: 결빙 위험 높음 (시뮬레이션)` }).addTo(group)
-          .bindPopup(`<div class="risk-popup"><span>${escape(riskNames.high)}</span><strong>${escape(segment.name)}</strong><ul>${risk.reasons.map(reason => `<li>${escape(reason)}</li>`).join('')}</ul><small>실제 노면을 확인한 결과가 아닙니다.</small></div>`);
-      });
-    }
-    network.places.filter(place => place.id !== origin?.id && place.id !== destination?.id).forEach(place => {
-      L.circleMarker([place.coordinate[1], place.coordinate[0]], { radius: 4, color: '#fff', weight: 2, fillColor: '#6b8199', fillOpacity: .8 }).addTo(group)
-        .bindTooltip(escape(place.name), { direction: 'top', className: 'quiet-place-label', permanent: true, offset: [0, -5] });
-    });
-    if (origin) {
-      const icon = L.divIcon({ className: 'endpoint-marker origin-marker', html: '<span>출발</span>', iconSize: [40, 40], iconAnchor: [20, 20] });
-      L.marker([origin.coordinate[1], origin.coordinate[0]], { icon, title: `출발: ${origin.name}` }).addTo(group)
-        .bindTooltip(escape(origin.name), { direction: 'right', permanent: true, offset: [22, 0], className: 'endpoint-label' });
-    }
-    if (destination) {
-      const icon = L.divIcon({ className: 'endpoint-marker destination-marker', html: '<span>도착</span>', iconSize: [40, 40], iconAnchor: [20, 20] });
-      L.marker([destination.coordinate[1], destination.coordinate[0]], { icon, title: `도착: ${destination.name}` }).addTo(group)
-        .bindTooltip(escape(destination.name), { direction: 'right', permanent: true, offset: [22, 0], className: 'endpoint-label' });
-    }
+    // Search exposes all registered places. Only selected endpoints are marked
+    // so hundreds of source objects do not obscure the actual route.
+
+    const endpoint = (place: Place, kind: 'origin' | 'destination') => {
+      const label = kind === 'origin' ? '출발' : '도착';
+      const icon = L.divIcon({ className: `endpoint-marker ${kind}-marker`, html: `<span>${label}</span>`, iconSize: [40, 40], iconAnchor: [20, 20] });
+      const connection = place.snapDistanceM > 1 ? ` · 보행망 연결점과 약 ${Math.round(place.snapDistanceM)}m 차이` : '';
+      L.marker([place.coordinate[1], place.coordinate[0]], { icon, title: `${label}: ${place.name}${connection}`, interactive: !selectionMode }).addTo(group)
+        .bindTooltip(escape(place.name), { direction: 'right', permanent: true, offset: [22, 0], className: 'endpoint-label' });
+    };
+    if (origin) endpoint(origin, 'origin');
+    if (destination) endpoint(destination, 'destination');
     if (step) {
       const icon = L.divIcon({ className: 'navigation-marker', html: '<span>▲</span>', iconSize: [42, 42], iconAnchor: [21, 21] });
-      L.marker([step.coordinate[1], step.coordinate[0]], { icon, title: '경로 따라보기 위치 (시연)' }).addTo(group);
+      L.marker([step.coordinate[1], step.coordinate[0]], { icon, title: '선택한 경로 구간 · 실시간 위치가 아닙니다.', interactive: false }).addTo(group);
     }
-  }, [network, run, normal, recommended, selected, origin, destination, showRisk, step]);
+  }, [network, run, normal, recommended, selected, origin, destination, showCoverage, step, selectionMode]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     const route = selected === 'recommended' ? recommended : normal;
-    if (route?.coordinates.length) map.fitBounds(L.latLngBounds(latlngs(route.coordinates)), { paddingTopLeft: [72, 100], paddingBottomRight: [110, 100], maxZoom: 17, animate: true });
-    else { const [[west, south], [east, north]] = network.bounds; map.fitBounds([[south, west], [north, east]], { padding: [56, 100], animate: true }); }
-  }, [normal, recommended, selected, recenterKey, network, resizeVersion]);
+    if (route?.coordinates.length) map.fitBounds(L.latLngBounds(latlngs(route.coordinates)), { paddingTopLeft: [65, 90], paddingBottomRight: [95, 90], maxZoom: 18, animate: true });
+    else { const [[west, south], [east, north]] = network.bounds; map.fitBounds([[south, west], [north, east]], { padding: [48, 78], animate: true }); }
+  }, [normal, recommended, selected, recenterKey, network]);
 
-  return <div className="map-wrapper">
-    <div className="walking-map" ref={host} role="region" aria-label="관악구 보행 경로 지도. 결빙 위험과 경로는 시뮬레이션입니다." />
-    <div className="map-topline"><span className="area-chip"><span className="live-dot" /><MapPin size={14} /> 서울 관악구 <span className="area-chip-sub">시범 생활권</span></span><span className="map-demo-tag">시뮬레이션 지도</span></div>
+  return <div className="map-wrapper real-data-map">
+    <div className="walking-map" ref={host} role="region" aria-label="관악구 실제 OpenStreetMap 보행망. 노면 결빙 관측자료는 확보되지 않았습니다." />
+    <div className="map-topline"><span className="area-chip"><span className="live-dot" /><MapPin size={14} />서울 관악구<span className="area-chip-sub">실제 OSM 보행망</span></span><span className="map-source-tag">공개 지도 자료</span></div>
+    {selectionMode && <div className="map-selection-notice" role="status"><MousePointer2 size={17} /><span>지도를 눌러 <strong>{selectionMode === 'origin' ? '출발 위치' : '도착 위치'}</strong>를 선택하세요.</span></div>}
     <div className="map-tools">
-      <button type="button" title="경로 전체 보기" aria-label="경로 전체 보기" onClick={() => { const route = selected === 'recommended' ? recommended : normal; if (route) mapRef.current?.fitBounds(L.latLngBounds(latlngs(route.coordinates)), { padding: [70, 90], maxZoom: 17 }); }}><Maximize2 size={19} /></button>
+      <button type="button" title="경로 전체 보기" aria-label="경로 전체 보기" onClick={fitRoute}><Maximize2 size={19} /></button>
       <div className="zoom-buttons"><button type="button" aria-label="지도 확대" onClick={() => mapRef.current?.zoomIn()}><Plus size={21} /></button><button type="button" aria-label="지도 축소" onClick={() => mapRef.current?.zoomOut()}><Minus size={21} /></button></div>
-      <button type="button" title="생활권 중심으로" aria-label="생활권 중심으로" onClick={() => { const [[west, south], [east, north]] = network.bounds; mapRef.current?.fitBounds([[south, west], [north, east]], { padding: [56, 100] }); }}><LocateFixed size={20} /></button>
+      <button type="button" title="수집된 생활권 전체 보기" aria-label="수집된 생활권 전체 보기" onClick={fitNetwork}><LocateFixed size={20} /></button>
     </div>
-    <div className="map-bottomline">
-      <div className="map-legend"><span><i className="legend-recommended" />추천 경로</span><span><i className="legend-normal" />일반 경로</span><span><Snowflake size={14} className="icy" />위험 예상</span></div>
-      <button type="button" className={`risk-toggle ${showRisk ? 'on' : ''}`} aria-label="위험 구간 표시" aria-pressed={showRisk} onClick={() => setShowRisk(!showRisk)}><Layers3 size={17} /><span>위험 구간</span><i /></button>
-    </div>
-    {tilesFailed && <div className="tile-warning" role="status">배경 지도를 불러오지 못했어요. 시연 경로와 위험 구간은 계속 확인할 수 있습니다.</div>}
+    <div className="map-bottomline"><div className="map-legend"><span><i className="legend-recommended" />일반 보행 경로</span><span><i className="legend-network" />OSM 보행망</span></div><button type="button" className={`risk-toggle ${showCoverage ? 'on' : ''}`} aria-pressed={showCoverage} onClick={() => setShowCoverage(!showCoverage)}><Layers3 size={17} /><span>노면자료 미확보</span><i /></button></div>
+    {showCoverage && <div className="surface-data-notice" role="status"><Info size={15} /><span>점선은 노면 관측자료가 없는 구간입니다. 결빙 발생 또는 낮은 위험을 의미하지 않습니다.</span></div>}
+    {tilesFailed && <div className="tile-warning" role="status">배경 지도를 불러오지 못했어요. 수집된 실제 OSM 보행망과 계산 경로는 계속 확인할 수 있습니다.</div>}
   </div>;
 }

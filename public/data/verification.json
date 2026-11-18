@@ -1,0 +1,25 @@
+{
+  "verifiedAgainstOriginalPbf": true,
+  "sourceFileHashMatches": true,
+  "records": 4324,
+  "nodes": 3791,
+  "ways": 533,
+  "missingReferences": 0,
+  "allSelectedNodeAndWayTagsMatch": true,
+  "nodeTagCounts": {
+    "barrier": 0,
+    "foot": 0,
+    "access": 12,
+    "incline": 0,
+    "highway": 160
+  },
+  "wayTagCounts": {
+    "foot": 5,
+    "access": 1,
+    "incline": 0,
+    "sidewalk": 23,
+    "wheelchair": 4
+  },
+  "stepsWays": 2,
+  "sha256": "9392c9dedd61e90b5eaebbb6f9fdec2644f93550b230d1d071da25df99e59177"
+}

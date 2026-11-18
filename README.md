@@ -1,26 +1,17 @@
-# BingBing Zero / 빙빙제로
+# 빙빙제로 — 공개 실자료 버전
 
-React + TypeScript + Leaflet winter walking route demonstrator. Korean interface, responsive desktop/mobile layouts, keyboard accessible dialogs and location picker.
+React/TypeScript/Leaflet 앱. `npm ci`, `npm test`, `npm run build`, `npm run dev`로 설치·검증·실행한다.
 
-## Run
+`public/data/osm.json`은 Geofabrik의 2026-11-17 한국 OSM PBF에서 실제 관악구 영역을 추출한 자료다. `provenance.json`과 `verification.json`에 원본·추출본 해시, 기준시각, 원본 재검사 결과를 보존했다. 앱 로딩 시 SHA-256을 확인한다. 1,222개 노드/1,502개 구간/902개 등록 객체이며 독립된 시설 902곳이라는 의미는 아니다.
 
-Use Node.js 24 LTS. Run `npm ci`, then `npm run dev`. Run `npm test` for 29 automated checks and `npm run build` for the static `dist/` output.
+도보 권한과 방향은 원본 태그를 바탕으로 처리하지만 현장 통행 가능성이 검증된 것은 아니다. 경사·계단 정보 누락을 임의로 채우지 않는다. 장소와 실제 도로 노드 사이 공백은 80m까지 허용하되 경로/시간에서 제외하고 별도 표시한다.
 
-## Important data boundary
+노면 결빙 공개자료가 이 보행망에 연결되지 않았으므로 결빙 점수와 회피 추천은 제공하지 않는다. 기존 합성 도로망, 시나리오, 기상·습도·그늘·위험점수는 제거했다.
 
-`src/core/network.ts` contains a synthetic 20-node/32-edge/6-place graph positioned around Gwanak-gu, Seoul. It is not an imported or field-verified road network. Risk weather/environment features are synthetic. The baseline is a rule system, not a trained AI model or icing probability estimator. The UI labels all of this as simulation.
+기상은 Open-Meteo 실제 API를 사용한다. 네트워크 실패 시 출처·해시·시각을 검증한 2시간 이내의 실제 수집본만 원래 수집 시각과 함께 보여준다. 제공 기상 모델을 현장 실측으로 부르지 않는다. 기상 수집본은 자동으로 새 날짜가 되지 않으며, 만료되면 사용하지 않는다.
 
-`src/services/weather.ts` fetches actual Open-Meteo model data on user request, validates units, timestamps, and 24 hourly rainfall/snowfall samples. These model data are not pavement observations and never silently replace the simulation inputs.
+엔진과 기상 테스트는 취득한 실제 원본을 사용한다. 오류 검증에서는 실제 응답 필드를 누락시키거나 읽는 시각을 바꾸며 새로운 관측값을 생성하지 않는다. 2026-11-18 전체 34개 통과, TypeScript 및 프로덕션 빌드 통과.
 
-## Files
+사용자 위치는 브라우저 안에서만 처리한다. 기상 조회는 고정된 관악구청 주변 좌표다. `.env.local`은 Git 제외 파일이며 키는 `VITE_` 환경변수에 넣지 않는다. 기상청 연결은 API허브 활용 신청과 인증키, 실제 응답 검증을 추가로 필요로 한다.
 
-- `src/core/engine.ts`: risk rules, bounded place search, Dijkstra routing, traversal geometry and instructions.
-- `src/core/types.ts`: domain contracts corresponding to the planning ERD's conceptual objects.
-- `src/core/resultLifecycle.ts`: removes routes and risk labels when analysis expires.
-- `src/components/WalkingMap.tsx`: Leaflet layers, attribution, explanatory risk popups.
-- `src/App.tsx`: search, settings, results, navigation walkthrough.
-- `src/services/weather.test.ts`: missing/stale/incorrect weather data checks.
-
-No user accounts, route-history storage, or server database. Route computation happens in browser memory. Only font size preference persists. Tile requests reveal viewport region/IP to the tile provider. Actual geolocation is requested only after a user click and is used to select a nearby demo place, with the uncomputed connecting route disclosed.
-
-Full Korean feasibility, data-source, architecture, testing and handover documents are in the parent workspace's `docs/` directory.
+지도: [OpenStreetMap 기여자](https://www.openstreetmap.org/copyright), [Geofabrik](https://download.geofabrik.de/asia/south-korea.html), ODbL 1.0. 기상: [Open-Meteo](https://open-meteo.com/), CC BY 4.0.

@@ -1,16 +1,19 @@
-import type { Coordinate, Network, WalkNode, WalkSegment } from './types';
+import type { Coordinate, Network, OsmElement, OsmPayload, Place, SourceProvenance, WalkNode, WalkSegment } from './types';
 
-/**
- * This is a deliberately small synthetic fixture, not a surveyed footway network.
- * Coordinates are in the Gwanak / Seoul National University Station area, but
- * connectivity, road labels, shade, moisture, slope and stairs are demo inputs.
- * Never use these segments as proof of public access or real-world walkability.
- */
-export const NETWORK_SOURCE = '관악구 생활권 합성 시연 네트워크 · 현장 검증 전';
+// Tag semantics checked against the public OSM documentation:
+// https://wiki.openstreetmap.org/wiki/Key:access
+// https://wiki.openstreetmap.org/wiki/Key:oneway:foot
+// https://wiki.openstreetmap.org/wiki/Key:incline
+// The conservative exclusions below are routing policy, not additional observations.
 
 const EARTH_RADIUS_M = 6_371_008.8;
+export const MAX_SNAP_DISTANCE_M = 80;
+const ALLOWED_FOOT = new Set(['yes', 'designated', 'permissive', 'official', 'public']);
+const RESTRICTED_ACCESS = new Set(['no', 'private', 'customers', 'delivery', 'destination', 'permit', 'agricultural', 'forestry', 'use_sidepath']);
+const PUBLIC_ROAD_CLASSES = new Set(['footway', 'pedestrian', 'path', 'steps', 'living_street', 'residential', 'service', 'unclassified', 'tertiary', 'tertiary_link', 'secondary', 'secondary_link', 'primary', 'primary_link', 'road', 'track']);
 const radians = (degrees: number) => degrees * Math.PI / 180;
 
+/** Geodesic calculation only: no elevation, shade or moisture is fabricated. */
 export function distanceBetween(a: Coordinate, b: Coordinate): number {
   const dLat = radians(b[1] - a[1]);
   const dLon = radians(b[0] - a[0]);
@@ -20,68 +23,210 @@ export function distanceBetween(a: Coordinate, b: Coordinate): number {
 }
 
 export function geometryLength(coordinates: Coordinate[]): number {
-  return coordinates.slice(1).reduce((sum, coordinate, index) =>
-    sum + distanceBetween(coordinates[index], coordinate), 0);
+  return coordinates.slice(1).reduce((sum, coordinate, index) => sum + distanceBetween(coordinates[index], coordinate), 0);
 }
 
-const longitude = [126.9494, 126.9515, 126.9528, 126.9545];
-const latitude = [37.4822, 37.4811, 37.4797, 37.4783, 37.4770];
-const nodes: WalkNode[] = latitude.flatMap((lat, row) => longitude.map((lng, column) => ({
-  id: `n${row}${column}`,
-  coordinate: [lng, lat] as Coordinate,
-})));
-const byId = new Map(nodes.map(node => [node.id, node]));
-
-function segment(from: string, to: string, name: string, attributes: Partial<WalkSegment> = {}): WalkSegment {
-  const coordinates: Coordinate[] = [byId.get(from)!.coordinate, byId.get(to)!.coordinate];
-  return {
-    id: `${from}-${to}`, from, to, name, coordinates,
-    lengthM: geometryLength(coordinates), slope: 2, stairs: false,
-    shade: 0.15, moisture: 0.12, source: NETWORK_SOURCE,
-    ...attributes,
-  };
+export function coordinateInside(coordinate: Coordinate, bounds: Network['bounds']): boolean {
+  if (!Array.isArray(coordinate) || coordinate.length !== 2 || !coordinate.every(Number.isFinite)) return false;
+  const [[west, south], [east, north]] = bounds;
+  return coordinate[0] >= west && coordinate[0] <= east && coordinate[1] >= south && coordinate[1] <= north;
 }
 
-const horizontalNames = ['봉천사거리 주변', '역 앞 보행로', '생활권 연결길', '구청 앞 보행로', '구청 남측 연결길'];
-const verticalNames = ['서측 생활로', '관악로 서측 보행로', '중앙 연결길', '샤로수길 연결로'];
-const segments: WalkSegment[] = [];
-for (let row = 0; row < 5; row++) {
-  for (let column = 0; column < 3; column++) {
-    segments.push(segment(`n${row}${column}`, `n${row}${column + 1}`, horizontalNames[row], {
-      slope: row === 4 ? 4.2 : 1.4,
-    }));
+/** Explicit foot permissions override general access; unresolved conditional rules are excluded. */
+export function isFootAccessible(tags: Record<string, string>): boolean {
+  const highway = tags.highway;
+  if (!highway || tags.area === 'yes' || ['construction', 'proposed', 'motorway', 'motorway_link'].includes(highway)) return false;
+  if (tags['foot:conditional'] || tags['access:conditional']) return false;
+  const foot = tags.foot?.toLowerCase();
+  const access = tags.access?.toLowerCase();
+  if (foot && RESTRICTED_ACCESS.has(foot)) return false;
+  if (foot && ALLOWED_FOOT.has(foot)) return true;
+  if (access && RESTRICTED_ACCESS.has(access)) return false;
+  if (access && !ALLOWED_FOOT.has(access)) return false;
+  // A bicycle-only route needs an explicit pedestrian permission.
+  if (highway === 'cycleway' || highway === 'trunk' || highway === 'trunk_link' || highway === 'bridleway') return false;
+  if (foot && !ALLOWED_FOOT.has(foot)) return false;
+  return PUBLIC_ROAD_CLASSES.has(highway);
+}
+
+/** An unconfirmed barrier is not silently assumed passable. */
+export function isNodePassable(tags: Record<string, string>): boolean {
+  if (tags['foot:conditional'] || tags['access:conditional']) return false;
+  const foot = tags.foot?.toLowerCase();
+  if (foot && RESTRICTED_ACCESS.has(foot)) return false;
+  if (foot && ALLOWED_FOOT.has(foot)) return true;
+  if (tags.access && RESTRICTED_ACCESS.has(tags.access.toLowerCase())) return false;
+  if (tags.access && !ALLOWED_FOOT.has(tags.access.toLowerCase())) return false;
+  if (tags.barrier && !['no', 'entrance'].includes(tags.barrier)) return false;
+  return true;
+}
+
+function inclinePercent(tags: Record<string, string>): number | null {
+  const raw = tags.incline?.trim();
+  if (!raw || !/^[+-]?\d+(?:\.\d+)?\s*(?:%|°)?$/.test(raw)) return null;
+  const value = Number.parseFloat(raw);
+  const percent = raw.endsWith('°') ? Math.tan(radians(value)) * 100 : value;
+  return Number.isFinite(percent) && Math.abs(percent) <= 1000 ? percent : null;
+}
+
+function stairsStatus(tags: Record<string, string>): boolean | null {
+  if (tags.highway === 'steps' || tags.stairs === 'yes') return true;
+  if (tags.step_count && /^\d+$/.test(tags.step_count)) return Number(tags.step_count) > 0;
+  if (tags.stairs === 'no' || tags.steps === 'no') return false;
+  // A non-steps highway tag alone is not a verified no-stairs survey.
+  return null;
+}
+
+function footDirection(tags: Record<string, string>): WalkSegment['direction'] | null {
+  const value = tags['oneway:foot']?.trim().toLowerCase();
+  if (!value && !tags['foot:forward'] && !tags['foot:backward']
+    && ['footway', 'path', 'steps', 'pedestrian'].includes(tags.highway)
+    && tags.oneway && !['no', 'false', '0'].includes(tags.oneway)) return null;
+  let direction: WalkSegment['direction'];
+  if (!value || ['no', 'false', '0'].includes(value)) direction = 'both';
+  else if (['yes', 'true', '1'].includes(value)) direction = 'forward';
+  else if (value === '-1' || value === 'reverse') direction = 'backward';
+  else return null; // Unknown direction must not become a bidirectional edge.
+  const forward = tags['foot:forward']?.trim().toLowerCase();
+  const backward = tags['foot:backward']?.trim().toLowerCase();
+  const forwardAllowed = direction !== 'backward' && (!forward || ALLOWED_FOOT.has(forward));
+  const backwardAllowed = direction !== 'forward' && (!backward || ALLOWED_FOOT.has(backward));
+  return forwardAllowed && backwardAllowed ? 'both' : forwardAllowed ? 'forward' : backwardAllowed ? 'backward' : null;
+}
+
+function normalizedTags(tags?: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(tags ?? {}).filter(([, value]) => typeof value === 'string'));
+}
+
+export function nearestNode(network: Pick<Network, 'nodes' | 'bounds'>, coordinate: Coordinate): { node: WalkNode; distanceM: number } | null {
+  if (!coordinateInside(coordinate, network.bounds)) return null;
+  let selected: WalkNode | null = null;
+  let minimum = Infinity;
+  for (const node of network.nodes) {
+    const gap = distanceBetween(coordinate, node.coordinate);
+    if (gap < minimum) { minimum = gap; selected = node; }
   }
+  return selected && minimum <= MAX_SNAP_DISTANCE_M ? { node: selected, distanceM: minimum } : null;
 }
-for (let row = 0; row < 4; row++) {
-  for (let column = 0; column < 4; column++) {
-    const attributes: Partial<WalkSegment> = { slope: column === 0 ? 3.5 : 2.2 };
-    if (row === 1 && column === 2) {
-      Object.assign(attributes, { name: '그늘진 연결길', shade: 0.95, moisture: 0.9 });
-    }
-    if (row === 2 && column === 3) {
-      Object.assign(attributes, { name: '동측 계단길', stairs: true, slope: 12, shade: 0.3 });
-    }
-    if (row === 0 && column === 0) {
-      Object.assign(attributes, { name: '환경정보 미확인 구간', stairs: null, slope: null, shade: null, moisture: null });
-    }
-    segments.push(segment(`n${row}${column}`, `n${row + 1}${column}`, verticalNames[column], attributes));
-  }
-}
-segments.push(segment('n22', 'n31', '구청 방향 골목길', {
-  shade: 0.85, moisture: 0.86, slope: 4.5,
-}));
 
-export const network: Network = {
-  nodes,
-  segments,
-  places: [
-    { id: 'snu-station', name: '서울대입구역', category: '지하철역 · 시연 지점', coordinate: byId.get('n12')!.coordinate, nodeId: 'n12' },
-    { id: 'gwanak-office', name: '관악구청', category: '공공시설 · 시연 지점', coordinate: byId.get('n31')!.coordinate, nodeId: 'n31' },
-    { id: 'sharosu', name: '샤로수길 입구', category: '생활권 · 시연 지점', coordinate: byId.get('n23')!.coordinate, nodeId: 'n23' },
-    { id: 'bongcheon-crossing', name: '봉천사거리', category: '교차로 · 시연 지점', coordinate: byId.get('n02')!.coordinate, nodeId: 'n02' },
-    { id: 'cheongryong', name: '청룡동 생활권', category: '주거지 · 시연 지점', coordinate: byId.get('n40')!.coordinate, nodeId: 'n40' },
-    { id: 'office-south', name: '관악구청 남측', category: '생활권 · 시연 지점', coordinate: byId.get('n41')!.coordinate, nodeId: 'n41' },
-  ],
-  bounds: [[126.9487, 37.4765], [126.9552, 37.4828]],
-  source: NETWORK_SOURCE,
-};
+function categoryFor(tags: Record<string, string>, type: 'node' | 'way'): string {
+  const category = tags.amenity ? `시설 · ${tags.amenity}`
+    : tags.office ? `기관 · ${tags.office}`
+      : tags.shop ? `상점 · ${tags.shop}`
+      : tags.railway ? `철도 · ${tags.railway}`
+        : tags.public_transport ? `대중교통 · ${tags.public_transport}`
+          : tags.leisure ? `여가 · ${tags.leisure}`
+            : tags.tourism ? `관광 · ${tags.tourism}`
+              : tags.junction ? '교차로'
+                : tags.highway ? `도로시설 · ${tags.highway}`
+                  : tags.building ? `건물 · ${tags.building}` : 'OSM 이름 등록 지점';
+  return type === 'way' ? `${category} · 도형 중심` : category;
+}
+
+function checkedProvenance(provenance: SourceProvenance, payload: OsmPayload): SourceProvenance {
+  if (!provenance || !provenance.source || !provenance.endpoint || !provenance.license || !provenance.licenseUrl
+    || !/^[a-f0-9]{64}$/i.test(provenance.sha256 ?? '')
+    || !Number.isFinite(Date.parse(provenance.downloadedAt)) || !Number.isFinite(Date.parse(provenance.osmTimestamp))
+    || !Array.isArray(provenance.bbox) || provenance.bbox.length !== 4 || !provenance.bbox.every(Number.isFinite)) {
+    throw new Error('OSM 출처·기준 시각·파일 해시가 누락되어 보행망을 사용할 수 없습니다.');
+  }
+  const [south, west, north, east] = provenance.bbox;
+  if (!(south < north && west < east && south >= -90 && north <= 90 && west >= -180 && east <= 180)) throw new Error('OSM 수집 범위가 올바르지 않습니다.');
+  if (payload.osm3s?.timestamp_osm_base && Date.parse(payload.osm3s.timestamp_osm_base) !== Date.parse(provenance.osmTimestamp)) throw new Error('OSM 원본과 출처 문서의 기준 시각이 다릅니다.');
+  return { ...provenance, bbox: [...provenance.bbox] };
+}
+
+/**
+ * Build only edges that occur consecutively in a real OSM way. Geometric
+ * crossings do not connect unless both ways reference the SAME OSM node ID.
+ * Unknown access constraints, barriers and missing geometry are not repaired
+ * with invented connectors. Caller must verify SHA-256 of the downloaded bytes.
+ */
+export function buildNetwork(payload: OsmPayload, provenance: SourceProvenance): Network {
+  if (!payload || !Array.isArray(payload.elements) || !payload.elements.length || payload.remark) throw new Error('완전한 OSM 원본 자료를 불러오지 못했습니다.');
+  const checked = checkedProvenance(provenance, payload);
+  const [south, west, north, east] = checked.bbox;
+  const bounds: Network['bounds'] = [[west, south], [east, north]];
+  const rawNodes = new Map<number, OsmElement>();
+  const rawWays = new Map<number, OsmElement>();
+  for (const element of payload.elements) {
+    if (!Number.isSafeInteger(element.id) || element.id <= 0) continue;
+    const store = element.type === 'node' ? rawNodes : element.type === 'way' ? rawWays : null;
+    if (!store) continue;
+    const existing = store.get(element.id);
+    store.set(element.id, { ...existing, ...element, tags: { ...normalizedTags(existing?.tags), ...normalizedTags(element.tags) } });
+  }
+  const knownNodes = new Map<string, WalkNode>();
+  for (const [id, element] of rawNodes) {
+    if (!Number.isFinite(element.lon) || !Number.isFinite(element.lat)) continue;
+    const coordinate: Coordinate = [element.lon!, element.lat!];
+    if (!coordinateInside(coordinate, bounds)) continue;
+    knownNodes.set(`node/${id}`, { id: `node/${id}`, coordinate, tags: normalizedTags(element.tags) });
+  }
+  const blocked = new Set([...knownNodes.values()].filter(node => !isNodePassable(node.tags)).map(node => node.id));
+  const exclusions: Network['exclusions'] = { inaccessibleWays: 0, blockedNodes: blocked.size, blockedSegments: 0, outsideOrMissingSegments: 0, unsnappedPlaces: 0 };
+  const segments: WalkSegment[] = [];
+  const connectedNodes = new Set<string>();
+  for (const element of rawWays.values()) {
+    const tags = normalizedTags(element.tags);
+    if (!tags.highway) continue;
+    const direction = footDirection(tags);
+    if (!isFootAccessible(tags) || direction === null || tags['oneway:foot:conditional'] || !Array.isArray(element.nodes)) {
+      exclusions.inaccessibleWays += 1; continue;
+    }
+    const slope = inclinePercent(tags);
+    const stairs = stairsStatus(tags);
+    for (let index = 0; index < element.nodes.length - 1; index++) {
+      const from = `node/${element.nodes[index]}`;
+      const to = `node/${element.nodes[index + 1]}`;
+      const a = knownNodes.get(from); const b = knownNodes.get(to);
+      if (!a || !b) { exclusions.outsideOrMissingSegments += 1; continue; }
+      if (blocked.has(from) || blocked.has(to)) { exclusions.blockedSegments += 1; continue; }
+      const lengthM = distanceBetween(a.coordinate, b.coordinate);
+      if (from === to || lengthM <= 0) continue;
+      segments.push({
+        id: `way/${element.id}:${index}`, wayId: String(element.id), from, to,
+        name: tags['name:ko'] || tags.name || '이름이 등록되지 않은 OSM 구간',
+        coordinates: [a.coordinate, b.coordinate], lengthM, slope, stairs, direction,
+        source: `https://www.openstreetmap.org/way/${element.id}`, tags,
+      });
+      connectedNodes.add(from); connectedNodes.add(to);
+    }
+  }
+  const nodes = [...connectedNodes].map(id => knownNodes.get(id)!);
+  if (!segments.length || !nodes.length) throw new Error('수집 범위 안에서 이용 가능한 OSM 보행 구간을 찾지 못했습니다.');
+  const network: Network = { nodes, segments, places: [], bounds, source: checked.source, provenance: checked, exclusions };
+  const candidates: { element: OsmElement; coordinate: Coordinate; type: 'node' | 'way' }[] = [];
+  for (const element of rawNodes.values()) {
+    const tags = normalizedTags(element.tags);
+    if (!(tags['name:ko'] || tags.name) || !Number.isFinite(element.lon) || !Number.isFinite(element.lat)) continue;
+    candidates.push({ element, coordinate: [element.lon!, element.lat!], type: 'node' });
+  }
+  for (const element of rawWays.values()) {
+    const tags = normalizedTags(element.tags);
+    if (!(tags['name:ko'] || tags.name) || tags.highway || !element.nodes?.length) continue;
+    const ids = [...new Set(element.nodes)];
+    const coordinates = ids.map(id => rawNodes.get(id)).filter((node): node is OsmElement => !!node && Number.isFinite(node.lon) && Number.isFinite(node.lat));
+    if (coordinates.length !== ids.length) continue;
+    // Actual feature geometry's vertex mean, explicitly labelled as a center,
+    // not an entrance or a measured pedestrian connection.
+    const coordinate: Coordinate = [coordinates.reduce((sum, node) => sum + node.lon!, 0) / coordinates.length, coordinates.reduce((sum, node) => sum + node.lat!, 0) / coordinates.length];
+    candidates.push({ element, coordinate, type: 'way' });
+  }
+  for (const { element, coordinate, type } of candidates) {
+    const snap = nearestNode(network, coordinate);
+    if (!snap) { exclusions.unsnappedPlaces += 1; continue; }
+    const tags = normalizedTags(element.tags);
+    const place: Place = {
+      id: `${type}/${element.id}`, sourceId: String(element.id), sourceType: type,
+      sourceUrl: `https://www.openstreetmap.org/${type}/${element.id}`,
+      name: tags['name:ko'] || tags.name, category: categoryFor(tags, type), coordinate,
+      nodeId: snap.node.id, routeCoordinate: snap.node.coordinate, snapDistanceM: snap.distanceM,
+      aliases: [...new Set(['alt_name', 'alt_name:ko', 'name:en', 'official_name', 'official_name:ko']
+        .flatMap(key => (tags[key] ?? '').split(';')).map(value => value.trim()).filter(Boolean))],
+    };
+    network.places.push(place);
+  }
+  network.places.sort((a, b) => a.name.localeCompare(b.name, 'ko-KR') || a.id.localeCompare(b.id));
+  return network;
+}

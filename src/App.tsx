@@ -1,232 +1,126 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpDown, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, Footprints, Info, LocateFixed, Map, Navigation, RotateCcw, Settings2, ShieldCheck, SlidersHorizontal, Snowflake, Sun, TriangleAlert, Type, Volume2, X } from 'lucide-react';
-import { analyzeRisk, network, searchRoutes, nearestPlace, findPlaces } from './core/engine';
-import type { Place, Route, Scenario, SearchOptions, SearchResult } from './core/types';
+import { ArrowLeft, ArrowRight, ArrowUpDown, Check, ChevronDown, ChevronLeft, ChevronRight, Footprints, Info, LocateFixed, Map, MapPin, Navigation, RefreshCw, Settings2, Snowflake, Type, Volume2, X } from 'lucide-react';
+import { analyzeRisk, nearestPlace, searchRoutes } from './core/engine';
+import type { Coordinate, Network, Place, SearchOptions, SearchResult } from './core/types';
+import { fetchNetwork } from './services/network';
 import { PlaceInput } from './components/PlaceInput';
 import { WalkingMap } from './components/WalkingMap';
 import LiveWeather from './components/LiveWeather';
-import { expireResult } from './core/resultLifecycle';
 
-const DEFAULT_OPTIONS: SearchOptions = { originId: 'snu-station', destinationId: 'gwanak-office', walkingSpeedMps: 1, avoidStairs: true, maxSlopePercent: null, scenario: 'freezing' };
-const scenarios: { id: Scenario; name: string; description: string }[] = [
-  { id: 'freezing', name: '눈 온 뒤 영하', description: '위험이 높은 구간을 피해가는 경로를 비교합니다.' },
-  { id: 'dry', name: '온화하고 건조', description: '같은 길이 추천될 수 있는 조건을 확인합니다.' },
-  { id: 'missing', name: '자료 부족', description: '정보가 없는 구간을 낮은 위험으로 판단하지 않습니다.' },
-  { id: 'stale', name: '자료 만료', description: '갱신되지 않은 자료로 추천하지 않습니다.' },
-  { id: 'blocked', name: '우회 경로 없음', description: '조건에 맞는 추천 경로가 없는 상황을 확인합니다.' },
-];
-const getPlace = (id: string) => network.places.find(place => place.id === id);
-const distance = (meters: number) => meters >= 1000 ? `${(meters / 1000).toFixed(2)}km` : `${Math.round(meters)}m`;
-const duration = (seconds: number) => Math.max(1, Math.ceil(seconds / 60));
-const exactDuration = (seconds: number) => { const rounded = Math.round(seconds); return `${Math.floor(rounded / 60)}분 ${rounded % 60}초`; };
-const time = (iso: string) => new Date(iso).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Seoul' });
-
-function RouteCard({ route, selected, extraSeconds, onClick }: { route: Route; selected: boolean; extraSeconds: number | null; onClick: () => void }) {
-  const recommended = route.type === 'recommended';
-  return <button type="button" className={`route-card ${recommended ? 'recommended' : 'normal'} ${selected ? 'selected' : ''}`} onClick={onClick} aria-pressed={selected}>
-    <div className="route-card-top"><span className="route-title">{recommended ? <ShieldCheck size={18} /> : <Footprints size={18} />}{recommended ? '위험 회피 추천' : '일반 경로'}</span><span className="route-radio">{selected && <Check size={12} />}</span></div>
-    <div className="route-card-metrics"><strong>{duration(route.durationSeconds)}<small>분</small></strong><span>{distance(route.distanceM)}</span>{recommended && extraSeconds !== null && <span className="extra-pill">{extraSeconds > 0 ? `+${exactDuration(extraSeconds)}` : '추가 시간 없음'}</span>}</div>
-    <div className="route-card-caption">{recommended ? <><span className="green-dot" />높은 위험·정보 부족 구간 제외</> : <><span className={route.highRiskCount || route.unknownCount ? 'amber-dot' : 'neutral-dot'} />{route.highRiskCount ? `위험 높음 ${route.highRiskCount}개 구간 포함` : route.unknownCount ? `정보 부족 ${route.unknownCount}개 구간 포함` : '거리 기준으로 짧은 경로'}</>}</div>
-  </button>;
-}
+const defaults: SearchOptions = { origin: null, destination: null, walkingSpeedMps: 1, avoidStairs: false, maxSlopePercent: null };
+const distance = (m: number) => m >= 1000 ? `${(m / 1000).toFixed(2)}km` : `${Math.round(m)}m`;
+const minutes = (s: number) => Math.max(1, Math.ceil(s / 60));
+const stamp = (s: string) => new Date(s).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
 
 export default function App() {
-  const [options, setOptions] = useState<SearchOptions>(DEFAULT_OPTIONS);
-  const [originQuery, setOriginQuery] = useState(getPlace(DEFAULT_OPTIONS.originId)?.name ?? '');
-  const [destinationQuery, setDestinationQuery] = useState(getPlace(DEFAULT_OPTIONS.destinationId)?.name ?? '');
-  const [result, setResult] = useState<SearchResult>(() => searchRoutes(DEFAULT_OPTIONS));
-  const [dirty, setDirty] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState<'normal' | 'recommended'>('recommended');
-  const [error, setError] = useState('');
-  const [locationMessage, setLocationMessage] = useState('');
+  const [network, setNetwork] = useState<Network | null>(null);
+  const [dataError, setDataError] = useState('');
+  const [reload, setReload] = useState(0);
+  const [options, setOptions] = useState<SearchOptions>(defaults);
+  const [originQuery, setOriginQuery] = useState('');
+  const [destinationQuery, setDestinationQuery] = useState('');
+  const [result, setResult] = useState<SearchResult | null>(null);
+  const [message, setMessage] = useState('');
   const [locating, setLocating] = useState(false);
   const [preferences, setPreferences] = useState(false);
-  const [demoSettings, setDemoSettings] = useState(false);
   const [info, setInfo] = useState(false);
   const [largeText, setLargeText] = useState(() => { try { return localStorage.getItem('bbzr-large-text') === 'true'; } catch { return false; } });
+  const [selectionMode, setSelectionMode] = useState<'origin' | 'destination' | null>(null);
   const [navigation, setNavigation] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [recenterKey, setRecenterKey] = useState(0);
-  const timer = useRef<number | null>(null);
-  const serial = useRef(0);
-  const modalRef = useRef<HTMLDialogElement>(null);
-  const settingsRef = useRef<HTMLDialogElement>(null);
-  const infoButton = useRef<HTMLButtonElement>(null);
-  const resultsHeading = useRef<HTMLHeadingElement>(null);
-  const run = useMemo(() => dirty ? analyzeRisk(options.scenario) : result.run, [dirty, options.scenario, result.run]);
-  const origin = getPlace(options.originId);
-  const destination = getPlace(options.destinationId);
-  const activeRoute = selected === 'recommended' ? result.recommended : result.normal;
-  const currentStep = navigation ? activeRoute?.steps[stepIndex] : undefined;
-  const highCount = run.estimates.filter(estimate => estimate.level === 'high').length;
-  const unknownCount = run.estimates.filter(estimate => estimate.level === 'unknown').length;
-  const remainingSteps = activeRoute?.steps.slice(stepIndex) ?? [];
-  const remainingMeters = remainingSteps.reduce((total, step) => total + step.distanceM, 0);
-  const remainingSeconds = remainingSteps.reduce((total, step) => total + step.durationSeconds, 0);
+  const modal = useRef<HTMLDialogElement>(null);
+  const locationRequest = useRef(0);
+  const run = useMemo(() => network ? analyzeRisk(network) : null, [network]);
+  const route = result?.normal ?? null;
+  const step = navigation ? route?.steps[stepIndex] : undefined;
 
-  useEffect(() => { try { localStorage.setItem('bbzr-large-text', String(largeText)); } catch { /* Preference persistence is optional. */ } }, [largeText]);
-  useEffect(() => () => { if (timer.current) window.clearTimeout(timer.current); window.speechSynthesis?.cancel(); }, []);
-  useEffect(() => { if (info) modalRef.current?.showModal(); else if (modalRef.current?.open) modalRef.current.close(); }, [info]);
-  useEffect(() => { if (demoSettings) settingsRef.current?.showModal(); else if (settingsRef.current?.open) settingsRef.current.close(); }, [demoSettings]);
   useEffect(() => {
-    const check = () => {
-      const next = expireResult(result);
-      if (next !== result) { setResult(next); setNavigation(false); window.speechSynthesis?.cancel(); }
-    };
-    if (result.status === 'stale-data') return;
-    const timeout = window.setTimeout(check, Math.max(0, Date.parse(result.run.validUntil) - Date.now()));
-    document.addEventListener('visibilitychange', check);
-    return () => { window.clearTimeout(timeout); document.removeEventListener('visibilitychange', check); };
-  }, [result]);
+    const controller = new AbortController();
+    locationRequest.current += 1; setLocating(false);
+    setDataError(''); setNetwork(null); setResult(null); setOptions(defaults);
+    setOriginQuery(''); setDestinationQuery(''); setNavigation(false);
+    fetchNetwork(controller.signal).then(actual => { if (!controller.signal.aborted) setNetwork(actual); }).catch(error => {
+      if (!controller.signal.aborted) setDataError(error instanceof Error && error.name === 'TimeoutError' ? '보행망 조회 시간이 초과되었습니다. 다시 불러와 주세요.' : error instanceof Error && error.name !== 'TypeError' && error.name !== 'SyntaxError' ? error.message : '실제 자료를 불러오지 못했습니다. 다시 불러와 주세요.');
+    });
+    return () => controller.abort();
+  }, [reload]);
+  useEffect(() => { try { localStorage.setItem('bbzr-large-text', String(largeText)); } catch { /* optional preference */ } }, [largeText]);
+  useEffect(() => { if (info) modal.current?.showModal(); else modal.current?.close(); }, [info]);
+  useEffect(() => () => window.speechSynthesis?.cancel(), []);
 
-  function invalidate(next: Partial<SearchOptions>) {
+  function change(next: Partial<SearchOptions>) {
+    locationRequest.current += 1; setLocating(false);
+    setOptions(old => ({ ...old, ...next })); setResult(null); setNavigation(false); setMessage('');
     window.speechSynthesis?.cancel();
-    serial.current += 1;
-    if (timer.current) window.clearTimeout(timer.current);
-    setLoading(false); setOptions(old => ({ ...old, ...next })); setDirty(true); setNavigation(false); setError('');
   }
-  function selectPlace(kind: 'origin' | 'destination', place: Place) {
-    if (kind === 'origin') { setOriginQuery(place.name); invalidate({ originId: place.id }); }
-    else { setDestinationQuery(place.name); invalidate({ destinationId: place.id }); }
-    setLocationMessage('');
+  function select(kind: 'origin' | 'destination', place: Place) {
+    if (kind === 'origin') setOriginQuery(place.name); else setDestinationQuery(place.name);
+    change({ [kind]: place }); setSelectionMode(null);
   }
-  function calculate(next: SearchOptions = options) {
-    window.speechSynthesis?.cancel();
-    const originId = next.originId || findPlaces(originQuery).find(place => place.name === originQuery.trim())?.id || '';
-    const destinationId = next.destinationId || findPlaces(destinationQuery).find(place => place.name === destinationQuery.trim())?.id || '';
-    if (!originId || !destinationId) { setError('검색 결과에서 출발지와 목적지를 선택해 주세요. 시연 생활권의 장소만 조회할 수 있어요.'); return; }
-    const requested = { ...next, originId, destinationId };
-    setOptions(requested); setLoading(true); setError(''); setNavigation(false);
-    const requestSerial = ++serial.current;
-    if (timer.current) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => {
-      if (serial.current !== requestSerial) return;
-      const response = searchRoutes(requested);
-      setResult(response); setDirty(false); setLoading(false); setSelected(response.recommended ? 'recommended' : 'normal'); setStepIndex(0); setRecenterKey(key => key + 1);
-      window.setTimeout(() => resultsHeading.current?.focus({ preventScroll: true }), 0);
-    }, 180);
-  }
-  function swap() {
-    setOriginQuery(destinationQuery); setDestinationQuery(originQuery);
-    invalidate({ originId: options.destinationId, destinationId: options.originId }); setLocationMessage('');
+  function point(coordinate: Coordinate, kind: 'origin' | 'destination', name?: string, accuracyM?: number) {
+    if (!network) return;
+    const place = nearestPlace(network, coordinate);
+    if (!place) { setMessage('수집 영역 안의 보행망에서 80m 이내인 위치를 선택해 주세요. 연결되지 않은 길을 임의로 만들지 않습니다.'); return; }
+    if (name) place.name = name;
+    select(kind, place);
+    const accuracy = accuracyM !== undefined && Number.isFinite(accuracyM) ? `기기가 보고한 위치 정확도 반경 ${distance(accuracyM)}. ` : '';
+    setMessage(`${accuracy}선택 위치에서 경로 연결점까지 직선거리 ${distance(place.snapDistanceM)}입니다. 그 사이 접근로는 미확인으로 경로·시간에서 제외합니다.`);
   }
   function locate() {
-    setLocationMessage('');
-    if (!navigator.geolocation) { setLocationMessage('이 브라우저는 현재 위치를 지원하지 않아요. 출발지를 직접 선택해 주세요.'); return; }
+    if (!navigator.geolocation) { setMessage('현재 위치를 지원하지 않는 브라우저입니다. 지도에서 출발지를 선택해 주세요.'); return; }
+    const requested = ++locationRequest.current;
     setLocating(true);
     navigator.geolocation.getCurrentPosition(position => {
-      setLocating(false);
-      const [longitude, latitude] = [position.coords.longitude, position.coords.latitude];
-      const place = nearestPlace([longitude, latitude]);
-      if (!place) { setLocationMessage('현재 위치는 시연 장소와 거리가 멀어요. 관악구 생활권의 출발지를 직접 선택해 주세요.'); return; }
-      selectPlace('origin', place);
-      setLocationMessage(`가까운 시연 장소인 ${place.name}(으)로 출발지를 설정했어요. 현재 위치에서 그 장소까지의 길은 포함하지 않아요.`);
-    }, failure => {
-      setLocating(false);
-      setLocationMessage(failure.code === 1 ? '위치 접근이 허용되지 않았어요. 출발지를 직접 선택해 주세요.' : '현재 위치를 가져오지 못했어요. 다시 시도하거나 출발지를 선택해 주세요.');
-    }, { timeout: 10000, maximumAge: 30000, enableHighAccuracy: false });
+      if (requested !== locationRequest.current) return;
+      setLocating(false); point([position.coords.longitude, position.coords.latitude], 'origin', '현재 위치', position.coords.accuracy);
+    }, error => {
+      if (requested !== locationRequest.current) return;
+      setLocating(false); setMessage(error.code === 1 ? '위치 접근을 허용하지 않았습니다. 지도에서 출발지를 선택할 수 있습니다.' : '현재 위치를 가져오지 못했습니다. 지도에서 출발지를 선택해 주세요.');
+    }, { timeout: 10000, maximumAge: 30000, enableHighAccuracy: true });
   }
-  function chooseScenario(scenario: Scenario) { const next = { ...options, scenario }; setOptions(next); calculate(next); }
-  function startNavigation() {
-    const checked = expireResult(result);
-    if (checked !== result) { setResult(checked); return; }
-    if (dirty || !activeRoute) return;
-    setNavigation(true); setStepIndex(0);
+  function calculate() {
+    if (!network) return;
+    window.speechSynthesis?.cancel(); setNavigation(false); setSelectionMode(null);
+    setResult(searchRoutes(network, options)); setRecenterKey(k => k + 1); setMessage(''); setStepIndex(0);
   }
-  function endNavigation() { setNavigation(false); setStepIndex(0); window.speechSynthesis?.cancel(); }
   function speak() {
-    if (!currentStep || !('speechSynthesis' in window)) return;
+    if (!step || !('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const speech = new SpeechSynthesisUtterance(`${currentStep.instruction}. ${Math.round(currentStep.distanceM)}미터 이동합니다. 시연 안내입니다.`);
+    const speech = new SpeechSynthesisUtterance(`${step.instruction}. ${Math.round(step.distanceM)}미터. 실제 위치를 추적하는 안내가 아닙니다.`);
     speech.lang = 'ko-KR'; speech.rate = .85; window.speechSynthesis.speak(speech);
   }
-  function closeInfo() { setInfo(false); infoButton.current?.focus(); }
 
   return <div className={`app-shell ${largeText ? 'large-text' : ''}`}>
     <a className="skip-link" href="#route-search">경로 검색으로 바로가기</a>
-    <aside className="side-rail" aria-label="주 메뉴">
-      <a className="rail-brand" href="#route-search" aria-label="빙빙제로 경로 찾기"><Snowflake size={32} strokeWidth={2.3} /><span>빙빙제로</span></a>
-      <div className="rail-divider" />
-      <a className="rail-item active" href="#route-search"><Map size={23} /><span>길찾기</span></a>
-      <button type="button" className={`rail-item ${demoSettings ? 'is-open' : ''}`} aria-expanded={demoSettings} onClick={() => setDemoSettings(!demoSettings)}><SlidersHorizontal size={22} /><span>시연 설정</span></button>
-      <div className="rail-bottom"><button type="button" className="rail-item" ref={infoButton} onClick={() => setInfo(true)}><Info size={22} /><span>서비스 안내</span></button><span className="rail-beta">BETA 0.1</span></div>
-    </aside>
-
+    <aside className="side-rail" aria-label="주 메뉴"><a className="rail-brand" href="#route-search"><Snowflake size={32} /><span>빙빙제로</span></a><div className="rail-divider" /><a className="rail-item active" href="#route-search"><Map size={23} /><span>길찾기</span></a><button className="rail-item" onClick={() => setInfo(true)}><Info size={22} /><span>데이터 출처</span></button><div className="rail-bottom"><span className="rail-beta">PUBLIC DATA</span></div></aside>
     <main className="workspace">
-      <header className="page-header">
-        <div className="header-heading"><span className="mobile-brand"><Snowflake size={23} />빙빙제로</span><span className="header-eyebrow">A LITTLE CARE, EVERY STEP</span><h1>겨울에도, 한 걸음 편안하게<span>.</span></h1><p>결빙 위험을 살피고, 나에게 맞는 길을 선택하세요.</p></div>
-        <div className="header-actions"><span className="simulation-badge"><i />시뮬레이션</span><button type="button" className={`text-toggle ${largeText ? 'active' : ''}`} aria-pressed={largeText} onClick={() => setLargeText(!largeText)}><Type size={18} /><span>큰 글씨</span></button><button type="button" className="mobile-info" aria-label="서비스 안내" onClick={() => setInfo(true)}><Info size={20} /></button></div>
-      </header>
-
-      <div className="main-layout">
+      <header className="page-header"><div className="header-heading"><span className="mobile-brand"><Snowflake size={23} />빙빙제로</span><span className="header-eyebrow">PUBLIC DATA, EVERY STEP</span><h1>확인된 자료로, 한 걸음씩<span>.</span></h1><p>공개 지도와 기상을 확인하고 보행 경로를 살펴보세요.</p></div><div className="header-actions"><span className="simulation-badge"><i />공개 실자료</span><button className={`text-toggle ${largeText ? 'active' : ''}`} aria-pressed={largeText} onClick={() => setLargeText(!largeText)}><Type size={18} />큰 글씨</button><button className="mobile-info" aria-label="데이터 출처" onClick={() => setInfo(true)}><Info size={20} /></button></div></header>
+      {!network || !run ? <section className="data-loading" role="status"><Map size={32} /><h2>{dataError ? '실제 자료를 불러오지 못했어요' : '공개 보행망을 확인하고 있어요'}</h2><p>{dataError || '원본과 출처 기록을 확인한 뒤 지도를 표시합니다.'}</p>{dataError && <button className="primary-button" onClick={() => setReload(x => x + 1)}><RefreshCw size={18} />다시 불러오기</button>}</section> : <div className="main-layout">
         <section className="planner" aria-label="보행 경로 계획">
-          {!navigation ? <>
-            <form className="search-section" id="route-search" onSubmit={event => { event.preventDefault(); calculate(); }}>
-              <div className="section-heading"><h2>어디로 걸어가세요?</h2><span className="walking-label"><Footprints size={15} />도보</span></div>
-              <div className="place-fields">
-                <PlaceInput label="출발지" kind="origin" value={originQuery} onChange={value => { setOriginQuery(value); invalidate({ originId: '' }); }} onSelect={place => selectPlace('origin', place)} />
-                <div className="field-divider" />
-                <PlaceInput label="목적지" kind="destination" value={destinationQuery} onChange={value => { setDestinationQuery(value); invalidate({ destinationId: '' }); }} onSelect={place => selectPlace('destination', place)} />
-                <button type="button" className="swap-button" onClick={swap} aria-label="출발지와 목적지 바꾸기"><ArrowUpDown size={18} /></button>
-              </div>
-              <div className="search-secondary"><button type="button" className="location-button" onClick={locate} disabled={locating}><LocateFixed size={16} />{locating ? '현재 위치 확인 중…' : '현재 위치를 출발지로'}</button><button type="button" className={`preferences-button ${preferences ? 'active' : ''}`} aria-expanded={preferences} onClick={() => setPreferences(!preferences)}><Settings2 size={16} />보행 설정<ChevronDown size={14} /></button></div>
-              {locationMessage && <p className="inline-message" role="status">{locationMessage}</p>}
-              {preferences && <div className="preferences-panel">
-                <label className="speed-label" htmlFor="walking-speed">나의 보행 속도<select id="walking-speed" value={options.walkingSpeedMps} onChange={event => invalidate({ walkingSpeedMps: Number(event.target.value) })}><option value={.8}>천천히 · 초당 0.8m</option><option value={1}>여유롭게 · 초당 1.0m</option><option value={1.2}>보통 · 초당 1.2m</option></select></label>
-                <label className="check-row"><input type="checkbox" checked={options.avoidStairs} onChange={event => invalidate({ avoidStairs: event.target.checked })} /><span>계단이 있는 길 제외</span></label>
-                <label className="check-row"><input type="checkbox" checked={options.maxSlopePercent === 5} onChange={event => invalidate({ maxSlopePercent: event.target.checked ? 5 : null })} /><span>경사 5% 초과 구간 제외</span></label>
-                <small>접근성 조건이 확인되지 않은 구간도 제외합니다. 휠체어 통행 적합성을 보장하지 않습니다.</small>
-              </div>}
-              {error && <p className="inline-error" role="alert"><TriangleAlert size={16} />{error}</p>}
-              <button type="submit" className="primary-button search-button" disabled={loading}><Footprints size={20} />{loading ? '경로를 살펴보고 있어요…' : '경로 찾기'}{!loading && <ArrowRight size={19} />}</button>
-            </form>
-
-            <section className="results-section" aria-label="경로 비교" aria-live="polite">
-              <div className="section-heading"><h2 ref={resultsHeading} tabIndex={-1}>내게 맞는 길 선택</h2><span className="result-context">{dirty ? '입력 변경됨' : '시연 결과'}</span></div>
-              {dirty ? <div className="empty-result"><div className="empty-icon"><Footprints size={27} /></div><strong>새로운 길을 살펴볼까요?</strong><p>입력한 장소와 보행 설정으로<br />경로를 다시 찾아주세요.</p><button type="button" className="text-button" onClick={() => calculate()}>변경한 조건으로 찾기 <ArrowRight size={15} /></button></div> : <>
-                {result.status !== 'ok' && <div className={`result-notice ${result.status === 'no-recommendation' ? 'warning' : ''}`} role="status"><TriangleAlert size={19} /><div><strong>{result.status === 'insufficient-data' ? '위험을 판단할 자료가 부족해요' : result.status === 'stale-data' ? '위험 정보의 유효시간이 지났어요' : result.status === 'no-recommendation' ? '조건에 맞는 우회 경로가 없어요' : result.status === 'invalid-input' ? '출발지와 목적지를 확인해 주세요' : '경로를 찾지 못했어요'}</strong><p>{result.message}</p></div></div>}
-                <div className="route-card-list">
-                  {result.recommended && <RouteCard route={result.recommended} selected={selected === 'recommended'} extraSeconds={result.extraSeconds} onClick={() => setSelected('recommended')} />}
-                  {result.normal && <RouteCard route={result.normal} selected={selected === 'normal'} extraSeconds={null} onClick={() => setSelected('normal')} />}
-                </div>
-                {result.extraSeconds !== null && result.normal && result.recommended && <div className="comparison-note"><Clock3 size={15} /><p>{result.extraSeconds > 0 ? <><strong>{exactDuration(result.extraSeconds)} 더 걸려요.</strong> 높은 위험 구간을 피해 이동해요.</> : <><strong>추가로 걸리는 시간은 없어요.</strong> 두 경로가 같을 수 있어요.</>}</p></div>}
-                {activeRoute && <button type="button" className="navigation-button" onClick={startNavigation}><Navigation size={18} />선택한 경로 따라보기<ChevronRight size={18} /></button>}
-              </>}
-              <div className="safety-note"><Info size={15} /><p>실제 노면 상태와 다를 수 있어요.<br />이동할 때는 주변 길을 함께 확인해 주세요.</p></div>
-            </section>
-          </> : <section className="navigation-section" aria-label="경로 따라보기">
-            <button type="button" className="back-button" onClick={endNavigation}><ArrowLeft size={17} />경로 비교로</button>
-            <div className="navigation-heading"><span className="eyebrow">WALK THROUGH</span><h2>{destination?.name}까지<br />한 구간씩 살펴보세요.</h2><span className="demo-nav-pill">시연 안내 · GPS 실시간 안내 아님</span></div>
-            {currentStep && <>
-              <div className="direction-card"><Navigation size={33} /><span>{currentStep.instruction}</span><strong>{distance(currentStep.distanceM)}<small>{currentStep.name}</small></strong></div>
-              <div className="remaining-stats"><span><Clock3 size={18} /><strong>{duration(remainingSeconds)}분</strong>남음</span><span><Footprints size={18} /><strong>{distance(remainingMeters)}</strong>남음</span></div>
-              {'speechSynthesis' in window && <button type="button" className="voice-button" onClick={speak}><Volume2 size={17} />이 구간 안내 듣기</button>}
-              <div className="step-progress"><span>구간 {stepIndex + 1} / {activeRoute?.steps.length}</span><div><i style={{ width: `${((stepIndex + 1) / (activeRoute?.steps.length || 1)) * 100}%` }} /></div></div>
-              <div className="step-buttons"><button type="button" disabled={!stepIndex} onClick={() => { window.speechSynthesis?.cancel(); setStepIndex(index => index - 1); }}><ChevronLeft size={18} />이전 구간</button><button type="button" className="primary-button" onClick={() => { window.speechSynthesis?.cancel(); if (stepIndex < (activeRoute?.steps.length ?? 1) - 1) setStepIndex(index => index + 1); else endNavigation(); }}>{stepIndex < (activeRoute?.steps.length ?? 1) - 1 ? '다음 구간' : '따라보기 완료'}<ChevronRight size={18} /></button></div>
-              <ol className="route-steps">{activeRoute?.steps.map((step, index) => <li key={`${step.segmentId}-${index}`} className={index === stepIndex ? 'current' : index < stepIndex ? 'passed' : ''}><button type="button" onClick={() => { window.speechSynthesis?.cancel(); setStepIndex(index); }} aria-current={index === stepIndex ? 'step' : undefined}><span className="step-number">{index < stepIndex ? <Check size={12} /> : index + 1}</span><span><strong>{step.name}</strong><small>{step.instruction} · {distance(step.distanceM)}</small></span></button></li>)}</ol>
-              <button type="button" className="end-navigation" onClick={endNavigation}>따라보기 종료</button>
-            </>}
-          </section>}
-
-          <div className="planner-footer"><span><Snowflake size={14} />차가운 날, 신중한 한 걸음.</span><button type="button" onClick={() => setInfo(true)}>데이터 안내 <ChevronRight size={12} /></button></div>
+          {!navigation ? <><form className="search-section" id="route-search" onSubmit={e => { e.preventDefault(); calculate(); }}>
+            <div className="section-heading"><h2>어디로 걸어가세요?</h2><span className="walking-label"><Footprints size={15} />도보</span></div>
+            <div className="place-fields"><PlaceInput network={network} label="출발지" kind="origin" value={originQuery} onChange={value => { setOriginQuery(value); change({ origin: null }); }} onSelect={place => select('origin', place)} /><div className="field-divider" /><PlaceInput network={network} label="목적지" kind="destination" value={destinationQuery} onChange={value => { setDestinationQuery(value); change({ destination: null }); }} onSelect={place => select('destination', place)} /><button type="button" className="swap-button" aria-label="출발지와 목적지 바꾸기" onClick={() => { setOriginQuery(destinationQuery); setDestinationQuery(originQuery); change({ origin: options.destination, destination: options.origin }); }}><ArrowUpDown size={18} /></button></div>
+            <div className="map-select-buttons">{(['origin', 'destination'] as const).map(kind => <button type="button" key={kind} aria-pressed={selectionMode === kind} onClick={() => setSelectionMode(selectionMode === kind ? null : kind)}><MapPin size={16} />지도에서 {kind === 'origin' ? '출발' : '도착'} 선택</button>)}</div>
+            <div className="search-secondary"><button type="button" className="location-button" disabled={locating} onClick={locate}><LocateFixed size={16} />{locating ? '위치 확인 중…' : '현재 위치에서 출발'}</button><button type="button" className="preferences-button" aria-expanded={preferences} onClick={() => setPreferences(!preferences)}><Settings2 size={16} />보행 설정<ChevronDown size={14} /></button></div>
+            {selectionMode && <p className="inline-message" role="status">지도에서 {selectionMode === 'origin' ? '출발' : '도착'} 위치를 눌러 주세요.</p>}{message && <p className="inline-message" role="status">{message}</p>}
+            {(options.origin || options.destination) && <div className="endpoint-note">{[options.origin, options.destination].map((p, i) => p && <div key={i}>{i ? '도착' : '출발'} 접근 공백: 직선 {distance(p.snapDistanceM)}{p.sourceUrl && <> · <a href={p.sourceUrl} target="_blank" rel="noreferrer">지도 원본</a></>}</div>)}<small>장소와 보행망 사이 접근로·출입구는 미확인입니다. 공백은 경로와 시간에 포함하지 않습니다.</small></div>}
+            {preferences && <div className="preferences-panel"><label className="speed-label" htmlFor="walking-speed">계산에 사용할 보행속도<select id="walking-speed" value={options.walkingSpeedMps} onChange={e => change({ walkingSpeedMps: Number(e.target.value) })}><option value={.8}>천천히 · 초당 0.8m</option><option value={1}>여유롭게 · 초당 1.0m</option><option value={1.2}>보통 · 초당 1.2m</option></select></label><label className="check-row"><input type="checkbox" checked={options.avoidStairs} onChange={e => change({ avoidStairs: e.target.checked })} />계단 없음이 확인된 구간만</label><label className="check-row"><input type="checkbox" checked={options.maxSlopePercent === 5} onChange={e => change({ maxSlopePercent: e.target.checked ? 5 : null })} />경사 5% 이하가 확인된 구간만</label><small>공개 지도에 해당 정보가 없으면 제외합니다. 조건에 맞는 경로가 없을 수 있습니다.</small></div>}
+            <button type="submit" className="primary-button search-button"><Footprints size={20} />경로 찾기<ArrowRight size={19} /></button>
+          </form><section className="results-section" aria-label="경로 결과" aria-live="polite"><div className="section-heading"><h2>실제 지도 기반 경로</h2><span className="result-context">관악구 수집 영역</span></div>
+            {!result ? <div className="empty-result"><div className="empty-icon"><Footprints size={27} /></div><strong>출발지와 목적지를 선택하세요</strong><p>공개 지도에 등록된 장소를 검색하거나<br />지도에서 직접 선택할 수 있어요.</p></div> : <><div className="result-notice warning" role="status"><Info size={19} /><div><strong>{route ? '결빙 회피 추천은 제공하지 않아요' : '경로를 찾지 못했어요'}</strong><p>{route ? '이 지역 보행로의 공개 노면 자료가 없어 일반 경로만 표시합니다.' : result.message}</p></div></div>{route && <><div className="route-card normal selected"><div className="route-card-top"><span className="route-title"><Footprints size={18} />일반 보행 경로</span></div><div className="route-card-metrics"><strong>{minutes(route.durationSeconds)}<small>분</small></strong><span>{distance(route.distanceM)}</span></div><div className="route-card-caption">결빙 상태 미확인 · {route.segmentIds.length}개 실제 지도 구간</div></div><p className="inline-message">도로 거리 ÷ 선택 속도({options.walkingSpeedMps}m/s)로 계산한 예상시간입니다. 신호·정차·접근 공백은 제외합니다.</p><button className="navigation-button" onClick={() => { setNavigation(true); setStepIndex(0); }}><Navigation size={18} />경로 순서 살펴보기<ChevronRight size={18} /></button></>}</>}
+            <div className="safety-note"><Info size={15} /><p>이 지역 보행로의 공개 결빙 자료는 아직 확보되지 않았습니다. 자료 없음은 결빙 없음이 아닙니다.</p></div><LiveWeather />
+          </section></> : <section className="navigation-section" aria-label="경로 순서 살펴보기"><button className="back-button" onClick={() => { setNavigation(false); window.speechSynthesis?.cancel(); }}><ArrowLeft size={17} />경로 결과로</button><div className="navigation-heading"><span className="eyebrow">ROUTE PREVIEW</span><h2>{options.destination?.name}까지<br />경로 순서를 확인하세요.</h2><span className="demo-nav-pill">GPS 위치 추적·자동 안내 없음</span></div>{step && <><div className="direction-card"><Navigation size={33} /><span>{step.instruction}</span><strong>{distance(step.distanceM)}<small>{step.name}</small></strong></div><div className="remaining-stats"><span>남은 경로 <strong>{distance(route!.steps.slice(stepIndex).reduce((sum, s) => sum + s.distanceM, 0))}</strong></span></div>{'speechSynthesis' in window && <button className="voice-button" onClick={speak}><Volume2 size={17} />이 구간 읽기</button>}<div className="step-progress"><span>구간 {stepIndex + 1} / {route!.steps.length}</span><div><i style={{ width: `${(stepIndex + 1) / route!.steps.length * 100}%` }} /></div></div><div className="step-buttons"><button disabled={!stepIndex} onClick={() => { window.speechSynthesis?.cancel(); setStepIndex(i => i - 1); }}><ChevronLeft size={18} />이전</button><button className="primary-button" onClick={() => { window.speechSynthesis?.cancel(); if (stepIndex < route!.steps.length - 1) setStepIndex(i => i + 1); else setNavigation(false); }}>{stepIndex < route!.steps.length - 1 ? '다음 구간' : '살펴보기 완료'}<ChevronRight size={18} /></button></div><ol className="route-steps">{route!.steps.map((s, i) => <li key={s.segmentId} className={i === stepIndex ? 'current' : ''}><button aria-current={i === stepIndex ? 'step' : undefined} onClick={() => { window.speechSynthesis?.cancel(); setStepIndex(i); }}><span className="step-number">{i + 1}</span><span><strong>{s.name}</strong><small>{s.instruction} · {distance(s.distanceM)}</small></span></button></li>)}</ol></>}</section>}
+          <div className="planner-footer"><span><Snowflake size={14} />확인되지 않은 값은 비워 둡니다.</span><button onClick={() => setInfo(true)}>데이터 출처<ChevronRight size={12} /></button></div>
         </section>
-
-        <section className="map-section" aria-label="지도와 위험 정보">
-          <WalkingMap network={network} run={run} normal={dirty ? null : result.normal} recommended={dirty ? null : result.recommended} selected={selected} origin={origin} destination={destination} step={currentStep} recenterKey={recenterKey} />
-          <div className="weather-card"><div className="weather-icon">{options.scenario === 'dry' ? <Sun size={29} /> : <Snowflake size={29} />}</div><div><span>시연 기상 조건</span><strong>{run.temperatureC === null ? '자료 없음' : `${run.temperatureC}°`}<small>{options.scenario === 'dry' ? '온화하고 건조' : options.scenario === 'missing' ? '정보 부족' : options.scenario === 'stale' ? '유효시간 만료' : '눈 온 뒤 영하'}</small></strong></div><button type="button" aria-label="시연 기상 조건 변경" onClick={() => setDemoSettings(!demoSettings)}><SlidersHorizontal size={17} /></button></div>
-          <div className="map-insight"><div className="insight-icon">{unknownCount ? <Info size={20} /> : <Snowflake size={22} />}</div><div><span>{unknownCount ? '정보가 부족한 구간을 확인하세요' : highCount ? '길 위의 위험을 미리 살펴보세요' : '현재 시연 조건은 온화해요'}</span><strong>{highCount ? `위험 높음 ${highCount}개 구간` : '높은 위험 없음'}{unknownCount > 0 && ` · 정보 부족 ${unknownCount}개`}</strong><small>합성 보행망 · 규칙 기반 시뮬레이션</small></div><button type="button" aria-label="위험 정보 설명 보기" onClick={() => setInfo(true)}><Info size={18} /></button></div>
-          <button type="button" className="mobile-demo-button" onClick={() => setDemoSettings(!demoSettings)}><SlidersHorizontal size={16} />시연 설정</button>
-        </section>
-      </div>
-
-      <footer className="page-footer"><span>빙빙제로 <span className="footer-dot">·</span> 보행자를 위한 겨울 길찾기</span><span>시연 데이터 기준 {time(run.analyzedAt)} (KST)<button type="button" onClick={() => setInfo(true)} aria-label="분석 시점과 데이터 상세 보기"><Info size={13} /></button></span></footer>
+        <section className="map-section" aria-label="지도와 자료 범위"><WalkingMap network={network} run={result?.run ?? run} normal={route} recommended={null} selected="normal" origin={options.origin ?? undefined} destination={options.destination ?? undefined} step={step} recenterKey={recenterKey} selectionMode={selectionMode} onSelectCoordinate={coordinate => { if (selectionMode) point(coordinate, selectionMode); }} /><div className="map-insight"><div className="insight-icon"><Info size={22} /></div><div><span>OpenStreetMap 공개 원본</span><strong>{network.segments.length.toLocaleString()}개 구간 · {network.places.length.toLocaleString()}개 장소</strong><small>결빙·그늘·잔여 수분 값은 생성하지 않습니다.</small></div><button aria-label="데이터 출처 보기" onClick={() => setInfo(true)}><Info size={18} /></button></div></section>
+      </div>}
+      <footer className="page-footer"><span>빙빙제로 · 공개 데이터 기반 보행 길찾기</span><span>{network ? `지도 원본 기준 ${stamp(network.provenance.osmTimestamp)} KST` : '실제 원본 확인 중'}<button aria-label="자료 출처 상세" onClick={() => setInfo(true)}><Info size={13} /></button></span></footer>
     </main>
-
-    <dialog ref={settingsRef} className="demo-drawer" aria-label="시연 설정" onCancel={() => setDemoSettings(false)} onClick={event => { if (event.target === event.currentTarget) setDemoSettings(false); }}><div className="drawer-heading"><div><span className="eyebrow">TRY THE SCENARIOS</span><h2>다른 겨울을 살펴보세요</h2></div><button type="button" className="icon-button" onClick={() => setDemoSettings(false)} aria-label="시연 설정 닫기"><X size={21} /></button></div><p className="drawer-intro">기상 조건에 따라 위험과 추천 경로가 어떻게 바뀌는지 확인해 보세요. 모든 조건은 시연용입니다.</p><div className="scenario-options">{scenarios.map(scenario => <button type="button" key={scenario.id} className={options.scenario === scenario.id ? 'selected' : ''} aria-pressed={options.scenario === scenario.id} onClick={() => chooseScenario(scenario.id)}><span className="scenario-radio">{options.scenario === scenario.id && <Check size={12} />}</span><span><strong>{scenario.name}</strong><small>{scenario.description}</small></span></button>)}</div><div className="drawer-data-note"><Info size={17} /><p>합성 구간과 기상 조건으로 경로 계산을 검증하는 시제품입니다. 실제 결빙 관측·예측 결과로 사용하지 마세요.</p></div><LiveWeather /><button type="button" className="reset-demo" onClick={() => { setOriginQuery(getPlace(DEFAULT_OPTIONS.originId)?.name ?? ''); setDestinationQuery(getPlace(DEFAULT_OPTIONS.destinationId)?.name ?? ''); setLocationMessage(''); calculate(DEFAULT_OPTIONS); }}><RotateCcw size={16} />기본 시연으로 돌아가기</button></dialog>
-
-    <dialog ref={modalRef} className="info-dialog" aria-label="서비스 안내" onCancel={() => setInfo(false)} onClick={event => { if (event.target === event.currentTarget) closeInfo(); }}>
-      <div className="dialog-content"><div className="dialog-heading"><div className="dialog-brand"><Snowflake size={30} /><span>빙빙제로<small>한 걸음, 더 신중하게.</small></span></div><button type="button" className="icon-button" onClick={closeInfo} aria-label="서비스 안내 닫기"><X size={22} /></button></div><span className="simulation-badge"><i />시뮬레이션 시제품</span><h2>위험 정보와 이동시간을<br />함께 보고 선택하세요.</h2><p className="dialog-intro">빙빙제로는 결빙 위험이 높게 예상되는 구간을 피한 보행 경로와 일반 경로를 비교합니다. 현재 버전은 실제 노면을 확인하거나 안전을 보장하지 않습니다.</p><div className="data-details"><h3>지금 보이는 데이터</h3><dl><div><dt>보행망</dt><dd>{network.source}</dd></div><div><dt>위험 추정</dt><dd>합성 기상·환경 값 기반 규칙 모형<br />{run.version} · 학습된 AI 아님</dd></div><div><dt>분석 시각</dt><dd>{new Date(run.analyzedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false })} KST</dd></div><div><dt>유효시간</dt><dd>{new Date(run.validUntil).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false })} KST</dd></div><div><dt>배경 지도</dt><dd><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap 기여자</a> · 합성 경로와 실제 도로는 다를 수 있습니다.</dd></div></dl></div><div className="info-principles"><h3>이렇게 계산해요</h3><p><strong>위험 회피 추천</strong>은 위험 높음과 정보 부족 구간을 제외합니다. 선택한 계단·경사 조건은 두 경로에 동일하게 적용합니다.</p><p><strong>추가 소요시간</strong>은 같은 보행속도로 계산한 추천 경로 시간에서 일반 경로 시간을 뺀 값입니다. 분 단위 표시는 올림하므로 카드 숫자의 차이와 다를 수 있습니다.</p><p><strong>보행약자 접근성</strong>은 현장 검증 전입니다. 계단과 경사 외의 보도 폭, 턱, 공사 등은 충분히 반영하지 못합니다.</p><p><strong>개인정보</strong>는 필요한 순간에만 사용합니다. 현재 위치는 가까운 시연 출발지를 찾는 데만 쓰며 이동 이력을 저장하지 않습니다. 지도 제공자는 요청 IP와 지도 영역을 알 수 있습니다.</p></div><button type="button" className="primary-button dialog-close" onClick={closeInfo}>확인했어요 <Check size={18} /></button></div>
-    </dialog>
+    <dialog ref={modal} className="info-dialog" aria-label="데이터 출처" onCancel={() => setInfo(false)} onClick={e => { if (e.target === e.currentTarget) setInfo(false); }}><div className="dialog-content"><div className="dialog-heading"><div className="dialog-brand"><Snowflake size={30} /><span>빙빙제로<small>공개 자료의 범위까지 정확하게.</small></span></div><button className="icon-button" aria-label="데이터 출처 닫기" onClick={() => setInfo(false)}><X size={22} /></button></div><span className="simulation-badge"><i />합성 데이터 없음</span><h2>실제 자료와 미확인 정보를<br />구분해서 보여드립니다.</h2>
+      <div className="data-details"><h3>지금 연결된 자료</h3><dl><div><dt>보행망·장소</dt><dd>OpenStreetMap 공개 지도 원본. 실제 등록된 좌표·연결 관계·태그만 사용합니다.</dd></div>{network && <><div><dt>원본 기준</dt><dd>{stamp(network.provenance.osmTimestamp)} KST</dd></div><div><dt>수집 시각</dt><dd>{stamp(network.provenance.downloadedAt)} KST</dd></div><div><dt>출처·허가</dt><dd><a href={network.provenance.endpoint} target="_blank" rel="noreferrer">{network.provenance.source}</a> · <a href={network.provenance.licenseUrl} target="_blank" rel="noreferrer">{network.provenance.license}</a></dd></div></>}<div><dt>기상</dt><dd>Open-Meteo의 실제 제공 기상 모델 출력입니다. 현장 실측 또는 노면 관측값이 아닙니다. 실시간 조회 실패 시 실제 수집 시각을 밝힌 유효한 수집본만 표시합니다. 2시간이 지난 자료는 숨깁니다.</dd></div><div><dt>결빙 상태</dt><dd>이 지역 보행 구간과 연결할 공개 결빙 자료 미확보. 위험 점수·추천 경로를 생성하지 않습니다.</dd></div></dl></div>
+      <div className="info-principles"><h3>자료를 해석할 때</h3><p><strong>보행망</strong>은 공개 지도에 등록된 통행 정보를 기준으로 합니다. 현재 통제, 누락된 출입 제한, 보도 상태가 반영되지 않을 수 있습니다. 경로는 현장 보행 가능성이 검증된 길이 아닙니다.</p><p><strong>장소 연결점</strong>은 80m 이내의 실제 도로 노드입니다. 장소와 연결점 사이를 직선 보행로로 만들지 않으며, 그 사이 접근성·시간은 미확인입니다.</p><p><strong>접근성</strong> 정보가 없으면 경사·계단 유무를 임의로 채우지 않습니다. 해당 조건을 켜면 정보가 없는 구간도 제외합니다.</p><p><strong>개인정보</strong>는 현재 위치를 브라우저에서만 처리하고 이동 이력을 저장하지 않습니다. 기상 조회 좌표는 관악구청 주변 고정값이며 지도 제공자는 요청 영역과 접속 정보를 알 수 있습니다.</p><p><strong>추가 연동</strong>은 공개 자료만 사용합니다. 기상청 API허브의 관측·도로기상 자료는 이용 신청과 인증키가 필요합니다. 고속도로 노면 상태를 관악구 보행로 관측으로 대신 쓰지 않습니다.</p></div>
+      {network && <p className="source-downloads"><a href="/data/osm.json" download>지도 원본 JSON</a> · <a href="/data/provenance.json" download>출처·검증 기록</a></p>}<button className="primary-button dialog-close" onClick={() => setInfo(false)}>확인했어요<Check size={18} /></button>
+    </div></dialog>
   </div>;
 }

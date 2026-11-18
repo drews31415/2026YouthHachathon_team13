@@ -1,0 +1,9 @@
+{
+  "url": "https://api.open-meteo.com/v1/forecast?latitude=37.4784&longitude=126.9516&current=temperature_2m&hourly=precipitation,snowfall&past_days=2&forecast_days=1&timeformat=unixtime&timezone=GMT",
+  "retrievedAt": "2026-11-18T10:37:06.915Z",
+  "sha256": "f80a7f0e412010711ca85be641ca28629795f9a5288d6a254e6e167c607fa4bc",
+  "source": "Open-Meteo weather model output; not a pavement observation",
+  "license": "CC BY 4.0",
+  "latitude": 37.4784,
+  "longitude": 126.9516
+}
