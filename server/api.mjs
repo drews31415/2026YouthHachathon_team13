@@ -24,27 +24,27 @@ const json = (value, status = 200) => Response.json(value, {
   status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
 });
 
+function seoulPoint(params) {
+  const lon = Number(params.get('lon')), lat = Number(params.get('lat'));
+  return lon >= 126.73 && lon <= 127.20 && lat >= 37.39 && lat <= 37.72
+    ? [Number(lon.toFixed(4)), Number(lat.toFixed(4))] : null;
+}
+
 export async function handleApi(request, env) {
   const url = new URL(request.url);
   const provider = url.pathname.split('/')[2];
   try {
-    if (url.pathname === '/api/kma/forecast') {
+    if (url.pathname === '/api/kma/forecast' || url.pathname === '/api/kma/grid') {
       if (request.method !== 'GET') return json({ error: '조회 요청만 지원합니다.' }, 405);
-      const area = url.searchParams.get('area') ?? 'gwanak';
-      if (!Object.hasOwn(icingRegions, area)) return json({ error: '지원하지 않는 지역입니다.' }, 400);
-      return json(await getKmaForecast(env, area));
-    }
-    if (url.pathname === '/api/kma/grid') {
-      if (request.method !== 'GET') return json({ error: '조회 요청만 지원합니다.' }, 405);
+      const load = url.pathname.endsWith('/forecast') ? getKmaForecast : getKmaGrid;
       if (url.searchParams.has('lon') || url.searchParams.has('lat')) {
-        const lon = Number(url.searchParams.get('lon'));
-        const lat = Number(url.searchParams.get('lat'));
-        if (!(lon >= 126.73 && lon <= 127.20 && lat >= 37.39 && lat <= 37.72)) return json({ error: '서울 예보의 조회 범위를 벗어났습니다.' }, 400);
-        return json(await getKmaGrid(env, undefined, [Number(lon.toFixed(4)), Number(lat.toFixed(4))]));
+        const point = seoulPoint(url.searchParams);
+        if (!point) return json({ error: '서울 예보의 조회 범위를 벗어났습니다.' }, 400);
+        return json(await load(env, undefined, point));
       }
       const area = url.searchParams.get('area') ?? 'gwanak';
       if (!Object.hasOwn(icingRegions, area)) return json({ error: '지원하지 않는 지역입니다.' }, 400);
-      return json(await getKmaGrid(env, area));
+      return json(await load(env, area));
     }
     if (url.pathname === '/api/kma/weather' || url.pathname === '/api/seoul/weather') {
       if (request.method !== 'GET') return json({ error: '조회 요청만 지원합니다.' }, 405);

@@ -1,11 +1,11 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { estimateBuildingShade, liveShadingBuildings, surfaceShadeSource, sunPosition } from '../core/icing-forecast';
 import type { Coordinate, Network } from '../core/types';
-import { maljukgeoriHeatedWarnings } from '../gangnam-pilot';
+import { heatedWalkWarnings } from '../gangnam-pilot';
 import {
-  combineLiveForecast, fetchIcingHours, fetchIcingReplay, fetchKmaForecast, fetchKmaGrid, fetchNearbyPrecipitation, fetchSeoulHours, forecastTemperature, hasFreezingRain,
+  combineLiveForecast, fetchIcingHours, fetchIcingReplay, fetchKmaForecast, fetchKmaGrid, fetchNearbyPrecipitation, fetchPrecipitationObservations, fetchSeoulHours, forecastTemperature, hasFreezingRain,
   hasFrostConditions, hasRefreezeConditions, hasSnowmeltRefreeze, icingReplays, icingWeatherMaxAgeMs,
-  usesGridTemperature, withKmaGrid, withNearbyPrecipitation, type IcingArea, type IcingHour, type IcingReplay, type NearbyPrecipitation,
+  usesGridTemperature, withKmaGrid, withNearbyPrecipitation, readNearbyPrecipitation, type IcingArea, type IcingHour, type IcingReplay, type NearbyPrecipitation,
 } from '../services/icing-weather';
 import './icing-forecast.css';
 
@@ -41,6 +41,7 @@ export function useIcingForecast(network: Network | null, enabled: boolean, area
     const refresh = async () => {
       try {
         const points = zones.map(zone => zone.center);
+        const observations = fetchPrecipitationObservations(signal).catch(() => null);
         const batches: Coordinate[][] = [];
         for (let i = 0; i < points.length; i += 20) batches.push(points.slice(i, i + 20));
         const responses = await Promise.allSettled(batches.map(batch => fetchSeoulHours(batch, signal)));
@@ -49,16 +50,26 @@ export function useIcingForecast(network: Network | null, enabled: boolean, area
         const hours = responses.flatMap((response, i) => response.status === 'fulfilled' ? response.value.hours : batches[i].map(() => []));
         setClock(retrievedAt);
         setCityData({ zones, hours, retrievedAt });
-        setCityFailed(!hours.some(items => items.length));
-        // Fetch the high-resolution KMA analysis only for cells near freezing, in small batches.
-        const cold = hours.flatMap((items, index) => items.some(hour => hour.temperatureC <= 4) ? [index] : []);
         const enhanced = [...hours];
+        for (let i = 0; i < points.length; i += 6) {
+          await Promise.all(points.slice(i, i + 6).map(async (point, offset) => {
+            const index = i + offset;
+            const official = await fetchKmaForecast(signal, point).catch(() => undefined);
+            const now = Date.now();
+            const forecast = combineLiveForecast(hours[index], official, now);
+            const rain = readNearbyPrecipitation(await observations, now, point);
+            enhanced[index] = forecast.map(hour => withNearbyPrecipitation(hour, rain, now));
+          }));
+          signal.throwIfAborted();
+          setCityData(previous => previous?.retrievedAt === retrievedAt ? { ...previous, hours: [...enhanced] } : previous);
+        }
+        setCityFailed(!enhanced.some(items => items.length));
+        // The 500 m analysis supplements weather near the freezing point.
+        const cold = enhanced.flatMap((items, index) => items.some(hour => forecastTemperature(hour) <= 4) ? [index] : []);
         for (let i = 0; i < cold.length; i += 6) {
           await Promise.all(cold.slice(i, i + 6).map(async index => {
-            try {
-              const analysis = await fetchKmaGrid(signal, points[index]);
-              if (analysis.status === 'ok') enhanced[index] = hours[index].map(hour => withKmaGrid(hour, analysis.rows, retrievedAt));
-            } catch { /* The location's Open-Meteo hours are still usable. */ }
+            const analysis = await fetchKmaGrid(signal, points[index]).catch(() => null);
+            if (analysis?.status === 'ok') enhanced[index] = enhanced[index].map(hour => withKmaGrid(hour, analysis.rows, Date.now()));
           }));
           signal.throwIfAborted();
           setCityData(previous => previous?.retrievedAt === retrievedAt ? { ...previous, hours: [...enhanced] } : previous);
@@ -115,8 +126,13 @@ export function useIcingForecast(network: Network | null, enabled: boolean, area
     return () => { controller.abort(); window.clearInterval(timer); window.clearInterval(tick); };
   }, [area, city, enabled, replay, replayScene]);
 
-  const cityHours = useMemo(() => cityData?.zones === zones && cityData && clock - cityData.retrievedAt < icingWeatherMaxAgeMs
-    ? cityData.hours.map(hours => new Map(hours.filter(hour => hour.time + 3_600_000 > clock).map(hour => [hour.time, hour]))) : [], [cityData, zones, clock]);
+  const cityHours = useMemo(() => {
+    if (!cityData || cityData.zones !== zones || clock - cityData.retrievedAt >= icingWeatherMaxAgeMs) return [];
+    return cityData.hours.map(hours => new Map(hours.filter(hour => hour.time + 3_600_000 > clock).map(hour => [
+      hour.time, hour.nearbyPrecipitation && clock - hour.nearbyPrecipitation.time >= icingWeatherMaxAgeMs
+        ? { ...hour, nearbyPrecipitation: undefined } : hour,
+    ])));
+  }, [cityData, zones, clock]);
   const hours = useMemo(() => {
     if (!enabled || replay) return [];
     if (city) {
@@ -156,15 +172,15 @@ export function useIcingForecast(network: Network | null, enabled: boolean, area
   }, [network, active, shadeTime, zones, cityHours, expanded]);
   const heatedWarningSegments = useMemo(() => {
     if (!network || !shade || !active) return new Set<string>();
-    if (!zones) return area === 'gangnam' ? maljukgeoriHeatedWarnings(network, shade.sections, active) : new Set<string>();
+    if (!zones) return heatedWalkWarnings(network, shade.sections, active);
     const bridgeZones = zones.flatMap((zone, index) => zone.segments.some(segment => segment.tags.bridge) ? [index] : []);
     const results = bridgeZones.flatMap(index => {
       const hour = cityHours[index]?.get(active.time);
       if (!hour) return [];
-      return [...maljukgeoriHeatedWarnings({ ...network, segments: zones[index].segments }, shade.sections, hour)];
+      return [...heatedWalkWarnings({ ...network, segments: zones[index].segments }, shade.sections, hour)];
     });
     return new Set(results);
-  }, [area, network, zones, cityHours, shade, active]);
+  }, [network, zones, cityHours, shade, active]);
   const incomplete = city && !!active && (!zones || zones.some((_, i) => !cityHours[i]?.has(active.time)));
   const buildingCount = useMemo(() => network ? liveShadingBuildings(network).length : 0, [network]);
   function changeMode(next: boolean) {
@@ -214,7 +230,7 @@ export function IcingForecastControl({ forecast, onReplayRoute }: {
       {replay && replayScene !== 'snow' && !!shade?.sections.length && <button type="button" className="icing-replay-route" onClick={onReplayRoute}>예시 출발지·목적지 불러오기</button>}
       <details className="icing-external-data"><summary>예보 출처</summary>
         <p>{usesGridTemperature(active) ? '기상청 500m 분석' : active.kma ? '기상청 예보' : 'Open-Meteo'}</p>
-        <p><a href={replay ? icingReplays[replayScene].sourceUrl : 'https://open-meteo.com/en/docs'} target="_blank" rel="noreferrer">{replay ? '과거 예보 원본' : 'Open-Meteo 명세'}</a> · <a href={surfaceShadeSource.url} target="_blank" rel="noreferrer">{forecast.city ? 'Copernicus 표면 높이 · 90m 간격 샘플' : 'Copernicus 30m'}</a></p>
+        <p><a href={replay ? icingReplays[replayScene].sourceUrl : 'https://open-meteo.com/en/docs'} target="_blank" rel="noreferrer">{replay ? '과거 예보 원본' : 'Open-Meteo 명세'}</a> · <a href={surfaceShadeSource.url} target="_blank" rel="noreferrer">Copernicus 30m</a></p>
         <small lang="en">{surfaceShadeSource.attribution}</small>
         <small lang="en">The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.</small>
       </details>

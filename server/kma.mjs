@@ -1,7 +1,7 @@
 // Worker-compatible server module: credentials are sent only to the fixed HTTPS KMA host.
 // No Node filesystem, credential URL, provider error body or made-up weather enters the response.
 import capturedSource from '../public/data/kma-source.json' with { type: 'json' };
-import { KMA_PUBLIC_REQUEST, KmaDataError, parseKmaAws, parseKmaCapture, sha256Hex } from './kma-parser.mjs';
+import { KMA_PUBLIC_REQUEST, KmaDataError, kmaAwsQueryMinute, parseKmaAws, parseKmaCapture, sha256Hex } from './kma-parser.mjs';
 
 let cached = null;
 let inFlight = null;
@@ -13,6 +13,7 @@ async function acquire(env) {
   if (key) {
     try {
       const url = new URL(KMA_PUBLIC_REQUEST);
+      url.searchParams.set('tm', kmaAwsQueryMinute());
       url.searchParams.set('authKey', key);
       const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(12000), headers: { Accept: 'text/plain' } });
       if (response.status >= 300 && response.status < 400) throw new KmaDataError('unexpected-redirect');

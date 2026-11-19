@@ -6,7 +6,7 @@ import { estimateBuildingShade } from './icing-forecast';
 import { buildNetwork, coordinateInside, distanceBetween, geometryLength, isFootAccessible } from './network';
 import { expireResult } from './resultLifecycle';
 import type { OsmElement, OsmPayload, Place, SearchOptions, ShadeSurface, ShadingBuilding, SourceProvenance } from './types';
-import { gangnamDemoPlaces, maljukgeoriFootbridge, maljukgeoriHeatedWarnings } from '../gangnam-pilot';
+import { gangnamDemoPlaces, heatedWalkWarnings, maljukgeoriFootbridge } from '../gangnam-pilot';
 import { findIcingHours, readIcingReplay } from '../services/icing-weather';
 
 // These tests use the checked-in, independently sourced OSM snapshot itself.
@@ -45,7 +45,7 @@ it('keeps the real Gangnam bridge warning without accepting the former roadway d
   const weather = read('icing-replay.json');
   const hour = await readIcingReplay(new TextEncoder().encode(weather).buffer, 'gangnam');
   const { sections } = estimateBuildingShade(gangnam, hour.time, true);
-  const heated = maljukgeoriHeatedWarnings(gangnam, sections, hour);
+  const heated = heatedWalkWarnings(gangnam, sections, hour);
   const bridge = gangnam.segments.find(segment => segment.wayId === maljukgeoriFootbridge.osmWayId)!;
   expect([...heated]).toEqual([bridge.id]);
   const warningIds = new Set(sections.map(section => section.segmentId));
@@ -73,7 +73,7 @@ it('keeps the real Gangnam bridge warning without accepting the former roadway d
   const dryHour = findIcingHours(JSON.parse(weather), hour.time).find(item => item.time === hour.time + 2 * 3_600_000)!;
   expect(dryHour.temperatureC).toBeLessThan(0);
   const laterSections = estimateBuildingShade(gangnam, dryHour.time, true).sections;
-  expect(maljukgeoriHeatedWarnings(gangnam, laterSections, dryHour).size).toBe(0);
+  expect(heatedWalkWarnings(gangnam, laterSections, dryHour).size).toBe(0);
 });
 
 // Independent unweighted reachability oracle for every actual named POI pair.

@@ -86,20 +86,35 @@ async function fetchProduct(key, kind, now, grid) {
 
 const cache = new Map();
 const pending = new Map();
-export async function getKmaForecast(env, area = 'gwanak') {
+// KMA's 5 km Lambert conformal forecast grid (DFS), using its published origin.
+export function forecastGrid([lon, lat]) {
+  const radians = Math.PI / 180;
+  const radius = 6371.00877 / 5;
+  const tangent = latitude => Math.tan(Math.PI / 4 + latitude * radians / 2);
+  const cone = Math.log(Math.cos(30 * radians) / Math.cos(60 * radians)) /
+    Math.log(tangent(60) / tangent(30));
+  const scale = radius * Math.cos(30 * radians) * tangent(30) ** cone / cone;
+  const origin = scale / tangent(38) ** cone;
+  const distance = scale / tangent(lat) ** cone;
+  const bearing = (lon - 126) * radians * cone;
+  return { nx: Math.round(43 + distance * Math.sin(bearing)), ny: Math.round(136 + origin - distance * Math.cos(bearing)) };
+}
+
+export async function getKmaForecast(env, area = 'gwanak', coordinate) {
+  const grid = coordinate ? forecastGrid(coordinate) : regions[area].kmaGrid;
+  const id = `${grid.nx},${grid.ny}`;
   const now = Date.now();
-  const cached = cache.get(area);
+  const cached = cache.get(id);
   if (cached?.expires > now) return cached.data;
   const key = typeof env?.KMA_API_KEY === 'string' ? env.KMA_API_KEY.trim() : '';
   if (!key) throw new Error('missing-server-key');
-  if (!pending.has(area)) {
-    const grid = regions[area].kmaGrid;
-    pending.set(area, Promise.all([fetchProduct(key, 'ultra', now, grid), fetchProduct(key, 'short', now, grid)]).then(([ultra, short]) => {
+  if (!pending.has(id)) {
+    pending.set(id, Promise.all([fetchProduct(key, 'ultra', now, grid), fetchProduct(key, 'short', now, grid)]).then(([ultra, short]) => {
       if (!ultra.length && !short.length) throw new Error('no-current-kma-forecasts');
       const data = { source: '기상청 API허브', grid, retrievedAt: Date.now(), ultra, short };
-      cache.set(area, { data, expires: Date.now() + (ultra.length && short.length ? 180_000 : 60_000) });
+      cache.set(id, { data, expires: Date.now() + (ultra.length && short.length ? 180_000 : 60_000) });
       return data;
-    }).finally(() => pending.delete(area)));
+    }).finally(() => pending.delete(id)));
   }
-  return pending.get(area);
+  return pending.get(id);
 }

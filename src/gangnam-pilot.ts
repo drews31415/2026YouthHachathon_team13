@@ -15,8 +15,17 @@ export const maljukgeoriFootbridge = {
   facilitySource: 'https://data.seoul.go.kr/dataList/OA-15003/S/1/datasetView.do',
 };
 
-export function maljukgeoriHeatedWarnings(network: Network, sections: readonly ShadedSection[], hour: IcingHour): ReadonlySet<string> {
-  if (hour.time < maljukgeoriFootbridge.heatingEligibleFrom || !hasHeatingWeather(hour)) return new Set();
-  const bridgeSegments = new Set(network.segments.filter(segment => segment.wayId === maljukgeoriFootbridge.osmWayId).map(segment => segment.id));
+const installations = new Map([
+  [maljukgeoriFootbridge.osmWayId, maljukgeoriFootbridge.heatingEligibleFrom],
+  // Seoul heating inventory 870, Gangnam footbridge register, and OSM bridge:name agree.
+  ['922445013', Date.parse('2024-12-01T00:00:00+09:00')],
+]);
+
+export function heatedWalkWarnings(network: Network, sections: readonly ShadedSection[], hour: IcingHour): ReadonlySet<string> {
+  if (!hasHeatingWeather(hour)) return new Set();
+  const bridgeSegments = new Set(network.segments.filter(segment => {
+    const installed = installations.get(segment.wayId);
+    return installed !== undefined && hour.time >= installed;
+  }).map(segment => segment.id));
   return new Set(sections.filter(section => section.bridge && bridgeSegments.has(section.segmentId)).map(section => section.segmentId));
 }

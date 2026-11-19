@@ -1,6 +1,7 @@
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import capture from '../public/data/kma-source.json' with { type: 'json' };
+import stationMetadata from './kma-stations.json' with { type: 'json' };
 import { KMA_MAX_AGE_MS, parseKmaAws, parseKmaCapture } from './kma-parser.mjs';
 
 const now = Date.parse(capture.retrievedAt);
@@ -8,7 +9,12 @@ const options = { retrievedAt: capture.retrievedAt, now };
 
 test('joins actual local station rows to official metadata, with KST converted to UTC', () => {
   const result = parseKmaAws(capture.rawText, options);
-  assert.deepEqual(result.stations.map(station => station.id), [509, 410, 401]);
+  const stations = new Map(result.stations.map(station => [station.id, station]));
+  for (const id of [401, 404, 407, 410, 421, 509]) {
+    assert.ok(stations.has(id));
+    const official = stationMetadata.stations.find(station => station.id === id);
+    assert.deepEqual([stations.get(id).lat, stations.get(id).lon], [official.lat, official.lon]);
+  }
   for (const station of result.stations) {
     const cells = capture.rawText.split(/\r?\n/).find(line => new RegExp(`^\\d{12},${station.id},`).test(line)).split(',');
     assert.equal(station.temperature, Number(cells[8]));
@@ -16,9 +22,9 @@ test('joins actual local station rows to official metadata, with KST converted t
     assert.equal(station.rain60mMm, Number(cells[11]));
     assert.equal(new Date(Date.parse(station.observedAt) + 9 * 3600000).toISOString().replace(/[-:T]/g, '').slice(0,12), cells[0]);
   }
-  assert.equal(result.stations[0].lat, 37.45284);
-  assert.equal(result.stations[0].lon, 126.95015);
-  assert.equal(result.stations[0].name, '관악');
+  assert.equal(stations.get(509).lat, 37.45284);
+  assert.equal(stations.get(509).lon, 126.95015);
+  assert.equal(stations.get(509).name, '관악');
   assert.equal(result.units.humidity, '%');
   assert.equal(result.units.rain60mMm, 'mm/60min');
 });
@@ -52,7 +58,8 @@ test('rejects changed source, modified bytes, HTML response and missing local ro
   await assert.rejects(parseKmaCapture({ ...capture, endpoint: 'https://example.com/' }, now), /invalid-captured-source/);
   await assert.rejects(parseKmaCapture({ ...capture, rawText: `${capture.rawText}\n` }, now), /invalid-captured-source/);
   assert.throws(() => parseKmaAws('<html>error</html>', options), /unknown-response-format/);
-  const withoutLocalRows = capture.rawText.split(/\r?\n/).filter(line => !/^\d{12},(?:509|410|401),/.test(line)).join('\n');
+  const knownIds = new Set(stationMetadata.stations.map(station => station.id));
+  const withoutLocalRows = capture.rawText.split(/\r?\n/).filter(line => !knownIds.has(Number(line.match(/^\d{12},(\d+),/)?.[1]))).join('\n');
   assert.throws(() => parseKmaAws(withoutLocalRows, options), /no-fresh-local-observations/);
 });
 

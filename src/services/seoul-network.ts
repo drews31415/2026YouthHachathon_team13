@@ -3,6 +3,7 @@ import type { Coordinate, Network, OsmElement, ShadeSurface, ShadingBuilding, So
 
 type Index = Omit<SourceProvenance, 'sha256'> & { step: number; tiles: Record<string, string>; surfaceSha256: string; tileFormat: number };
 type Tile = { n: string; w: string; b: string; t: Record<string, string>[] };
+type SurfaceData = Omit<ShadeSurface, 'elevation'> & { deltas: string; unitsPerMeter: number };
 const directory = '/data/seoul/';
 
 function decode(encoded: string) {
@@ -21,6 +22,18 @@ function decode(encoded: string) {
       return value % 2 ? -(value + 1) / 2 : value / 2;
     },
   };
+}
+
+function unpackSurface({ deltas, unitsPerMeter, ...grid }: SurfaceData): ShadeSurface {
+  const values = decode(deltas);
+  let height = 0;
+  const elevation = new Float32Array(grid.width * grid.height);
+  for (let i = 0; i < elevation.length; i++) {
+    height += values.next();
+    elevation[i] = height / unitsPerMeter;
+  }
+  if (values.hasNext()) throw new Error('서울 표면 높이 격자 크기가 일치하지 않아요.');
+  return { ...grid, elevation };
 }
 
 function unpack(tile: Tile, west: number, south: number) {
@@ -89,9 +102,9 @@ export async function fetchSeoulNetwork(start: Coordinate, end: Coordinate, sign
     if (Object.hasOwn(index.tiles, `${x}-${y}`)) ids.push(`${x}-${y}`);
   }
   if (!ids.length) return null;
-  const [tiles, shadeSurfaces] = await Promise.all([
+  const [tiles, surfaces] = await Promise.all([
     Promise.all(ids.map(async id => [id, await read<Tile>(id + '.json', request, index.tiles[id])] as const)),
-    read<ShadeSurface[]>('surface.json', request, index.surfaceSha256),
+    read<SurfaceData[]>('surface.json', request, index.surfaceSha256),
   ]);
   request.throwIfAborted();
   const nodes = new Map<number, OsmElement>();
@@ -120,5 +133,5 @@ export async function fetchSeoulNetwork(start: Coordinate, end: Coordinate, sign
     }
     zone.segments.push(segment);
   }
-  return { ...network, forecastZones: [...zones.values()], shadeSurfaces };
+  return { ...network, forecastZones: [...zones.values()], shadeSurfaces: surfaces.map(unpackSurface) };
 }

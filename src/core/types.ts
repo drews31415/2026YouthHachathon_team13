@@ -27,7 +27,7 @@ export interface WalkSegment {
 export interface ShadingBuilding { osmId: number; heightM: number; footprint: Coordinate[]; }
 export interface ShadeSurface {
   lon: number; lat: number; stepLon: number; stepLat: number;
-  width: number; height: number; elevation: number[];
+  width: number; height: number; elevation: ArrayLike<number>;
 }
 export interface Network {
   nodes: WalkNode[]; segments: WalkSegment[]; places: Place[];

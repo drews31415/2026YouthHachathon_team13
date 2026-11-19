@@ -12,6 +12,11 @@ export class KmaDataError extends Error {
   constructor(code) { super(`기상청 관측자료를 사용할 수 없습니다 (${code}).`); this.name = 'KmaDataError'; this.code = code; }
 }
 
+export function kmaAwsQueryMinute(now = Date.now()) {
+  // Use a recent completed minute to avoid waiting on the newest collection.
+  return new Date(now + 9 * 3_600_000 - 5 * 60_000).toISOString().replace(/[-:T]/g, '').slice(0, 12);
+}
+
 function timeFromKst(raw) {
   if (!/^\d{12}$/.test(raw)) return null;
   const iso = `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}T${raw.slice(8,10)}:${raw.slice(10,12)}:00+09:00`;

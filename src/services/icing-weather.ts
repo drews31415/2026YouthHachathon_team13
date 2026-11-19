@@ -193,9 +193,13 @@ export function combineLiveForecast(hours: IcingHour[], kma: KmaForecast | undef
   return [...combined.values()].sort((a, b) => a.time - b.time);
 }
 
-export async function fetchKmaForecast(signal: AbortSignal, area: IcingArea = 'gwanak'): Promise<KmaForecast | undefined> {
+function weatherQuery(area: IcingArea | Coordinate) {
+  return typeof area === 'string' ? new URLSearchParams({ area }) : new URLSearchParams({ lon: String(area[0]), lat: String(area[1]) });
+}
+
+export async function fetchKmaForecast(signal: AbortSignal, area: IcingArea | Coordinate = 'gwanak'): Promise<KmaForecast | undefined> {
   const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(12_000)]);
-  const response = await fetch('/api/kma/forecast?area=' + area, { signal: requestSignal, cache: 'no-store' });
+  const response = await fetch('/api/kma/forecast?' + weatherQuery(area), { signal: requestSignal, cache: 'no-store' });
   if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return undefined;
   const data: KmaForecast = await response.json();
   requestSignal.throwIfAborted();
@@ -205,8 +209,7 @@ export async function fetchKmaForecast(signal: AbortSignal, area: IcingArea = 'g
 
 export async function fetchKmaGrid(signal: AbortSignal, area: IcingArea | Coordinate): Promise<GridWeather> {
   const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(12_000)]);
-  const query = typeof area === 'string' ? new URLSearchParams({ area }) : new URLSearchParams({ lon: String(area[0]), lat: String(area[1]) });
-  const response = await fetch('/api/kma/grid?' + query, { signal: requestSignal, cache: 'no-store' });
+  const response = await fetch('/api/kma/grid?' + weatherQuery(area), { signal: requestSignal, cache: 'no-store' });
   if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return { status: 'unavailable' };
   const packet: GridWeather = await response.json();
   requestSignal.throwIfAborted();
@@ -222,7 +225,7 @@ export function hasFreezingRain(hour: IcingHour) {
   return hour.weatherCode !== undefined && [56, 57, 66, 67].includes(hour.weatherCode);
 }
 
-export function readNearbyPrecipitation(payload: unknown, now: number, area: IcingArea = 'gwanak'): NearbyPrecipitation[] {
+export function readNearbyPrecipitation(payload: unknown, now: number, area: IcingArea | Coordinate = 'gwanak'): NearbyPrecipitation[] {
   const stations = (payload as { stations?: unknown } | null)?.stations;
   if (!Array.isArray(stations)) return [];
   const nearby: NearbyPrecipitation[] = [];
@@ -231,8 +234,8 @@ export function readNearbyPrecipitation(payload: unknown, now: number, area: Ici
         !Number.isFinite(station.rain60mMm) || station.rain60mMm < 0) continue;
     const time = Date.parse(station.observedAt);
     if (!Number.isFinite(time) || time > now || now - time >= icingWeatherMaxAgeMs) continue;
-    const [lon, lat] = icingRegions[area].weatherCenter;
-    const distanceM = distanceBetween([lon, lat], [station.lon, station.lat]);
+    const center: Coordinate = typeof area === 'string' ? [icingRegions[area].weatherCenter[0], icingRegions[area].weatherCenter[1]] : area;
+    const distanceM = distanceBetween(center, [station.lon, station.lat]);
     if (distanceM <= 3000) nearby.push({ station: station.name, time, mm: station.rain60mMm, distanceM });
   }
   return nearby.sort((a, b) => a.distanceM - b.distanceM || b.time - a.time);
@@ -245,13 +248,17 @@ export function withNearbyPrecipitation(hour: IcingHour, observations: NearbyPre
   return match ? { ...hour, nearbyPrecipitation: match } : hour;
 }
 
-export async function fetchNearbyPrecipitation(signal: AbortSignal, area: IcingArea = 'gwanak') {
+export async function fetchPrecipitationObservations(signal: AbortSignal) {
   const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(14_000)]);
   const response = await fetch('/api/kma/weather', { signal: requestSignal, cache: 'no-store' });
-  if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return [];
+  if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return null;
   const data: unknown = await response.json();
   requestSignal.throwIfAborted();
-  return readNearbyPrecipitation(data, Date.now(), area);
+  return data;
+}
+
+export async function fetchNearbyPrecipitation(signal: AbortSignal, area: IcingArea = 'gwanak') {
+  return readNearbyPrecipitation(await fetchPrecipitationObservations(signal), Date.now(), area);
 }
 
 export async function fetchIcingHours(signal: AbortSignal, area: IcingArea = 'gwanak') {
@@ -279,7 +286,9 @@ export async function fetchSeoulHours(points: Coordinate[], signal: AbortSignal)
   const values = Array.isArray(data) ? data : [data];
   if (values.length !== points.length) throw new Error('서울 구간별 예보의 수가 맞지 않아요.');
   const retrievedAt = Date.now();
-  return { retrievedAt, hours: values.map(value => findIcingHours(value, retrievedAt)) };
+  return { retrievedAt, hours: values.map(value => {
+    try { return findIcingHours(value, retrievedAt); } catch { return []; }
+  }) };
 }
 export async function readIcingReplay(raw: ArrayBuffer, scene: IcingReplay = 'original') {
   const source = icingReplays[scene];
