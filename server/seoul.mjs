@@ -1,5 +1,7 @@
 // Server/Worker only. Never import this module into client code with credentials.
 import stationFile from '../public/data/seoul-stations.json' with { type: 'json' };
+import capturedWeather from '../public/data/seoul-weather.json' with { type: 'json' };
+import capturedProvenance from '../public/data/seoul-provenance.json' with { type: 'json' };
 
 export const SEOUL_CATALOG = 'https://data.seoul.go.kr/dataList/OA-22833/A/1/datasetView.do';
 export const SEOUL_LICENSE = '공공누리 제1유형: 출처표시 (상업적 이용 및 변경 가능)';
@@ -79,6 +81,50 @@ export function normalizeSeoulRows(rows, { retrievedAt, sourceKind = 'api-observ
 let cache = null;
 let cacheAt = 0;
 let failedAt = 0;
+let lastFailureCode = 'SEOUL_PUBLIC_SHEET_UNAVAILABLE';
+let captureVerified = null;
+
+async function verifiedCapture(failureCode) {
+  if (!captureVerified) {
+    captureVerified = (async () => {
+      // The capture builder writes precisely JSON.stringify(value, null, 2) + LF.
+      // Hash that canonical stored representation, not a newly invented observation.
+      const bytes = new TextEncoder().encode(JSON.stringify(capturedWeather, null, 2) + '\n');
+      const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+      const sha256 = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+      if (sha256 !== capturedProvenance.snapshotSha256
+        || capturedProvenance.endpoint !== SEOUL_SHEET_ENDPOINT || capturedProvenance.status !== 200
+        || capturedWeather.sourceKind !== 'captured-public-sheet' || capturedWeather.historical !== true
+        || capturedWeather.sourceUrl !== SEOUL_CATALOG
+        || capturedWeather.provenance?.sourceSha256 !== capturedProvenance.sha256
+        || capturedWeather.retrievedAt !== capturedProvenance.retrievedAt
+        || !Array.isArray(capturedWeather.stations) || !capturedWeather.stations.length
+        || !Number.isFinite(Date.parse(capturedWeather.retrievedAt))) throw fixedError('SEOUL_CAPTURE_INTEGRITY_FAILED');
+      for (const station of capturedWeather.stations) {
+        const location = locations.get(station.id);
+        if (!location || location.lat !== station.lat || location.lon !== station.lon
+          || !Number.isFinite(Date.parse(station.observedAt))
+          || Date.parse(station.observedAt) > Date.parse(capturedWeather.retrievedAt) + 300_000
+          || (station.temperature !== null && measurement(station.temperature, -90, 60) !== station.temperature)
+          || (station.humidity !== null && measurement(station.humidity, 0, 100) !== station.humidity)) throw fixedError('SEOUL_CAPTURE_INTEGRITY_FAILED');
+      }
+      return sha256;
+    })();
+  }
+  let sha256;
+  try { sha256 = await captureVerified; } catch { throw fixedError('SEOUL_CAPTURE_INTEGRITY_FAILED'); }
+  return { ...structuredClone(capturedWeather), fallbackReason: failureCode,
+    liveTransportVerified: false, servedAt: new Date().toISOString(),
+    captureIntegrity: { algorithm: 'SHA-256', sha256, verified: true } };
+}
+
+function safeFailureCode(error, timedOut) {
+  if (timedOut || error?.name === 'AbortError' || error?.name === 'TimeoutError') return 'SEOUL_TIMEOUT';
+  const code = String(error?.code ?? '');
+  if (/^SEOUL_PROVIDER_HTTP_[1-5]\d{2}$/.test(code)) return code;
+  if (['SEOUL_REDIRECT_REJECTED', 'SEOUL_INVALID_RESPONSE', 'SEOUL_NO_VERIFIED_ROWS', 'SEOUL_NO_LOCAL_OBSERVATIONS', 'SEOUL_INVALID_RETRIEVAL_TIME'].includes(code)) return code;
+  return 'SEOUL_FETCH_NETWORK_ERROR';
+}
 
 /** Official Sheet sends unquoted keys/trailing commas; normalize syntax without eval. */
 export function parseSeoulSheet(text) {
@@ -97,12 +143,16 @@ export async function getSeoulWeather(env = defaultEnv()) {
   // Keep the shared Worker/local signature; this public endpoint requires no secret.
   void env;
   if (cache && Date.now() - cacheAt < 5 * 60_000) return cache;
-  if (failedAt && Date.now() - failedAt < 60_000) throw fixedError('SEOUL_PUBLIC_SHEET_UNAVAILABLE');
+  if (failedAt && Date.now() - failedAt < 60_000) return verifiedCapture(lastFailureCode);
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 8000);
   try {
-    const response = await fetch(SEOUL_SHEET_ENDPOINT, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(8000),
+    const response = await fetch(SEOUL_SHEET_ENDPOINT, { method: 'POST', redirect: 'manual', signal: controller.signal,
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json, text/plain, */*' },
       body: new URLSearchParams(SEOUL_SHEET_REQUEST).toString() });
-    if (!response.ok) throw fixedError('SEOUL_PROVIDER_HTTP_ERROR');
+    if (response.status >= 300 && response.status < 400) throw fixedError('SEOUL_REDIRECT_REJECTED');
+    if (!response.ok) throw fixedError(`SEOUL_PROVIDER_HTTP_${response.status}`);
     const body = parseSeoulSheet(await response.text());
     const result = normalizeSeoulRows(body.list, { retrievedAt: new Date().toISOString(), sourceKind: 'public-sheet-observation' });
     if (!result.stations.length) throw fixedError('SEOUL_NO_LOCAL_OBSERVATIONS');
@@ -113,8 +163,9 @@ export async function getSeoulWeather(env = defaultEnv()) {
     result.apiKeyRequired = false;
     cache = result; cacheAt = Date.now(); failedAt = 0;
     return result;
-  } catch {
+  } catch (error) {
     failedAt = Date.now();
-    throw fixedError('SEOUL_PUBLIC_SHEET_UNAVAILABLE');
-  }
+    lastFailureCode = safeFailureCode(error, timedOut);
+    return verifiedCapture(lastFailureCode);
+  } finally { clearTimeout(timer); }
 }

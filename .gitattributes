@@ -4,3 +4,4 @@ public/data/weather.json -text
 public/data/seoul-*.json -text
 public/data/kma-*.json -text
 src/crossings.json -text
+src/core/testdata/subway-entrances-source.json -text

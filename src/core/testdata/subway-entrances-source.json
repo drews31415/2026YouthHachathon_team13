@@ -1,0 +1,207 @@
+{
+  "sourceFile": "data/south-korea-261117.osm.pbf",
+  "sourceSha256": "0caa538fc7a39d1a48c9e0e6c28038a5cc6814015611ca035840debd93cd28a3",
+  "source": "OpenStreetMap contributors",
+  "license": "Open Database License (ODbL) 1.0",
+  "licenseUrl": "https://www.openstreetmap.org/copyright",
+  "extractedAt": "2026-11-19T10:32:07.231527+00:00",
+  "selection": {
+    "relationId": 8469467,
+    "nodeIds": [
+      3404830008,
+      3404830009,
+      3404830010,
+      3404830011,
+      3404830012,
+      3404830013,
+      3404830014,
+      3404830015
+    ],
+    "criteria": "Explicit subway_entrance + ref 1–8 + station description + station stop_area membership; no coordinate inference"
+  },
+  "nodes": [
+    {
+      "type": "node",
+      "id": 3404830015,
+      "lat": 37.4809488,
+      "lon": 126.9531277,
+      "tags": {
+        "description": "서울대입구역 1번출구",
+        "railway": "subway_entrance",
+        "ref": "1",
+        "wheelchair": "no"
+      },
+      "version": 8,
+      "timestamp": "2025-12-13T15:58:16+00:00"
+    },
+    {
+      "type": "node",
+      "id": 3404830014,
+      "lat": 37.4807999,
+      "lon": 126.9528219,
+      "tags": {
+        "description": "서울대입구역 2번출구",
+        "railway": "subway_entrance",
+        "ref": "2",
+        "wheelchair": "no"
+      },
+      "version": 8,
+      "timestamp": "2025-12-13T15:58:16+00:00"
+    },
+    {
+      "type": "node",
+      "id": 3404830013,
+      "lat": 37.4808437,
+      "lon": 126.9524369,
+      "tags": {
+        "description": "서울대입구역 3번출구",
+        "railway": "subway_entrance",
+        "ref": "3",
+        "wheelchair": "no"
+      },
+      "version": 10,
+      "timestamp": "2025-12-13T15:58:16+00:00"
+    },
+    {
+      "type": "node",
+      "id": 3404830012,
+      "lat": 37.4811803,
+      "lon": 126.9521531,
+      "tags": {
+        "description": "서울대입구역 4번출구",
+        "railway": "subway_entrance",
+        "ref": "4",
+        "wheelchair": "no"
+      },
+      "version": 9,
+      "timestamp": "2025-12-13T15:58:16+00:00"
+    },
+    {
+      "type": "node",
+      "id": 3404830009,
+      "lat": 37.4814975,
+      "lon": 126.9524038,
+      "tags": {
+        "description": "서울대입구역 5번출구",
+        "railway": "subway_entrance",
+        "ref": "5",
+        "wheelchair": "no"
+      },
+      "version": 7,
+      "timestamp": "2025-12-13T15:58:16+00:00"
+    },
+    {
+      "type": "node",
+      "id": 3404830008,
+      "lat": 37.4816395,
+      "lon": 126.9526915,
+      "tags": {
+        "description": "서울대입구역 6번출구",
+        "railway": "subway_entrance",
+        "ref": "6",
+        "wheelchair": "yes"
+      },
+      "version": 7,
+      "timestamp": "2025-12-13T15:58:16+00:00"
+    },
+    {
+      "type": "node",
+      "id": 3404830010,
+      "lat": 37.4815655,
+      "lon": 126.953099,
+      "tags": {
+        "description": "서울대입구역 7번출구",
+        "railway": "subway_entrance",
+        "ref": "7",
+        "wheelchair": "no"
+      },
+      "version": 8,
+      "timestamp": "2025-12-13T15:58:16+00:00"
+    },
+    {
+      "type": "node",
+      "id": 3404830011,
+      "lat": 37.4813029,
+      "lon": 126.9532284,
+      "tags": {
+        "description": "서울대입구역 8번출구",
+        "railway": "subway_entrance",
+        "ref": "8",
+        "wheelchair": "no"
+      },
+      "version": 9,
+      "timestamp": "2025-12-13T15:58:16+00:00"
+    }
+  ],
+  "relations": [
+    {
+      "type": "relation",
+      "id": 8469467,
+      "tags": {
+        "name": "서울대입구",
+        "public_transport": "stop_area",
+        "public_transport:version": "2",
+        "type": "public_transport"
+      },
+      "members": [
+        {
+          "type": "node",
+          "ref": 6033314711,
+          "role": ""
+        },
+        {
+          "type": "node",
+          "ref": 3404830011,
+          "role": ""
+        },
+        {
+          "type": "node",
+          "ref": 3404830010,
+          "role": ""
+        },
+        {
+          "type": "node",
+          "ref": 3404830008,
+          "role": ""
+        },
+        {
+          "type": "node",
+          "ref": 3404830009,
+          "role": ""
+        },
+        {
+          "type": "node",
+          "ref": 3404830012,
+          "role": ""
+        },
+        {
+          "type": "node",
+          "ref": 3404830013,
+          "role": ""
+        },
+        {
+          "type": "node",
+          "ref": 3404830014,
+          "role": ""
+        },
+        {
+          "type": "node",
+          "ref": 3404830015,
+          "role": ""
+        },
+        {
+          "type": "node",
+          "ref": 6033315353,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 6033314712,
+          "role": "stop"
+        }
+      ],
+      "version": 2,
+      "timestamp": "2018-11-03T04:19:19+00:00"
+    }
+  ]
+}

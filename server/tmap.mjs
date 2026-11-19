@@ -32,16 +32,30 @@ async function callTmap(path, options = {}, env = globalThis.process?.env ?? {})
   // path is constructed by this module, never accepted from an HTTP client.
   const url = new URL(path, ORIGIN);
   if (url.origin !== ORIGIN || !url.pathname.startsWith('/tmap/')) throw new TmapError('지원하지 않는 TMAP 요청입니다.', 400, 'TMAP_INVALID_REQUEST');
+  let signal;
+  try {
+    if (typeof globalThis.AbortSignal?.timeout !== 'function') throw new Error();
+    signal = globalThis.AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  } catch {
+    throw new TmapError('현재 서버 환경에서 TMAP 요청의 제한시간을 설정하지 못했어요.', 503, 'TMAP_RUNTIME_UNSUPPORTED');
+  }
   let response;
   try {
     response = await fetch(url, {
       ...options,
       headers: { Accept: 'application/json', appKey: key, ...(options.body ? { 'Content-Type': 'application/json' } : {}) },
-      redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      redirect: 'manual', signal,
     });
   } catch (error) {
     if (error?.name === 'TimeoutError' || error?.name === 'AbortError') throw new TmapError('TMAP 응답 시간이 초과됐어요. 다시 시도해 주세요.', 504, 'TMAP_TIMEOUT');
+    if (['ENOTFOUND', 'EAI_AGAIN'].includes(error?.cause?.code)) throw new TmapError('TMAP 서버 주소에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.', 502, 'TMAP_DNS_ERROR');
+    if (['ECONNREFUSED', 'ECONNRESET', 'UND_ERR_CONNECT_TIMEOUT'].includes(error?.cause?.code)) throw new TmapError('TMAP 서버와 연결을 맺지 못했어요. 잠시 후 다시 시도해 주세요.', 502, 'TMAP_CONNECTION_ERROR');
+    if (error?.name === 'TypeError') throw new TmapError('현재 서버 환경에서 TMAP 요청을 처리하지 못했어요.', 502, 'TMAP_FETCH_TYPE_ERROR');
     throw new TmapError('TMAP 서버에 연결하지 못했어요. 네트워크 상태를 확인하고 다시 시도해 주세요.', 502, 'TMAP_NETWORK_ERROR');
+  }
+  if (response.status >= 300 && response.status < 400) {
+    await response.body?.cancel().catch(() => {});
+    throw new TmapError('TMAP 서버가 다른 주소로 이동을 요청해 조회를 중단했어요.', 502, 'TMAP_REDIRECT_REJECTED');
   }
   if (!response.ok) {
     // Retain only a short, structured provider code; never expose its body or key.

@@ -11,7 +11,7 @@ const provenance = JSON.parse(readFileSync(new URL('../../public/data/provenance
 const base = buildNetwork(JSON.parse(rawRoads) as OsmPayload, provenance);
 const network = addOsmSubwayEntrances(base, source);
 const entrances = network.places.filter(place => place.entrance);
-const rawEntranceSource = readFileSync(new URL('../../../data/subway-osm-entrances-source.json', import.meta.url), 'utf8');
+const rawEntranceSource = readFileSync(new URL('./testdata/subway-entrances-source.json', import.meta.url), 'utf8');
 const independentlyExtracted = JSON.parse(rawEntranceSource);
 
 describe('actual supplemental OSM subway entrance records', () => {

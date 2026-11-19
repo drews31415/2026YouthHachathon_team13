@@ -14,7 +14,8 @@ async function acquire(env) {
     try {
       const url = new URL(KMA_PUBLIC_REQUEST);
       url.searchParams.set('authKey', key);
-      const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(12000), headers: { Accept: 'text/plain' } });
+      const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(12000), headers: { Accept: 'text/plain' } });
+      if (response.status >= 300 && response.status < 400) throw new KmaDataError('unexpected-redirect');
       if (!response.ok) throw new KmaDataError(response.status === 401 || response.status === 403 ? 'service-authorization' : 'upstream-http-error');
       if (Number(response.headers.get('content-length')) > 2000000) throw new KmaDataError('response-too-large');
       const raw = await response.text();
