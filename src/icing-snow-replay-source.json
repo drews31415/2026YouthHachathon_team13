@@ -1,0 +1,6 @@
+{
+  "sourceUrl": "https://historical-forecast-api.open-meteo.com/v1/forecast?latitude=37.4784&longitude=126.9516&hourly=temperature_2m,precipitation,weather_code,snow_depth,snowfall,dew_point_2m,wind_speed_10m,shortwave_radiation&timeformat=unixtime&timezone=GMT&start_date=2025-01-01&end_date=2025-01-02",
+  "retrievedAt": "2026-11-19T16:51:55.875Z",
+  "validAt": "2025-01-02T00:00:00Z",
+  "sha256": "8b357c16c932cfa9c47c99198dd225e6f3c10cf7552e7a933b4e125866af9636"
+}

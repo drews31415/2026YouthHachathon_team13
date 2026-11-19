@@ -1,9 +1,15 @@
 import replaySource from '../icing-replay-source.json';
+import snowReplaySource from '../icing-snow-replay-source.json';
 import { distanceBetween } from '../core/network';
 
-export const icingForecastUrl = 'https://api.open-meteo.com/v1/forecast?latitude=37.4784&longitude=126.9516&hourly=temperature_2m,precipitation,weather_code&past_days=1&forecast_days=2&timeformat=unixtime&timezone=GMT';
+export const icingForecastUrl = 'https://api.open-meteo.com/v1/forecast?latitude=37.4784&longitude=126.9516&hourly=temperature_2m,precipitation,weather_code,snow_depth,snowfall,dew_point_2m,wind_speed_10m,shortwave_radiation&past_days=1&forecast_days=2&timeformat=unixtime&timezone=GMT';
 const hourSeconds = 3600;
 export const icingWeatherMaxAgeMs = 30 * 60_000;
+export const icingReplays = {
+  original: { ...replaySource, path: '/data/icing-replay.json' },
+  snow: { ...snowReplaySource, path: '/data/icing-snow-replay.json' },
+};
+export type IcingReplay = keyof typeof icingReplays;
 const weatherCenter: [number, number] = [126.9516, 37.4784];
 
 export interface NearbyPrecipitation {
@@ -20,6 +26,13 @@ export interface IcingHour {
   weatherCode?: number;
   nearbyPrecipitation?: NearbyPrecipitation;
   kma?: KmaForecastHour;
+  snowDepthM?: number;
+  snowfallCm?: number;
+  dewPointC?: number;
+  windKmh?: number;
+  solarWm2?: number;
+  recentSnowfall?: boolean;
+  recentThawOnSnow?: boolean;
 }
 
 interface KmaForecastHour {
@@ -34,8 +47,8 @@ interface KmaForecastHour {
 interface KmaForecast { retrievedAt: number; ultra: KmaForecastHour[]; short: KmaForecastHour[] }
 
 interface ForecastPayload {
-  hourly_units?: { time?: string; temperature_2m?: string; precipitation?: string; weather_code?: string };
-  hourly?: { time?: unknown[]; temperature_2m?: unknown[]; precipitation?: unknown[]; weather_code?: unknown[] };
+  hourly_units?: Record<string, string>;
+  hourly?: Record<string, unknown[]>;
 }
 
 export function findIcingHours(payload: unknown, nowMs: number): IcingHour[] {
@@ -52,6 +65,11 @@ export function findIcingHours(payload: unknown, nowMs: number): IcingHour[] {
       indexes.set(time, index);
     }
   });
+  const read = (name: string, unit: string, index: number | undefined, min = 0) => {
+    if (index === undefined || units[name] !== unit || !Array.isArray(hourly[name])) return undefined;
+    const value = hourly[name][index];
+    return typeof value === 'number' && Number.isFinite(value) && value >= min ? value : undefined;
+  };
   const hours: IcingHour[] = [];
   for (let time = first; time <= first + 24 * hourSeconds; time += hourSeconds) {
     const index = indexes.get(time);
@@ -67,8 +85,24 @@ export function findIcingHours(payload: unknown, nowMs: number): IcingHour[] {
     }
     if (amounts.length !== 6) continue;
     const code = units.weather_code === 'wmo code' && Array.isArray(hourly.weather_code) ? hourly.weather_code[index] : undefined;
-    hours.push({ time: time * 1000, temperatureC, precedingPrecipMm: amounts.reduce((a, b) => a + b, 0),
-      ...(typeof code === 'number' && Number.isInteger(code) ? { weatherCode: code } : {}) });
+    const forecast: IcingHour = { time: time * 1000, temperatureC, precedingPrecipMm: amounts.reduce((a, b) => a + b, 0) };
+    if (typeof code === 'number' && Number.isInteger(code)) forecast.weatherCode = code;
+    forecast.snowDepthM = read('snow_depth', 'm', index);
+    forecast.snowfallCm = read('snowfall', 'cm', index);
+    forecast.dewPointC = read('dew_point_2m', '°C', index, -100);
+    forecast.windKmh = read('wind_speed_10m', 'km/h', index);
+    forecast.solarWm2 = read('shortwave_radiation', 'W/m²', index);
+    for (let offset = 0; offset <= 12; offset++) {
+      const past = indexes.get(time - offset * hourSeconds);
+      if (offset < 6 && (read('snowfall', 'cm', past) ?? 0) > 0) forecast.recentSnowfall = true;
+      if (offset > 0 && (read('snow_depth', 'm', past) ?? 0) > 0 &&
+          (read('temperature_2m', '°C', past, -100) ?? 0) > 0) forecast.recentThawOnSnow = true;
+    }
+    // Keep archived records with omitted variables unchanged.
+    for (const key of ['snowDepthM', 'snowfallCm', 'dewPointC', 'windKmh', 'solarWm2'] as const) {
+      if (forecast[key] === undefined) delete forecast[key];
+    }
+    hours.push(forecast);
   }
   if (!hours.length) throw new Error('최근 강수를 포함한 시간별 예보를 확인할 수 없습니다.');
   return hours;
@@ -76,7 +110,19 @@ export function findIcingHours(payload: unknown, nowMs: number): IcingHour[] {
 
 export function hasRefreezeConditions(hour: IcingHour) {
   return forecastTemperature(hour) <= 0 &&
-    ((hour.precedingPrecipMm ?? 0) > 0 || hour.kma?.wet === true || (hour.nearbyPrecipitation?.mm ?? 0) > 0);
+    ((hour.precedingPrecipMm ?? 0) > 0 || hour.kma?.wet === true || (hour.nearbyPrecipitation?.mm ?? 0) > 0 ||
+      hour.recentSnowfall === true || hasSnowmeltRefreeze(hour));
+}
+
+export function hasSnowmeltRefreeze(hour: IcingHour) {
+  return forecastTemperature(hour) <= 0 && hour.recentThawOnSnow === true;
+}
+
+export function hasFrostConditions(hour: IcingHour) {
+  if (hour.dewPointC === undefined || hour.windKmh === undefined || hour.solarWm2 === undefined) return false;
+  const gap = hour.temperatureC - hour.dewPointC;
+  return forecastTemperature(hour) <= 0 && hour.temperatureC <= 0 && gap >= 0 && gap <= 2 &&
+    hour.windKmh <= 10 && hour.solarWm2 < 5;
 }
 
 export function forecastTemperature(hour: IcingHour) { return hour.kma?.temperatureC ?? hour.temperatureC; }
@@ -153,23 +199,24 @@ export async function fetchIcingHours(signal: AbortSignal) {
   const retrievedAt = Date.now();
   return { retrievedAt, hours: findIcingHours(data, retrievedAt) };
 }
-export async function readIcingReplay(raw: ArrayBuffer) {
+export async function readIcingReplay(raw: ArrayBuffer, scene: IcingReplay = 'original') {
+  const source = icingReplays[scene];
   const digest = await crypto.subtle.digest('SHA-256', raw);
   const hash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
-  if (hash !== replaySource.sha256) throw new Error('과거 예보 원본의 해시가 일치하지 않습니다.');
-  const time = Date.parse(replaySource.validAt);
+  if (hash !== source.sha256) throw new Error('과거 예보 원본의 해시가 일치하지 않습니다.');
+  const time = Date.parse(source.validAt);
   const hour = findIcingHours(JSON.parse(new TextDecoder().decode(raw)), time).find(item => item.time === time);
   if (!hour || !hasRefreezeConditions(hour)) throw new Error('시범 시각의 예보를 확인할 수 없습니다.');
   return hour;
 }
 
-export async function fetchIcingReplay(signal: AbortSignal) {
+export async function fetchIcingReplay(signal: AbortSignal, scene: IcingReplay) {
   const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(8_000)]);
-  const response = await fetch('/data/icing-replay.json', { signal: requestSignal });
+  const response = await fetch(icingReplays[scene].path, { signal: requestSignal });
   if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
     throw new Error('과거 예보 파일을 불러오지 못했습니다.');
   }
-  const hour = await readIcingReplay(await response.arrayBuffer());
+  const hour = await readIcingReplay(await response.arrayBuffer(), scene);
   requestSignal.throwIfAborted();
   return hour;
 }

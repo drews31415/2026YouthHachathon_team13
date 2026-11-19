@@ -1,11 +1,11 @@
 import { useEffect, useId, useMemo, useState } from 'react';
-import { estimateBuildingShade, sunPosition } from '../core/icing-forecast';
+import { estimateBuildingShade, liveShadingBuildings, surfaceShadeSource, sunPosition } from '../core/icing-forecast';
 import type { Coordinate, Network } from '../core/types';
 import {
   combineLiveForecast, fetchIcingHours, fetchIcingReplay, fetchKmaForecast, fetchNearbyPrecipitation, forecastTemperature, hasFreezingRain,
-  hasRefreezeConditions, icingWeatherMaxAgeMs, withNearbyPrecipitation, type IcingHour, type NearbyPrecipitation,
+  hasFrostConditions, hasRefreezeConditions, hasSnowmeltRefreeze, icingReplays, icingWeatherMaxAgeMs, withNearbyPrecipitation,
+  type IcingHour, type IcingReplay, type NearbyPrecipitation,
 } from '../services/icing-weather';
-import replaySource from '../icing-replay-source.json';
 import './icing-forecast.css';
 
 export const forecastTime = (value: number, includeYear = false) => new Intl.DateTimeFormat('ko-KR', {
@@ -19,6 +19,7 @@ export function useIcingForecast(network: Network | null, enabled: boolean) {
   const [clock, setClock] = useState(Date.now);
   const [selected, setSelected] = useState<number>();
   const [replay, setReplay] = useState(false);
+  const [replayScene, setReplayScene] = useState<IcingReplay>('original');
   const [replayHour, setReplayHour] = useState<IcingHour>();
   const [rain, setRain] = useState<NearbyPrecipitation[]>([]);
   const [kma, setKma] = useState<Awaited<ReturnType<typeof fetchKmaForecast>>>();
@@ -27,7 +28,7 @@ export function useIcingForecast(network: Network | null, enabled: boolean) {
     if (!enabled) return;
     const controller = new AbortController();
     if (replay) {
-      void fetchIcingReplay(controller.signal).then(hour => {
+      void fetchIcingReplay(controller.signal, replayScene).then(hour => {
         if (!controller.signal.aborted) { setReplayHour(hour); setFailed(false); }
       }).catch(() => {
         if (!controller.signal.aborted) { setReplayHour(undefined); setFailed(true); }
@@ -56,7 +57,7 @@ export function useIcingForecast(network: Network | null, enabled: boolean) {
     const timer = window.setInterval(refresh, 15 * 60_000);
     const tick = window.setInterval(() => setClock(Date.now()), 60_000);
     return () => { controller.abort(); window.clearInterval(timer); window.clearInterval(tick); };
-  }, [enabled, replay]);
+  }, [enabled, replay, replayScene]);
 
   const hours = useMemo(() => {
     if (!enabled || replay) return [];
@@ -70,31 +71,47 @@ export function useIcingForecast(network: Network | null, enabled: boolean) {
     const center: Coordinate = [(west + east) / 2, (south + north) / 2];
     return hours.find(hour => hour.time === selected) ??
       hours.find(hour => hasRefreezeConditions(hour) && sunPosition(hour.time, center).up >= Math.sin(8 * Math.PI / 180)) ??
-      hours.find(hasFreezingRain) ?? hours.find(hasRefreezeConditions) ?? hours[0];
+      hours.find(hasFreezingRain) ?? hours.find(hasRefreezeConditions) ?? hours.find(hasFrostConditions) ?? hours[0];
   }, [enabled, replay, replayHour, hours, selected, network]);
   const predicted = active ? hasRefreezeConditions(active) : false;
-  const shade = useMemo(() => network && predicted && active ? estimateBuildingShade(network, active.time) : null, [network, active, predicted]);
+  const shadeTime = predicted ? active?.time : undefined;
+  const expanded = !replay || replayScene === 'snow';
+  const shade = useMemo(() => network && shadeTime !== undefined ? estimateBuildingShade(network, shadeTime, expanded) : null, [network, shadeTime, expanded]);
+  const buildingCount = useMemo(() => network ? liveShadingBuildings(network).length : 0, [network]);
   function changeMode(next: boolean) {
     if (next !== replay) { setFailed(false); setClock(Date.now()); setReplay(next); }
   }
+  function changeReplayScene(next: IcingReplay) {
+    if (next !== replayScene) { setFailed(false); setReplayHour(undefined); setReplayScene(next); }
+  }
   const latestRain = !replay ? rain.find(record => record.time <= clock && clock - record.time < icingWeatherMaxAgeMs) : undefined;
-  return { active, hours, shade, failed, retrievedAt: data?.retrievedAt, predicted, setSelected, replay, changeMode, latestRain };
+  return { active, hours, shade, failed, retrievedAt: data?.retrievedAt, predicted, setSelected,
+    replay, changeMode, replayScene, changeReplayScene, expanded, latestRain, buildingCount };
 }
 
 export function IcingForecastControl({ forecast, onReplayRoute }: { forecast: ReturnType<typeof useIcingForecast>; onReplayRoute: () => void }) {
   const selectId = useId();
-  const { active, hours, predicted, shade, failed, retrievedAt, setSelected, replay, changeMode, latestRain } = forecast;
+  const sceneId = useId();
+  const { active, hours, predicted, shade, failed, retrievedAt, setSelected, replay, changeMode,
+    replayScene, changeReplayScene, expanded, latestRain } = forecast;
   const shownRain = active?.nearbyPrecipitation ?? latestRain;
   return <section className="icing-forecast-control" aria-label="결빙 예상구간">
     <div className="icing-forecast-modes" role="group" aria-label="예보 조회 방식">
       <button type="button" aria-pressed={!replay} onClick={() => changeMode(false)}>최신 예보</button>
       <button type="button" aria-pressed={replay} onClick={() => changeMode(true)}>과거 예보 시범</button>
     </div>
+    {replay && <>
+      <label htmlFor={sceneId}>과거 사례</label>
+      <select id={sceneId} value={replayScene} onChange={e => changeReplayScene(e.target.value as IcingReplay)}>
+        <option value="original">1월 27일 · 강수 뒤 재결빙</option>
+        <option value="snow">1월 2일 · 녹은 눈 재결빙</option>
+      </select>
+    </>}
     {!active ? <p role="status">{failed ? '선택한 예보 자료를 불러오지 못했습니다.' : '공개 예보를 불러오는 중입니다.'}</p> : <>
       {replay ? <p><strong>{forecastTime(active.time, true)} KST · 과거 예보 시범</strong></p> : <>
         <label htmlFor={selectId}>예상 시각 (한국 시간)</label>
         <select id={selectId} value={active.time} onChange={e => setSelected(Number(e.target.value))}>
-          {hours.map(hour => <option key={hour.time} value={hour.time}>{forecastTime(hour.time)}{hasFreezingRain(hour) ? ' · 어는 비' : hasRefreezeConditions(hour) ? ' · 재결빙 주의' : ''}</option>)}
+          {hours.map(hour => <option key={hour.time} value={hour.time}>{forecastTime(hour.time)}{hasFreezingRain(hour) ? ' · 어는 비' : hasRefreezeConditions(hour) ? ' · 재결빙 주의' : hasFrostConditions(hour) ? ' · 서리 주의' : ''}</option>)}
         </select>
       </>}
       <p role="status">{active.kma ? '기상청 ' + (active.kma.kind === 'ultra' ? '초단기예보' : '단기예보') : 'Open-Meteo'} 기온 {forecastTemperature(active)}°C
@@ -105,18 +122,28 @@ export function IcingForecastControl({ forecast, onReplayRoute }: { forecast: Re
       {shownRain && <p>기상청 {shownRain.station} AWS {forecastTime(shownRain.time)} · 최근 1시간 강수 {shownRain.mm}mm
         {active.nearbyPrecipitation ? ' · 지역 강수 근거' : ''}</p>}
       {hasFreezingRain(active) && <p className="icing-area-alert"><strong>지역 예보에 어는 비·이슬비가 있습니다.</strong></p>}
-      {predicted && shade?.sunTooLow ? <strong>지역 재결빙 주의 · 이 시각의 건물 그늘은 미평가</strong>
+      {hasSnowmeltRefreeze(active) && <p className="icing-area-alert"><strong>녹은 눈 재결빙 주의 · 앞선 12시간에 적설과 영상 기온 예보가 겹쳤습니다.</strong></p>}
+      {hasFrostConditions(active) && <p className="icing-area-alert"><strong>동네 서리 주의 조건 · 약한 바람과 이슬점 근처 영하 기온</strong></p>}
+      {predicted && shade?.sunTooLow ? <strong>지역 재결빙 주의 · 이 시각의 그늘은 미평가</strong>
         : predicted && shade?.sections.length ? <strong>주황 점선 {shade.sections.length}개 · 재결빙 예상 주의구간</strong>
-        : predicted ? <strong>지역 재결빙 주의 · 확인한 보행선에 표시할 건물 그늘 없음</strong>
+        : predicted ? <strong>지역 재결빙 주의 · 확인한 보행선에 표시할 그늘 없음</strong>
         : <strong>이 시각의 예보는 재결빙 표시 조건에 해당하지 않습니다.</strong>}
-      {replay ? <small>당시 지역 예보를 현재 OSM 지도에 적용한 시범입니다. <a href={replaySource.sourceUrl} target="_blank" rel="noreferrer">과거 예보 출처</a></small>
+      {replay ? <small>당시 지역 예보를 현재 지도 자료에 적용한 시범입니다. <a href={icingReplays[replayScene].sourceUrl} target="_blank" rel="noreferrer">과거 예보 출처</a></small>
         : <small>예상 범위 밖의 결빙 상태는 미확인입니다. 노면 실측 자료는 연결되지 않았습니다.</small>}
       {!replay && retrievedAt !== undefined && <small><a href="https://open-meteo.com/en/docs" target="_blank" rel="noreferrer">Open-Meteo 예보</a> · {forecastTime(retrievedAt)} 조회 · OSM 건물 높이</small>}
-      {replay && !!shade?.sections.length && <button type="button" className="icing-replay-route" onClick={onReplayRoute}>시범 우회 경로 보기</button>}
+      {expanded && <details className="icing-external-data"><summary>눈·서리와 그늘 자료</summary>
+        <small>지면 적설 예보 {active.snowDepthM === undefined ? '미수신' : (active.snowDepthM * 100).toFixed(1) + 'cm'} · 1시간 강설 {active.snowfallCm === undefined ? '미수신' : active.snowfallCm + 'cm'}</small>
+        <small>이슬점 {active.dewPointC === undefined ? '미수신' : active.dewPointC + '°C'} · 풍속 {active.windKmh === undefined ? '미수신' : active.windKmh + 'km/h'} · 일사량 {active.solarWm2 === undefined ? '미수신' : active.solarWm2 + 'W/m²'}</small>
+        <small>OSM 등록 높이 건물 {forecast.buildingCount}개 · <a href={surfaceShadeSource.url} target="_blank" rel="noreferrer">Copernicus 30m 표면 높이</a></small>
+        <small lang="en">{surfaceShadeSource.attribution}</small>
+        <small lang="en">The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.</small>
+      </details>}
+      {replay && replayScene === 'original' && !!shade?.sections.length && <button type="button" className="icing-replay-route" onClick={onReplayRoute}>시범 우회 경로 보기</button>}
     </>}
     {!replay && <details className="icing-external-data"><summary>열선·제설 공개자료</summary>
       <small><a href="https://map.seoul.go.kr/smgis2/short/6PGOy" target="_blank" rel="noreferrer">관악구 도로열선 설치 지도</a> · <a href="https://doro.eseoul.go.kr/" target="_blank" rel="noreferrer">서울 주요 도로 제설상황판</a></small>
-      <small>설치·작업 참고 정보입니다. 보도별 열선 가동과 노면 상태는 미확인입니다.</small>
+      <small><a href="https://data.seoul.go.kr/dataList/OA-22584/F/1/datasetView.do" target="_blank" rel="noreferrer">서울시 설치 목록</a> · 2026년 10월 1일 기준 관악구 관리 46건</small>
+      <small>보도별 열선 가동·제설 작업 이력은 미확인입니다.</small>
     </details>}
   </section>;
 }
