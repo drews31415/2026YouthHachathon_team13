@@ -41,3 +41,25 @@
 .icing-forecast-control small { margin-top: 5px; font-size: 11px; }
 .real-data-map .risk-toggle.icing-forecast-toggle > span { display: inline; }
 .real-data-map .icing-forecast-toggle.on { border-color: #b45f29; }
+.icing-replay-route {
+  margin-top: 8px;
+  padding: 5px 8px;
+  border: 1px solid #874107;
+  border-radius: 5px;
+  background: #fff;
+  color: #743606;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.real-data-map .legend-forecast-detour { width: 16px; height: 3px; border-radius: 3px; background: #08725e; }
+.route-forecast-status { margin: 8px 0 14px; color: #513b29; font-size: 13px; line-height: 1.55; }
+.route-forecast-status strong { display: flex; gap: 6px; align-items: center; }
+.route-forecast-status time { display: block; margin: 3px 0; font-size: 12px; }
+.route-forecast-status p { margin: 4px 0 0; }
+.forecast-route { display: block; width: 100%; text-align: left; cursor: pointer; }
+.forecast-route.recommended { color: #086853; border-color: #84b4ab; }
+.forecast-route.recommended.selected { background: #ecf9f5; border-color: #08725e; }
+.forecast-route-metrics { display: flex; align-items: baseline; gap: 10px; margin: 8px 0 2px; }
+.forecast-route-metrics strong { font-size: 21px; }
+.forecast-route-metrics > span { font-size: 14px; }

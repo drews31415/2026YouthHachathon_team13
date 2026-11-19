@@ -94,10 +94,10 @@ function allowedByAccessibility(segment: WalkSegment, options: SearchOptions): b
 }
 
 /** The only graph connections are shared OSM node identifiers. */
-function shortestPath(network: Network, originId: string, destinationId: string, options: SearchOptions): Traversal[] | null {
+function shortestPath(network: Network, originId: string, destinationId: string, options: SearchOptions, excluded?: ReadonlySet<string>): Traversal[] | null {
   const adjacency = new Map(network.nodes.map(node => [node.id, [] as Traversal[]]));
   for (const segment of network.segments) {
-    if (!allowedByAccessibility(segment, options)) continue;
+    if (excluded?.has(segment.id) || !allowedByAccessibility(segment, options)) continue;
     if (segment.direction !== 'backward') adjacency.get(segment.from)?.push({ segment, from: segment.from, to: segment.to, reverse: false });
     if (segment.direction !== 'forward') adjacency.get(segment.to)?.push({ segment, from: segment.to, to: segment.from, reverse: true });
   }
@@ -179,5 +179,23 @@ export function searchRoutes(network: Network, options: SearchOptions): SearchRe
     ? '선택한 계단·경사 조건을 확인할 수 있는 연결 경로가 없습니다. 정보가 없는 구간도 제외됩니다.'
     : '수집된 OSM 자료에서 두 연결점을 잇는 보행 경로를 찾지 못했습니다. 횡단시설·접근권한·자료 누락을 확인해야 합니다.');
   const normal = buildRoute(path, options.walkingSpeedMps, run);
-  return fail('no-recommendation', '실제 OSM 도로망의 일반 경로입니다. 구간별 공개 결빙·노면 자료가 없어 위험 회피 경로와 추가 소요시간은 제공하지 않습니다. 출발·도착 위치에서 도로 연결점까지의 접근 구간은 포함하지 않습니다.', normal);
+  return fail('no-recommendation', '실제 OSM 도로망의 일반 경로입니다. 출발·도착 위치에서 도로 연결점까지의 접근 구간은 제외합니다.', normal);
+}
+
+export interface ForecastDetour {
+  crossings: number;
+  route: Route | null;
+}
+
+/** A joint in the OSM graph is required on both sides of a flagged section. */
+export function findForecastDetour(network: Network, options: SearchOptions, result: SearchResult, excluded: ReadonlySet<string>): ForecastDetour {
+  const { normal, run } = result;
+  const { origin, destination } = options;
+  if (!normal || !origin || !destination) return { crossings: 0, route: null };
+  const crossings = normal.segmentIds.filter(id => excluded.has(id)).length;
+  if (!crossings) return { crossings, route: null };
+  const path = shortestPath(network, origin.nodeId, destination.nodeId, options, excluded);
+  if (!path?.length) return { crossings, route: null };
+  const route = buildRoute(path, options.walkingSpeedMps, run);
+  return { crossings, route: { ...route, type: 'recommended', id: normal.id + '-detour-' + route.segmentIds.join(',') } };
 }

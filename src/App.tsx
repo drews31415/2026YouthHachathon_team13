@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpDown, Check, ChevronDown, ChevronLeft, ChevronRight, Footprints, Info, LocateFixed, Map, MapPin, Navigation, RefreshCw, Settings2, Snowflake, Type, Volume2, X } from 'lucide-react';
-import { analyzeRisk, nearestPlace, searchRoutes } from './core/engine';
-import type { Coordinate, Network, Place, SearchOptions, SearchResult } from './core/types';
+import { analyzeRisk, findForecastDetour, nearestPlace, searchRoutes } from './core/engine';
+import type { Coordinate, Network, Place, Route, SearchOptions, SearchResult } from './core/types';
 import { fetchNetwork } from './services/network';
 import { PlaceInput } from './components/PlaceInput';
 import { WalkingMap } from './components/WalkingMap';
+import { useIcingForecast } from './components/IcingForecastControl';
+import { WalkingRouteResult } from './components/WalkingRouteResult';
 import Observations from './components/Observations';
 import TmapPlanner from './components/TmapPlanner';
 
 const defaults: SearchOptions = { origin: null, destination: null, walkingSpeedMps: 1, avoidStairs: false, maxSlopePercent: null };
 const distance = (m: number) => m >= 1000 ? `${(m / 1000).toFixed(2)}km` : `${Math.round(m)}m`;
-const minutes = (s: number) => Math.max(1, Math.ceil(s / 60));
 const stamp = (s: string) => new Date(s).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
 
 export default function App() {
@@ -31,10 +32,19 @@ export default function App() {
   const [navigation, setNavigation] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [recenterKey, setRecenterKey] = useState(0);
+  const [showForecast, setShowForecast] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState<Route['type']>('normal');
   const modal = useRef<HTMLDialogElement>(null);
   const locationRequest = useRef(0);
   const run = useMemo(() => network ? analyzeRisk(network) : null, [network]);
-  const route = result?.normal ?? null;
+  const forecast = useIcingForecast(network, !!network && showForecast && view === 'map');
+  const detour = useMemo(() => {
+    const sections = forecast.shade?.sections;
+    if (!network || !result?.normal || !sections?.length) return null;
+    return findForecastDetour(network, options, result, new Set(sections.map(section => section.segmentId)));
+  }, [network, options, result, forecast.shade]);
+  const recommended = detour?.route ?? null;
+  const route = selectedRoute === 'recommended' && recommended ? recommended : result?.normal ?? null;
   const step = navigation ? route?.steps[stepIndex] : undefined;
 
   useEffect(() => {
@@ -50,6 +60,11 @@ export default function App() {
   useEffect(() => { try { localStorage.setItem('bbzr-large-text', String(largeText)); } catch { /* optional preference */ } }, [largeText]);
   useEffect(() => { if (info) modal.current?.showModal(); else modal.current?.close(); }, [info]);
   useEffect(() => () => window.speechSynthesis?.cancel(), []);
+  useEffect(() => {
+    setNavigation(false); setStepIndex(0);
+    window.speechSynthesis?.cancel();
+  }, [route?.id]);
+  useEffect(() => { if (!recommended) setSelectedRoute('normal'); }, [recommended]);
 
   function change(next: Partial<SearchOptions>) {
     locationRequest.current += 1; setLocating(false);
@@ -81,10 +96,23 @@ export default function App() {
       setLocating(false); setMessage(error.code === 1 ? '위치 접근을 허용하지 않았습니다. 지도에서 출발지를 선택할 수 있습니다.' : '현재 위치를 가져오지 못했습니다. 지도에서 출발지를 선택해 주세요.');
     }, { timeout: 10000, maximumAge: 30000, enableHighAccuracy: true });
   }
-  function calculate() {
+  function calculate(nextOptions = options, selected: Route['type'] = 'normal') {
     if (!network) return;
     window.speechSynthesis?.cancel(); setNavigation(false); setSelectionMode(null);
-    setResult(searchRoutes(network, options)); setRecenterKey(k => k + 1); setMessage(''); setStepIndex(0);
+    const next = searchRoutes(network, nextOptions);
+    if (next.normal) setShowForecast(true);
+    setSelectedRoute(selected); setResult(next);
+    setRecenterKey(k => k + 1); setMessage(''); setStepIndex(0);
+  }
+  function showReplayRoute() {
+    if (!network || !forecast.replay || !forecast.active) return;
+    const origin = network.places.find(place => place.id === 'node/3404830015' && place.entrance);
+    const destination = network.places.find(place => place.id === 'node/3404830012' && place.entrance);
+    if (!origin || !destination) return;
+    const sample = { ...defaults, origin, destination };
+    locationRequest.current += 1; setLocating(false);
+    setOriginQuery(origin.name); setDestinationQuery(destination.name); setOptions(sample);
+    calculate(sample, 'recommended');
   }
   function speak() {
     if (!step || !('speechSynthesis' in window)) return;
@@ -115,17 +143,21 @@ export default function App() {
             {preferences && <div className="preferences-panel"><label className="speed-label" htmlFor="walking-speed">계산에 사용할 보행속도<select id="walking-speed" value={options.walkingSpeedMps} onChange={e => change({ walkingSpeedMps: Number(e.target.value) })}><option value={.8}>천천히 · 초당 0.8m</option><option value={1}>여유롭게 · 초당 1.0m</option><option value={1.2}>보통 · 초당 1.2m</option></select></label><label className="check-row"><input type="checkbox" checked={options.avoidStairs} onChange={e => change({ avoidStairs: e.target.checked })} />계단 없음이 확인된 구간만</label><label className="check-row"><input type="checkbox" checked={options.maxSlopePercent === 5} onChange={e => change({ maxSlopePercent: e.target.checked ? 5 : null })} />경사 5% 이하가 확인된 구간만</label><small>공개 지도에 해당 정보가 없으면 제외합니다. 조건에 맞는 경로가 없을 수 있습니다.</small></div>}
             <button type="submit" className="primary-button search-button"><Footprints size={20} />경로 찾기<ArrowRight size={19} /></button>
           </form><section className="results-section" aria-label="경로 결과" aria-live="polite"><div className="section-heading"><h2>실제 지도 기반 경로</h2><span className="result-context">관악구 수집 영역</span></div>
-            {!result ? <div className="empty-result"><div className="empty-icon"><Footprints size={27} /></div><strong>출발지와 목적지를 선택하세요</strong><p>공개 지도에 등록된 장소를 검색하거나<br />지도에서 직접 선택할 수 있어요.</p></div> : <><div className="result-notice warning" role="status"><Info size={19} /><div><strong>{route ? '결빙 회피 추천은 제공하지 않아요' : '경로를 찾지 못했어요'}</strong><p>{route ? '이 지역 보행로의 공개 노면 자료가 없어 일반 경로만 표시합니다.' : result.message}</p></div></div>{route && <><div className="route-card normal selected"><div className="route-card-top"><span className="route-title"><Footprints size={18} />일반 보행 경로</span></div><div className="route-card-metrics"><strong>{minutes(route.durationSeconds)}<small>분</small></strong><span>{distance(route.distanceM)}</span></div><div className="route-card-caption">결빙 상태 미확인 · {route.segmentIds.length}개 실제 지도 구간</div></div><p className="inline-message">도로 거리 ÷ 선택 속도({options.walkingSpeedMps}m/s)로 계산한 예상시간입니다. 신호·정차·접근 공백은 제외합니다.</p><button className="navigation-button" onClick={() => { setNavigation(true); setStepIndex(0); }}><Navigation size={18} />경로 순서 살펴보기<ChevronRight size={18} /></button></>}</>}
+            {!result ? <div className="empty-result"><div className="empty-icon"><Footprints size={27} /></div><strong>출발지와 목적지를 선택하세요</strong><p>공개 지도에 등록된 장소를 검색하거나<br />지도에서 직접 선택할 수 있어요.</p></div>
+              : result.normal && route ? <WalkingRouteResult normal={result.normal} detour={detour} forecast={forecast} forecastEnabled={showForecast}
+                selected={route.type} speed={options.walkingSpeedMps} onSelect={setSelectedRoute}
+                onNavigate={() => { setNavigation(true); setStepIndex(0); }} />
+              : <div className="result-notice warning" role="status"><Info size={19} /><div><strong>경로를 찾지 못했어요</strong><p>{result.message}</p></div></div>}
             <div className="safety-note"><Info size={15} /><p>이 지역 보행로의 공개 결빙 자료는 아직 확보되지 않았습니다. 자료 없음은 결빙 없음이 아닙니다.</p></div><button className="location-button" onClick={() => setView('weather')}><Info size={16} />주변 관측소의 기온·강수 보기</button>
           </section></> : <section className="navigation-section" aria-label="경로 순서 살펴보기"><button className="back-button" onClick={() => { setNavigation(false); window.speechSynthesis?.cancel(); }}><ArrowLeft size={17} />경로 결과로</button><div className="navigation-heading"><span className="eyebrow">ROUTE PREVIEW</span><h2>{options.destination?.name}까지<br />경로 순서를 확인하세요.</h2><span className="demo-nav-pill">GPS 위치 추적·자동 안내 없음</span></div>{step && <><div className="direction-card"><Navigation size={33} /><span>{step.instruction}</span><strong>{distance(step.distanceM)}<small>{step.name}</small></strong></div><div className="remaining-stats"><span>남은 경로 <strong>{distance(route!.steps.slice(stepIndex).reduce((sum, s) => sum + s.distanceM, 0))}</strong></span></div>{'speechSynthesis' in window && <button className="voice-button" onClick={speak}><Volume2 size={17} />이 구간 읽기</button>}<div className="step-progress"><span>구간 {stepIndex + 1} / {route!.steps.length}</span><div><i style={{ width: `${(stepIndex + 1) / route!.steps.length * 100}%` }} /></div></div><div className="step-buttons"><button disabled={!stepIndex} onClick={() => { window.speechSynthesis?.cancel(); setStepIndex(i => i - 1); }}><ChevronLeft size={18} />이전</button><button className="primary-button" onClick={() => { window.speechSynthesis?.cancel(); if (stepIndex < route!.steps.length - 1) setStepIndex(i => i + 1); else setNavigation(false); }}>{stepIndex < route!.steps.length - 1 ? '다음 구간' : '살펴보기 완료'}<ChevronRight size={18} /></button></div><ol className="route-steps">{route!.steps.map((s, i) => <li key={s.segmentId} className={i === stepIndex ? 'current' : ''}><button aria-current={i === stepIndex ? 'step' : undefined} onClick={() => { window.speechSynthesis?.cancel(); setStepIndex(i); }}><span className="step-number">{i + 1}</span><span><strong>{s.name}</strong><small>{s.instruction} · {distance(s.distanceM)}</small></span></button></li>)}</ol></>}</section>}
           <div className="planner-footer"><span><Snowflake size={14} />확인되지 않은 값은 비워 둡니다.</span><button onClick={() => setInfo(true)}>데이터 출처<ChevronRight size={12} /></button></div>
         </section>
-        <section className="map-section" aria-label="지도와 자료 범위"><WalkingMap network={network} run={result?.run ?? run} normal={route} recommended={null} selected="normal" origin={options.origin ?? undefined} destination={options.destination ?? undefined} step={step} recenterKey={recenterKey} selectionMode={selectionMode} onSelectCoordinate={coordinate => { if (selectionMode) point(coordinate, selectionMode); }} /><div className="map-insight"><div className="insight-icon"><Info size={22} /></div><div><span>OpenStreetMap 공개 원본</span><strong>{network.segments.length.toLocaleString()}개 구간 · {network.places.length.toLocaleString()}개 장소</strong><small>지도에서 ‘결빙 예상’을 켜고 확인할 시간대를 선택하세요.</small></div><button aria-label="데이터 출처 보기" onClick={() => setInfo(true)}><Info size={18} /></button></div></section>
+        <section className="map-section" aria-label="지도와 자료 범위"><WalkingMap network={network} run={result?.run ?? run} normal={result?.normal ?? null} recommended={recommended} selected={route?.type ?? "normal"} showForecast={showForecast} forecast={forecast} onToggleForecast={() => setShowForecast(value => !value)} onReplayRoute={showReplayRoute} origin={options.origin ?? undefined} destination={options.destination ?? undefined} step={step} recenterKey={recenterKey} selectionMode={selectionMode} onSelectCoordinate={coordinate => { if (selectionMode) point(coordinate, selectionMode); }} /><div className="map-insight"><div className="insight-icon"><Info size={22} /></div><div><span>OpenStreetMap 공개 원본</span><strong>{network.segments.length.toLocaleString()}개 구간 · {network.places.length.toLocaleString()}개 장소</strong><small>지도에서 ‘결빙 예상’을 켜고 확인할 시간대를 선택하세요.</small></div><button aria-label="데이터 출처 보기" onClick={() => setInfo(true)}><Info size={18} /></button></div></section>
       </div>}
       <footer className="page-footer"><span>빙빙제로 · 공개 데이터 기반 보행 길찾기</span><span>{network ? `지도 원본 기준 ${stamp(network.provenance.osmTimestamp)} KST` : '실제 원본 확인 중'}<button aria-label="자료 출처 상세" onClick={() => setInfo(true)}><Info size={13} /></button></span></footer>
     </main>
     <dialog ref={modal} className="info-dialog" aria-label="데이터 출처" onCancel={() => setInfo(false)} onClick={e => { if (e.target === e.currentTarget) setInfo(false); }}><div className="dialog-content"><div className="dialog-heading"><div className="dialog-brand"><Snowflake size={30} /><span>빙빙제로<small>공개 자료의 범위까지 정확하게.</small></span></div><button className="icon-button" aria-label="데이터 출처 닫기" onClick={() => setInfo(false)}><X size={22} /></button></div><span className="simulation-badge"><i />합성 데이터 없음</span><h2>실제 자료와 미확인 정보를<br />구분해서 보여드립니다.</h2>
-      <div className="data-details"><h3>지금 연결된 자료</h3><dl><div><dt>보행망·장소</dt><dd>OpenStreetMap 보행망과 등록 장소를 사용합니다. 서울대입구역 1~8번 출구는 역 관계와 출입구 태그를 대조해 검색에 추가했습니다.</dd></div>{network && <><div><dt>원본 기준</dt><dd>{stamp(network.provenance.osmTimestamp)} KST</dd></div><div><dt>수집 시각</dt><dd>{stamp(network.provenance.downloadedAt)} KST</dd></div><div><dt>출처·허가</dt><dd><a href={network.provenance.endpoint} target="_blank" rel="noreferrer">{network.provenance.source}</a> · <a href={network.provenance.licenseUrl} target="_blank" rel="noreferrer">{network.provenance.license}</a></dd></div></>}<div><dt>기상 관측</dt><dd>기상청 AWS와 서울시 S-DoT에서 인근 관측소의 기온·습도를 조회합니다. 수집본 사용 여부와 관측 시각은 지점별로 표시합니다. Open-Meteo의 기상 모델값은 별도로 제공합니다.</dd></div><div><dt>횡단보도</dt><dd>서울시가 공개한 2026년 8월 24일 시설 위치 68곳을 표시합니다. 각 점에서 보행등 등록 여부와 시설 유형을 확인할 수 있습니다.</dd></div><div><dt>지정도로</dt><dd>행정안전부의 2026년 8월 11일 자료에서 관악구 현행 6건의 시점·종점을 표시합니다.</dd></div><div><dt>결빙 상태</dt><dd>결빙 예상은 Open-Meteo의 지역 예보와 OSM 건물로 추정한 그늘을 사용합니다. 보도별 노면 실측과 결빙 회피 경로는 제공하지 않습니다.</dd></div></dl></div>
+      <div className="data-details"><h3>지금 연결된 자료</h3><dl><div><dt>보행망·장소</dt><dd>OpenStreetMap 보행망과 등록 장소를 사용합니다. 서울대입구역 1~8번 출구는 역 관계와 출입구 태그를 대조해 검색에 추가했습니다.</dd></div>{network && <><div><dt>원본 기준</dt><dd>{stamp(network.provenance.osmTimestamp)} KST</dd></div><div><dt>수집 시각</dt><dd>{stamp(network.provenance.downloadedAt)} KST</dd></div><div><dt>출처·허가</dt><dd><a href={network.provenance.endpoint} target="_blank" rel="noreferrer">{network.provenance.source}</a> · <a href={network.provenance.licenseUrl} target="_blank" rel="noreferrer">{network.provenance.license}</a></dd></div></>}<div><dt>기상 관측</dt><dd>기상청 AWS와 서울시 S-DoT에서 인근 관측소의 기온·습도를 조회합니다. 수집본 사용 여부와 관측 시각은 지점별로 표시합니다. Open-Meteo의 기상 모델값은 별도로 제공합니다.</dd></div><div><dt>횡단보도</dt><dd>서울시가 공개한 2026년 8월 24일 시설 위치 68곳을 표시합니다. 각 점에서 보행등 등록 여부와 시설 유형을 확인할 수 있습니다.</dd></div><div><dt>지정도로</dt><dd>행정안전부의 2026년 8월 11일 자료에서 관악구 현행 6건의 시점·종점을 표시합니다.</dd></div><div><dt>결빙 상태</dt><dd>결빙 예상은 Open-Meteo의 지역 예보와 OSM 건물로 추정한 그늘을 사용합니다. 우회 경로는 예상 주의구간이 포함된 보행선을 제외해 계산합니다. 보도별 실제 결빙 상태는 미확인입니다.</dd></div></dl></div>
       <div className="info-principles"><h3>자료를 해석할 때</h3><p><strong>보행망</strong>은 공개 지도에 등록된 통행 정보를 기준으로 합니다. 현재 통제, 누락된 출입 제한, 보도 상태가 반영되지 않을 수 있습니다. 경로는 현장 보행 가능성이 검증된 길이 아닙니다.</p><p><strong>장소 연결점</strong>은 80m 이내의 실제 도로 노드입니다. 장소와 연결점 사이를 직선 보행로로 만들지 않으며, 그 사이 접근성·시간은 미확인입니다.</p><p><strong>접근성</strong> 정보가 없으면 경사·계단 유무를 임의로 채우지 않습니다. 해당 조건을 켜면 정보가 없는 구간도 제외합니다.</p><p><strong>위치정보</strong>는 관악구 보행 지도에서 브라우저 안에서 처리합니다. TMAP에서 검색·길찾기를 누르면 입력한 검색어나 선택한 두 위치가 TMAP에 전송됩니다. 앱은 이동 이력을 저장하지 않습니다. 기상 조회는 고정 지역을 사용하며 배경지도 제공자는 요청 영역을 알 수 있습니다.</p></div>
       {network && <p className="source-downloads"><a href="/data/osm.json" download>지도 원본 JSON</a> · <a href="/data/provenance.json" download>출처·검증 기록</a></p>}<button className="primary-button dialog-close" onClick={() => setInfo(false)}>확인했어요<Check size={18} /></button>
     </div></dialog>

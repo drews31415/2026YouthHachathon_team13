@@ -10,7 +10,7 @@ export const forecastTime = (value: number, includeYear = false) => new Intl.Dat
   year: includeYear ? 'numeric' : undefined,
 }).format(value);
 
-export function useIcingForecast(network: Network, enabled: boolean) {
+export function useIcingForecast(network: Network | null, enabled: boolean) {
   const [data, setData] = useState<Awaited<ReturnType<typeof fetchIcingHours>>>();
   const [failed, setFailed] = useState(false);
   const [clock, setClock] = useState(Date.now);
@@ -47,23 +47,23 @@ export function useIcingForecast(network: Network, enabled: boolean) {
   const hours = useMemo(() => enabled && !replay && data && clock - data.retrievedAt < icingWeatherMaxAgeMs
     ? data.hours.filter(hour => hour.time + 3600_000 > clock) : [], [enabled, replay, data, clock]);
   const active = useMemo(() => {
-    if (!enabled) return undefined;
+    if (!enabled || !network) return undefined;
     if (replay) return replayHour;
     const [[west, south], [east, north]] = network.bounds;
     const center: Coordinate = [(west + east) / 2, (south + north) / 2];
     return hours.find(hour => hour.time === selected) ??
       hours.find(hour => hasRefreezeConditions(hour) && sunPosition(hour.time, center).up >= Math.sin(8 * Math.PI / 180)) ??
       hours.find(hasRefreezeConditions) ?? hours[0];
-  }, [enabled, replay, replayHour, hours, selected, network.bounds]);
+  }, [enabled, replay, replayHour, hours, selected, network]);
   const predicted = active ? hasRefreezeConditions(active) : false;
-  const shade = useMemo(() => predicted && active ? estimateBuildingShade(network, active.time) : null, [network, active, predicted]);
+  const shade = useMemo(() => network && predicted && active ? estimateBuildingShade(network, active.time) : null, [network, active, predicted]);
   function changeMode(next: boolean) {
     if (next !== replay) { setFailed(false); setClock(Date.now()); setReplay(next); }
   }
   return { active, hours, shade, failed, retrievedAt: data?.retrievedAt, predicted, setSelected, replay, changeMode };
 }
 
-export function IcingForecastControl({ forecast }: { forecast: ReturnType<typeof useIcingForecast> }) {
+export function IcingForecastControl({ forecast, onReplayRoute }: { forecast: ReturnType<typeof useIcingForecast>; onReplayRoute: () => void }) {
   const selectId = useId();
   const { active, hours, predicted, shade, failed, retrievedAt, setSelected, replay, changeMode } = forecast;
   return <section className="icing-forecast-control" aria-label="결빙 예상구간">
@@ -86,6 +86,7 @@ export function IcingForecastControl({ forecast }: { forecast: ReturnType<typeof
       {replay ? <small>당시 지역 예보를 현재 OSM 지도에 적용한 시범입니다. <a href={replaySource.sourceUrl} target="_blank" rel="noreferrer">과거 예보 출처</a></small>
         : <small>예상 범위 밖의 결빙 상태는 미확인입니다. 노면 실측 자료는 연결되지 않았습니다.</small>}
       {!replay && retrievedAt !== undefined && <small><a href="https://open-meteo.com/en/docs" target="_blank" rel="noreferrer">Open-Meteo 예보</a> · {forecastTime(retrievedAt)} 조회 · OSM 건물 높이</small>}
+      {replay && !!shade?.sections.length && <button type="button" className="icing-replay-route" onClick={onReplayRoute}>시범 우회 경로 보기</button>}
     </>}
   </section>;
 }

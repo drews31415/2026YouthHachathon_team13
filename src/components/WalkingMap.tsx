@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
 import { Layers3, LocateFixed, Minus, Plus, MapPin, Maximize2, MousePointer2, Info, Snowflake } from 'lucide-react';
 import type { Coordinate, ModelRun, Network, Place, Route, RouteStep, WalkSegment } from '../core/types';
-import { forecastTime, IcingForecastControl, useIcingForecast } from './IcingForecastControl';
+import { forecastTime, IcingForecastControl, type useIcingForecast } from './IcingForecastControl';
 import designated from '../designated-roads.json';
 import crossings from '../crossings.json';
 import './public-map-layers.css';
@@ -19,6 +19,10 @@ interface Props {
   recenterKey: number;
   onSelectCoordinate?: (coordinate: Coordinate) => void;
   selectionMode?: 'origin' | 'destination' | null;
+  showForecast: boolean;
+  forecast: ReturnType<typeof useIcingForecast>;
+  onToggleForecast: () => void;
+  onReplayRoute: () => void;
 }
 
 const latlngs = (coordinates: Coordinate[]) => coordinates.map(([lng, lat]) => [lat, lng] as L.LatLngTuple);
@@ -30,7 +34,8 @@ function segmentPopup(segment: WalkSegment) {
   return `<div class="risk-popup real-segment-popup"><span>실제 OpenStreetMap 보행망 구간</span><strong>${escape(segment.name)}</strong><dl><div><dt>구간 거리</dt><dd>${Math.round(segment.lengthM)}m</dd></div><div><dt>계단</dt><dd>${segment.stairs === true ? '계단 태그 있음' : segment.stairs === false ? '계단 아님 태그 확인' : '자료 미기재'}</dd></div><div><dt>경사</dt><dd>${segment.slope === null ? '자료 미기재' : `${escape(segment.slope)}%`}</dd></div><div><dt>노면 결빙</dt><dd>관측자료 없음 · 판단 불가</dd></div></dl>${tags.length ? `<div class="osm-tags">${tags.map(([key, value]) => `<code>${escape(key)}=${escape(value)}</code>`).join('')}</div>` : ''}<a href="${sourceUrl}" target="_blank" rel="noopener noreferrer">OSM 원본 way ${escape(segment.wayId)} ↗</a><small>자료 미기재를 통행 가능·위험 낮음으로 해석하지 않습니다.</small></div>`;
 }
 
-export function WalkingMap({ network, run, normal, recommended, selected, origin, destination, step, recenterKey, onSelectCoordinate, selectionMode = null }: Props) {
+export function WalkingMap({ network, run, normal, recommended, selected, origin, destination, step, recenterKey,
+  onSelectCoordinate, selectionMode = null, showForecast, forecast, onToggleForecast, onReplayRoute }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layers = useRef<L.LayerGroup | null>(null);
@@ -38,10 +43,8 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
   const [showCoverage, setShowCoverage] = useState(false);
   const [showDesignated, setShowDesignated] = useState(false);
   const [showCrossings, setShowCrossings] = useState(false);
-  const [showForecast, setShowForecast] = useState(false);
   const [layerMenu, setLayerMenu] = useState(false);
   const [tilesFailed, setTilesFailed] = useState(false);
-  const forecast = useIcingForecast(network, showForecast);
   selection.current = { onSelectCoordinate, selectionMode };
 
   function fitNetwork() {
@@ -172,14 +175,15 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
 
     const routeLine = (route: Route, active: boolean) => {
       const points = latlngs(route.coordinates);
+      const routeColor = route.type === 'recommended' ? '#08725e' : '#1765ef';
       if (active) L.polyline(points, { color: '#fff', weight: 10, opacity: .95, interactive: false }).addTo(group);
-      L.polyline(points, { color: active ? '#1765ef' : '#8e9da9', weight: active ? 6 : 3.5, opacity: active ? 1 : .65, dashArray: active ? undefined : '7 8', lineJoin: 'round', interactive: false }).addTo(group);
+      L.polyline(points, { color: routeColor, weight: active ? 6 : 3.5, opacity: active ? 1 : .65, dashArray: active ? undefined : '7 8', lineJoin: 'round', interactive: false }).addTo(group);
       if (active && route.coordinates.length) {
         const start = route.coordinates[0];
         const finish = route.coordinates[route.coordinates.length - 1];
-        L.circleMarker([start[1], start[0]], { radius: 5, weight: 2, color: '#fff', fillColor: '#1765ef', fillOpacity: 1, interactive: !selectionMode }).addTo(group)
+        L.circleMarker([start[1], start[0]], { radius: 5, weight: 2, color: '#fff', fillColor: routeColor, fillOpacity: 1, interactive: !selectionMode }).addTo(group)
           .bindTooltip('보행망 경로 시작점 · 장소까지의 접속로는 포함되지 않습니다.', { direction: 'top', className: 'endpoint-label' });
-        L.circleMarker([finish[1], finish[0]], { radius: 5, weight: 2, color: '#fff', fillColor: '#1765ef', fillOpacity: 1, interactive: !selectionMode }).addTo(group)
+        L.circleMarker([finish[1], finish[0]], { radius: 5, weight: 2, color: '#fff', fillColor: routeColor, fillOpacity: 1, interactive: !selectionMode }).addTo(group)
           .bindTooltip('보행망 경로 끝점 · 장소까지의 접속로는 포함되지 않습니다.', { direction: 'top', className: 'endpoint-label' });
       }
     };
@@ -229,8 +233,8 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
       <div className="zoom-buttons"><button type="button" aria-label="지도 확대" onClick={() => mapRef.current?.zoomIn()}><Plus size={21} /></button><button type="button" aria-label="지도 축소" onClick={() => mapRef.current?.zoomOut()}><Minus size={21} /></button></div>
       <button type="button" title="수집된 생활권 전체 보기" aria-label="수집된 생활권 전체 보기" onClick={fitNetwork}><LocateFixed size={20} /></button>
     </div>
-    {showForecast && <IcingForecastControl forecast={forecast} />}
-    <div className="map-bottomline"><div className="map-legend"><span><i className="legend-recommended" />일반 보행 경로</span><span><i className="legend-network" />OSM 보행망</span></div><button type="button" className={`risk-toggle icing-forecast-toggle ${showForecast ? 'on' : ''}`} aria-pressed={showForecast} onClick={() => setShowForecast(!showForecast)}><Snowflake size={17} /><span>결빙 예상</span><i /></button></div>
+    {showForecast && <IcingForecastControl forecast={forecast} onReplayRoute={onReplayRoute} />}
+    <div className="map-bottomline"><div className="map-legend"><span><i className="legend-recommended" />일반 보행 경로</span>{recommended ? <span><i className="legend-forecast-detour" />예상구간 우회</span> : <span><i className="legend-network" />OSM 보행망</span>}</div><button type="button" className={`risk-toggle icing-forecast-toggle ${showForecast ? 'on' : ''}`} aria-pressed={showForecast} onClick={onToggleForecast}><Snowflake size={17} /><span>결빙 예상</span><i /></button></div>
     {(showDesignated || showCrossings || showCoverage) && <div className="surface-data-notice" role="status"><Info size={15} /><span>{showDesignated && <>주황 점은 지정도로의 시점·종점입니다. {designated.date} <a href={designated.url} target="_blank" rel="noreferrer">행안부</a>. </>}{showCrossings && <>청록 점은 횡단보도 시설 위치입니다. {crossings.date} <a href={crossings.url} target="_blank" rel="noreferrer">서울시</a>. </>}{showCoverage && '점선은 노면 관측자료가 없는 구간입니다.'}</span></div>}
     {tilesFailed && <div className="tile-warning" role="status">배경 지도를 불러오지 못했어요. 수집된 실제 OSM 보행망과 계산 경로는 계속 확인할 수 있습니다.</div>}
   </div>;
