@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
-import { Layers3, LocateFixed, Minus, Plus, MapPin, Maximize2, MousePointer2, Info } from 'lucide-react';
+import { Layers3, LocateFixed, Minus, Plus, MapPin, Maximize2, MousePointer2, Info, Snowflake } from 'lucide-react';
 import type { Coordinate, ModelRun, Network, Place, Route, RouteStep, WalkSegment } from '../core/types';
+import { forecastTime, IcingForecastControl, useIcingForecast } from './IcingForecastControl';
 import designated from '../designated-roads.json';
 import crossings from '../crossings.json';
 import './public-map-layers.css';
@@ -37,8 +38,10 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
   const [showCoverage, setShowCoverage] = useState(false);
   const [showDesignated, setShowDesignated] = useState(false);
   const [showCrossings, setShowCrossings] = useState(false);
+  const [showForecast, setShowForecast] = useState(false);
   const [layerMenu, setLayerMenu] = useState(false);
   const [tilesFailed, setTilesFailed] = useState(false);
+  const forecast = useIcingForecast(network, showForecast);
   selection.current = { onSelectCoordinate, selectionMode };
 
   function fitNetwork() {
@@ -62,6 +65,7 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
     tiles.on('tileerror', () => setTilesFailed(true));
     tiles.on('tileload', () => setTilesFailed(false));
     layers.current = L.layerGroup().addTo(map);
+    map.createPane('icingForecast').style.zIndex = '450';
     const [[west, south], [east, north]] = network.bounds;
     map.fitBounds([[south, west], [north, east]], { padding: [48, 78] });
     map.on('click', event => {
@@ -111,6 +115,32 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
     }
     return () => { markers.remove(); };
   }, [showCrossings, selectionMode, network]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const hour = forecast.active;
+    if (!map || !showForecast || !hour || !forecast.shade?.sections.length) return;
+    const layer = L.layerGroup().addTo(map);
+    const segments = new Map(network.segments.map(segment => [segment.id, segment]));
+    for (const section of forecast.shade.sections) {
+      const segment = segments.get(section.segmentId);
+      if (!segment) continue;
+      const line = L.polyline(latlngs(section.coordinates), {
+        pane: 'icingForecast', color: '#a63f06', weight: 5, opacity: .96, dashArray: '6 6',
+        interactive: !selectionMode, bubblingMouseEvents: false,
+      }).addTo(layer);
+      if (!selectionMode) line.bindPopup(
+        '<div class="risk-popup"><strong>재결빙 예상 주의구간</strong><p>' + escape(segment.name) +
+        ' · ' + escape(forecastTime(hour.time)) + ' KST</p><p>지역 기온 ' + escape(hour.temperatureC) +
+        '°C · 직전 6시간 강수 ' + escape(hour.precedingPrecipMm.toFixed(1)) +
+        'mm · 건물 그늘 추정</p><a href="https://www.openstreetmap.org/way/' + section.buildingId +
+        '" target="_blank" rel="noopener noreferrer">OSM 건물 높이 출처</a>' +
+        '<small>공개 기상 예보와 건물 정보로 계산했습니다. 실제 노면은 미확인입니다.</small></div>',
+        { maxWidth: 280 },
+      );
+    }
+    return () => { layer.remove(); };
+  }, [showForecast, forecast.active, forecast.shade, selectionMode, network]);
 
   useEffect(() => {
     const group = layers.current;
@@ -183,12 +213,14 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
       {layerMenu && <fieldset id="public-map-layers" className="public-map-layers"><legend>공공자료 표시</legend>
         <label><input type="checkbox" checked={showCrossings} onChange={e => setShowCrossings(e.target.checked)} />횡단보도 시설 {crossings.points.length}곳</label>
         <label><input type="checkbox" checked={showDesignated} onChange={e => { if (!e.target.checked) fitRoute(); setShowDesignated(e.target.checked); }} />상습결빙 지정도로 {designated.records.length}곳</label>
+        <label><input type="checkbox" checked={showCoverage} onChange={e => setShowCoverage(e.target.checked)} />노면 관측 미확인 구간</label>
       </fieldset>}
       <button type="button" title="경로 전체 보기" aria-label="경로 전체 보기" onClick={fitRoute}><Maximize2 size={19} /></button>
       <div className="zoom-buttons"><button type="button" aria-label="지도 확대" onClick={() => mapRef.current?.zoomIn()}><Plus size={21} /></button><button type="button" aria-label="지도 축소" onClick={() => mapRef.current?.zoomOut()}><Minus size={21} /></button></div>
       <button type="button" title="수집된 생활권 전체 보기" aria-label="수집된 생활권 전체 보기" onClick={fitNetwork}><LocateFixed size={20} /></button>
     </div>
-    <div className="map-bottomline"><div className="map-legend"><span><i className="legend-recommended" />일반 보행 경로</span><span><i className="legend-network" />OSM 보행망</span></div><button type="button" className={`risk-toggle ${showCoverage ? 'on' : ''}`} aria-pressed={showCoverage} onClick={() => setShowCoverage(!showCoverage)}><Layers3 size={17} /><span>노면자료 미확보</span><i /></button></div>
+    {showForecast && <IcingForecastControl forecast={forecast} />}
+    <div className="map-bottomline"><div className="map-legend"><span><i className="legend-recommended" />일반 보행 경로</span><span><i className="legend-network" />OSM 보행망</span></div><button type="button" className={`risk-toggle icing-forecast-toggle ${showForecast ? 'on' : ''}`} aria-pressed={showForecast} onClick={() => setShowForecast(!showForecast)}><Snowflake size={17} /><span>결빙 예상</span><i /></button></div>
     {(showDesignated || showCrossings || showCoverage) && <div className="surface-data-notice" role="status"><Info size={15} /><span>{showDesignated && <>주황 점은 지정도로의 시점·종점입니다. {designated.date} <a href={designated.url} target="_blank" rel="noreferrer">행안부</a>. </>}{showCrossings && <>청록 점은 횡단보도 시설 위치입니다. {crossings.date} <a href={crossings.url} target="_blank" rel="noreferrer">서울시</a>. </>}{showCoverage && '점선은 노면 관측자료가 없는 구간입니다.'}</span></div>}
     {tilesFailed && <div className="tile-warning" role="status">배경 지도를 불러오지 못했어요. 수집된 실제 OSM 보행망과 계산 경로는 계속 확인할 수 있습니다.</div>}
   </div>;

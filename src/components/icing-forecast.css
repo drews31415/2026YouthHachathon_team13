@@ -1,0 +1,32 @@
+.icing-forecast-control {
+  position: absolute;
+  z-index: 455;
+  top: 61px;
+  left: 18px;
+  width: min(315px, calc(100% - 90px));
+  padding: 12px;
+  border: 1px solid #d8b99c;
+  border-radius: 11px;
+  background: #fffaf4;
+  box-shadow: 0 4px 16px #48382122;
+  color: #3e3731;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.icing-forecast-control label, .icing-forecast-control strong, .icing-forecast-control small { display: block; }
+.icing-forecast-control select {
+  display: block;
+  width: 100%;
+  margin: 4px 0 8px;
+  padding: 5px;
+  color: #352d25;
+  background: #fff;
+  border: 1px solid #d8b99c;
+  border-radius: 5px;
+  font: inherit;
+}
+.icing-forecast-control p { margin: 0 0 6px; }
+.icing-forecast-control strong { color: #893700; }
+.icing-forecast-control small { margin-top: 5px; font-size: 11px; }
+.real-data-map .risk-toggle.icing-forecast-toggle > span { display: inline; }
+.real-data-map .icing-forecast-toggle.on { border-color: #b45f29; }

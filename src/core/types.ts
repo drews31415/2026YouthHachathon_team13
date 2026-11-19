@@ -23,6 +23,7 @@ export interface WalkSegment {
   source: string; wayId: string; tags: Record<string, string>;
   direction: 'both' | 'forward' | 'backward';
 }
+export interface ShadingBuilding { osmId: number; heightM: number; footprint: Coordinate[]; }
 export interface Network {
   nodes: WalkNode[]; segments: WalkSegment[]; places: Place[];
   bounds: [Coordinate, Coordinate]; source: string; provenance: SourceProvenance;
@@ -30,6 +31,7 @@ export interface Network {
   placeCounts: { osmNamedPlaces: number; osmSubwayEntrances: number; officialSubwayEntrances: number; total: number };
   entranceConnections?: { sourceRecordCount: number; added: number; duplicateIds: number; outsideBounds: number; unconnected: { sourceId: string; reason: string }[] };
   subwayEntranceSource?: { source: string; endpoint: string; osmTimestamp: string; extractedAt: string; sourceSha256: string; sourceRecordsSha256: string; license: string; licenseUrl: string };
+  shadingBuildings?: ShadingBuilding[];
 }
 
 export interface OsmEntranceDataset {

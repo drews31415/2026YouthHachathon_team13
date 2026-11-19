@@ -1,4 +1,5 @@
 import type { Coordinate, Network, OsmElement, OsmEntranceDataset, OsmPayload, Place, SourceProvenance, WalkNode, WalkSegment } from './types';
+import { buildingsWithHeight } from './icing-forecast';
 
 // Tag semantics checked against the public OSM documentation:
 // https://wiki.openstreetmap.org/wiki/Key:access
@@ -196,6 +197,7 @@ export function buildNetwork(payload: OsmPayload, provenance: SourceProvenance):
   const nodes = [...connectedNodes].map(id => knownNodes.get(id)!);
   if (!segments.length || !nodes.length) throw new Error('수집 범위 안에서 이용 가능한 OSM 보행 구간을 찾지 못했습니다.');
   const network: Network = { nodes, segments, places: [], bounds, source: checked.source, provenance: checked, exclusions,
+    shadingBuildings: buildingsWithHeight(rawNodes, rawWays.values()),
     placeCounts: { osmNamedPlaces: 0, osmSubwayEntrances: 0, officialSubwayEntrances: 0, total: 0 } };
   const candidates: { element: OsmElement; coordinate: Coordinate; type: 'node' | 'way' }[] = [];
   for (const element of rawNodes.values()) {
