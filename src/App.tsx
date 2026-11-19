@@ -282,7 +282,7 @@ export default function App() {
         <header><h2 id="source-title">데이터 출처</h2><button type="button" aria-label="닫기" onClick={() => setInfo(false)}><X size={24} /></button></header>
         <dl>
           <dt>보행 지도</dt><dd>OpenStreetMap에 따로 등록된 보도·횡단 구간 등 보행로를 연결해 경로를 계산합니다.{network && <> · {stamp(network.provenance.osmTimestamp)} KST</>}</dd>
-          <dt>결빙 예상</dt><dd>기상청과 Open-Meteo 기상, OSM 건물·보행 교량, Copernicus 표면 높이, 서울시 열선 설치 기록을 사용합니다. 실제 노면 상태는 다를 수 있습니다.</dd>
+          <dt>결빙 예상</dt><dd>기상청과 Open-Meteo 기상, OSM 건물·보행 교량, Copernicus 표면 높이 등 공개 자료를 사용합니다. 실제 노면 상태는 다를 수 있습니다.</dd>
           <dt>보행 시간</dt><dd>신호 대기와 장소에서 공개 보행망까지의 접근 거리는 제외합니다.</dd>
           <dt>위치 처리</dt><dd>보행 지도는 선택 위치를 브라우저에서 처리합니다. TMAP 검색·길찾기에는 입력한 장소 정보가 TMAP에 전송됩니다.</dd>
         </dl>

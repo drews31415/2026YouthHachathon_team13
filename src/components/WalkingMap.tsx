@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
 import { Maximize2, MousePointer2, Snowflake } from 'lucide-react';
 import type { Coordinate, ModelRun, Network, Place, Route, RouteStep, WalkSegment } from '../core/types';
-import { heatedWarningColor, IcingForecastControl, type useIcingForecast } from './IcingForecastControl';
+import { IcingForecastControl, type useIcingForecast } from './IcingForecastControl';
 import { forecastTemperature } from '../services/icing-weather';
 import designated from '../designated-roads.json';
 import gwanakCrossings from '../crossings.json';
@@ -42,7 +42,6 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
   onSelectCoordinate, selectionMode = null, showForecast, forecast, onToggleForecast, onReplayRoute }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const heatedLine = useRef<L.Polyline | null>(null);
   const layers = useRef<L.LayerGroup | null>(null);
   const selection = useRef({ onSelectCoordinate, selectionMode });
   const [showCoverage, setShowCoverage] = useState(false);
@@ -69,15 +68,6 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
     }
     const [[west, south], [east, north]] = network.bounds;
     map.fitBounds([[south, west], [north, east]], { padding: [20, 20] });
-  }
-
-  function focusHeatingWarning() {
-    const map = mapRef.current;
-    const line = heatedLine.current;
-    if (!map || !line) return;
-    map.setView(line.getBounds().getCenter(), Math.max(17, map.getZoom()), { animate: false });
-    host.current?.scrollIntoView({ block: 'nearest' });
-    line.openPopup();
   }
 
   useEffect(() => {
@@ -152,22 +142,18 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
     for (const section of forecast.shade.sections) {
       const segment = segments.get(section.segmentId);
       if (!segment) continue;
-      const heatingApplied = forecast.heatedWarningSegments.has(segment.id);
       const line = L.polyline(latlngs(section.coordinates), {
-        pane: 'icingForecast', color: heatingApplied ? heatedWarningColor : '#1185dc', weight: heatingApplied ? 6 : 4,
-        opacity: .94, dashArray: heatingApplied ? '1 8' : '3 6',
+        pane: 'icingForecast', color: '#1185dc', weight: 4, opacity: .94, dashArray: '3 6',
         interactive: !selectionMode, bubblingMouseEvents: false,
       }).addTo(layer);
-      if (heatingApplied) heatedLine.current = line;
       if (!selectionMode) line.bindPopup(
-        '<div class="flow-map-popup"><strong>' + (heatingApplied ? '열선 반영 · 결빙 주의' : '결빙 위험 예상') +
-        '</strong><p>' + (heatingApplied ? '실제 가동 미확인'
-          : escape(segment.name) + ' · ' + escape(forecastTemperature(hour)) + '°C') + '</p></div>',
+        '<div class="flow-map-popup"><strong>결빙 위험 예상</strong><p>' + escape(segment.name) +
+        ' · ' + escape(forecastTemperature(hour)) + '°C</p></div>',
         { maxWidth: 200, minWidth: 120, closeButton: true },
       );
     }
-    return () => { heatedLine.current = null; layer.remove(); };
-  }, [showForecast, forecast.active, forecast.shade, forecast.heatedWarningSegments, selectionMode, network]);
+    return () => { layer.remove(); };
+  }, [showForecast, forecast.active, forecast.shade, selectionMode, network]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -254,7 +240,7 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
     </div>
     {mapControls && <details className="flow-map-settings">
       <summary>예보·지도 설정</summary>
-      {showForecast ? <IcingForecastControl forecast={forecast} onReplayRoute={onReplayRoute} onFocusHeating={focusHeatingWarning} />
+      {showForecast ? <IcingForecastControl forecast={forecast} onReplayRoute={onReplayRoute} />
         : <button type="button" className="flow-settings-button" onClick={onToggleForecast}>결빙 예보 켜기</button>}
       <details className="flow-layer-settings">
         <summary>지도 표시 항목</summary>

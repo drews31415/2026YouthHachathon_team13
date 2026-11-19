@@ -25,7 +25,6 @@ function time(seconds: number) {
 
 export function WalkingRouteResult({ normal, detour, forecast, forecastEnabled, selected, onSelect, onNavigate }: Props) {
   const alternate = detour?.route;
-  const heating = detour?.heatingComparison;
   const routes = alternate ? [alternate, normal] : [normal];
   const extra = alternate ? alternate.durationSeconds - normal.durationSeconds : 0;
   const alternateLabel = detour?.partial ? '결빙 일부 우회 경로' : '결빙 우회 경로';
@@ -57,17 +56,11 @@ export function WalkingRouteResult({ normal, detour, forecast, forecastEnabled, 
     {forecast.active && hasFreezingRain(forecast.active) && <p className="flow-route-status" role="status">이 지역에 어는 비 예보가 있어요</p>}
     <p className="flow-muted"><Info size={16} />실제 노면 상태와 다를 수 있어요</p>
     <button className="flow-primary" type="button" onClick={onNavigate}><Navigation size={22} />이 길로 안내 보기</button>
-    {(forecast.active || heating) && <details className="flow-result-details">
+    {forecast.active && <details className="flow-result-details">
       <summary>경로 계산 상세</summary>
       {forecast.active && !forecast.replay && <p>결빙 예상 기준 · {forecastTime(forecast.active.time)} KST</p>}
       <p>일반 경로는 설정한 보행 조건에서 거리가 가장 짧은 경로예요.</p>
       {(detour?.crossings ?? 0) > 0 && <p>일반 경로가 예상 주의구간 {detour?.crossings}개를 지나요.</p>}
-      {heating && routes.map(route => {
-        const score = route.type === 'normal' ? heating.normal : heating.alternate;
-        return score && <p key={route.type}>{route.type === 'normal' ? '일반 경로' : alternateLabel} 주의 점수{' '}
-          {score.beforeHeating === score.afterHeating ? score.afterHeating.toFixed(1) + '점'
-            : score.beforeHeating.toFixed(1) + '점 → ' + score.afterHeating.toFixed(1) + '점 (열선 추정 반영)'}</p>;
-      })}
       <p>신호 대기와 보행망까지의 접근 시간은 제외돼요.</p>
     </details>}
   </div>;

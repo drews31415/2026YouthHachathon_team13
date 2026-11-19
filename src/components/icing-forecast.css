@@ -42,9 +42,6 @@
 .icing-external-data { margin-top: 7px; padding-top: 6px; border-top: 1px solid #e1cdb8; }
 .icing-external-data summary { cursor: pointer; color: #694426; }
 .icing-area-alert { padding: 4px 6px; border-left: 2px solid #b45f29; }
-.icing-forecast-control .heated-warning-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-.heated-warning-key i { width: 22px; flex-shrink: 0; border-top: 4px dotted; }
-.heated-warning-key button { padding: 4px 2px; color: #6b4c00; font: inherit; font-weight: 700; background: transparent; border: 0; text-decoration: underline; cursor: pointer; }
 .real-data-map .risk-toggle.icing-forecast-toggle > span { display: inline; }
 .real-data-map .icing-forecast-toggle.on { border-color: #b45f29; }
 .icing-replay-route {

@@ -276,7 +276,7 @@
 }
 .flow-map-settings .icing-forecast-control strong { color: var(--flow-ink); }
 .flow-map-settings .icing-forecast-control select { font: inherit; min-height: 40px; border-color: #b9cbe3; }
-.flow-map-settings .icing-forecast-modes button, .flow-map-settings .icing-replay-route, .flow-settings-button, .flow-map-settings .heated-warning-key {
+.flow-map-settings .icing-forecast-modes button, .flow-map-settings .icing-replay-route, .flow-settings-button {
   min-height: 40px;
   padding: 6px 10px;
   border: 1px solid #bdd1ef;
@@ -288,9 +288,7 @@
   cursor: pointer;
 }
 .flow-map-settings .icing-forecast-modes button[aria-pressed="true"] { background: var(--flow-blue); color: #fff; border-color: var(--flow-blue); }
-.flow-map-settings .heated-warning-key, .flow-map-settings .icing-replay-route { margin: 6px 5px 0 0; vertical-align: middle; }
-.flow-map-settings .heated-warning-key { display: inline-flex; align-items: center; gap: 7px; }
-.flow-map-settings .heated-warning-key i { border-color: #937000; }
+.flow-map-settings .icing-replay-route { margin: 6px 5px 0 0; vertical-align: middle; }
 .flow-map-settings .icing-external-data { margin-top: 8px; padding-top: 0; border-color: var(--flow-border); }
 .flow-map-settings .icing-external-data summary { color: var(--flow-muted); }
 .flow-map-settings .icing-external-data a { color: #0a56ba; }

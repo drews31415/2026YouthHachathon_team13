@@ -9,8 +9,6 @@ import {
 } from '../services/icing-weather';
 import './icing-forecast.css';
 
-export const heatedWarningColor = '#937000';
-
 export const forecastTime = (value: number, includeYear = false) => new Intl.DateTimeFormat('ko-KR', {
   timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
   year: includeYear ? 'numeric' : undefined,
@@ -101,10 +99,9 @@ export function useIcingForecast(network: Network | null, enabled: boolean, area
     replay, changeMode, replayScene, changeReplayScene, expanded, latestRain, buildingCount, area, gridStatus: grid?.status };
 }
 
-export function IcingForecastControl({ forecast, onReplayRoute, onFocusHeating }: {
+export function IcingForecastControl({ forecast, onReplayRoute }: {
   forecast: ReturnType<typeof useIcingForecast>;
   onReplayRoute: () => void;
-  onFocusHeating: () => void;
 }) {
   const selectId = useId();
   const sceneId = useId();
@@ -134,9 +131,6 @@ export function IcingForecastControl({ forecast, onReplayRoute, onFocusHeating }
       {hasFreezingRain(active) && <p className="icing-area-alert">어는 비·이슬비 예보가 있어요.</p>}
       {hasSnowmeltRefreeze(active) && <p className="icing-area-alert">녹은 눈이 다시 얼 수 있어요.</p>}
       {hasFrostConditions(active) && <p className="icing-area-alert">서리가 생길 수 있어요.</p>}
-      {forecast.heatedWarningSegments.size > 0 && <button type="button" className="heated-warning-key" onClick={onFocusHeating}>
-        <i aria-hidden="true" />열선 반영 구간 보기
-      </button>}
       {replay && replayScene !== 'snow' && !!shade?.sections.length && <button type="button" className="icing-replay-route" onClick={onReplayRoute}>예시 출발지·목적지 불러오기</button>}
       <details className="icing-external-data"><summary>예보 출처</summary>
         <p>{usesGridTemperature(active) ? '기상청 500m 분석' : active.kma ? '기상청 예보' : 'Open-Meteo'}</p>
