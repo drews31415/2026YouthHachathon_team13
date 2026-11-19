@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
 import { Layers3, LocateFixed, Minus, Plus, MapPin, Maximize2, MousePointer2, Info, Snowflake } from 'lucide-react';
 import type { Coordinate, ModelRun, Network, Place, Route, RouteStep, WalkSegment } from '../core/types';
-import { forecastTime, IcingForecastControl, type useIcingForecast } from './IcingForecastControl';
+import { forecastTime, heatedWarningColor, IcingForecastControl, type useIcingForecast } from './IcingForecastControl';
 import { forecastTemperature, hasSnowmeltRefreeze, usesGridTemperature } from '../services/icing-weather';
 import { surfaceShadeSource } from '../core/icing-forecast';
 import designated from '../designated-roads.json';
@@ -44,6 +44,7 @@ export function WalkingMap({ network, run, normal, recommended, partialDetour, s
   onSelectCoordinate, selectionMode = null, showForecast, forecast, onToggleForecast, onReplayRoute }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const heatedLine = useRef<L.Polyline | null>(null);
   const layers = useRef<L.LayerGroup | null>(null);
   const selection = useRef({ onSelectCoordinate, selectionMode });
   const [showCoverage, setShowCoverage] = useState(false);
@@ -65,6 +66,20 @@ export function WalkingMap({ network, run, normal, recommended, partialDetour, s
     const route = selected === 'recommended' ? recommended : normal;
     if (route?.coordinates.length) mapRef.current?.fitBounds(L.latLngBounds(latlngs(route.coordinates)), { padding: [65, 85], maxZoom: 18 });
     else fitNetwork();
+  }
+
+  function focusHeatingWarning() {
+    const map = mapRef.current;
+    const line = heatedLine.current;
+    if (!map || !line) return;
+    const container = map.getContainer();
+    const panel = container.parentElement?.querySelector('.icing-forecast-control');
+    const width = map.getSize().x;
+    const panelRight = panel ? panel.getBoundingClientRect().right - container.getBoundingClientRect().left : 0;
+    const targetX = Math.min(width - 30, Math.max(width / 2, (panelRight + width - 52) / 2));
+    const zoom = Math.max(17, map.getZoom());
+    const center = map.project(line.getBounds().getCenter(), zoom).subtract([targetX - width / 2, 0]);
+    map.setView(map.unproject(center, zoom), zoom, { animate: false });
   }
 
   useEffect(() => {
@@ -138,12 +153,15 @@ export function WalkingMap({ network, run, normal, recommended, partialDetour, s
       const segment = segments.get(section.segmentId);
       if (!segment) continue;
       const facility = segment.wayId === maljukgeoriFootbridge.osmWayId ? maljukgeoriFootbridge : undefined;
+      const heatingApplied = forecast.heatedWarningSegments.has(segment.id);
       const line = L.polyline(latlngs(section.coordinates), {
-        pane: 'icingForecast', color: '#a63f06', weight: 5, opacity: .96, dashArray: '6 6',
+        pane: 'icingForecast', color: heatingApplied ? heatedWarningColor : '#a63f06', weight: heatingApplied ? 7 : 5,
+        opacity: .96, dashArray: heatingApplied ? '1 10' : '6 6',
         interactive: !selectionMode, bubblingMouseEvents: false,
       }).addTo(layer);
+      if (heatingApplied) heatedLine.current = line;
       if (!selectionMode) line.bindPopup(
-        '<div class="risk-popup"><strong>재결빙 예상 주의구간</strong><p>' + escape(segment.name) +
+        '<div class="risk-popup"><strong>' + (heatingApplied ? '열선 효과 추정 · 결빙 주의' : '재결빙 예상 주의구간') + '</strong><p>' + escape(segment.name) +
         ' · ' + escape(forecastTime(hour.time, forecast.replay)) + ' KST' + (forecast.replay ? ' · 과거 예보 시범' : '') +
         '</p><p>' + (usesGridTemperature(hour) ? '기상청 500m 분석' : hour.kma ? '기상청 예보' : 'Open-Meteo') + ' 기온 ' + escape(forecastTemperature(hour)) +
         '°C · ' + (section.bridge ? '찬 공기에 노출되는 보행 교량' : section.buildingId === null ? '표면 높이로 추정한 그늘' : '건물 그늘 추정') + '</p>' +
@@ -163,12 +181,12 @@ export function WalkingMap({ network, run, normal, recommended, partialDetour, s
             '" target="_blank" rel="noopener noreferrer">OSM 건물 높이 출처</a>') +
         (facility ? '<p><a href="' + facility.heatingSource + '" target="_blank" rel="noopener noreferrer">서울시 열선 설치 기록</a> · ' +
           facility.heatingLengthM + 'm · 선택 시각 가동 미확인</p>' : '') +
-        (forecast.heatedWarningSegments.has(segment.id) ? '<p>영하 기온과 강설 자료를 근거로 열선 효과를 추정해 경로 비교에 반영했습니다.</p>' : '') +
+        (heatingApplied ? '<p>영하 기온과 강설 자료를 근거로 열선 효과를 추정해 경로 비교에 반영했습니다.</p>' : '') +
         '<small>공개 기상과 보행로 특성으로 계산했습니다. 실제 노면은 미확인입니다.</small></div>',
         { maxWidth: 280 },
       );
     }
-    return () => { layer.remove(); };
+    return () => { heatedLine.current = null; layer.remove(); };
   }, [showForecast, forecast.active, forecast.shade, forecast.replay, forecast.heatedWarningSegments, selectionMode, network]);
 
   useEffect(() => {
@@ -258,7 +276,7 @@ export function WalkingMap({ network, run, normal, recommended, partialDetour, s
       <div className="zoom-buttons"><button type="button" aria-label="지도 확대" onClick={() => mapRef.current?.zoomIn()}><Plus size={21} /></button><button type="button" aria-label="지도 축소" onClick={() => mapRef.current?.zoomOut()}><Minus size={21} /></button></div>
       <button type="button" title="수집된 생활권 전체 보기" aria-label="수집된 생활권 전체 보기" onClick={fitNetwork}><LocateFixed size={20} /></button>
     </div>
-    {showForecast && <IcingForecastControl forecast={forecast} onReplayRoute={onReplayRoute} />}
+    {showForecast && <IcingForecastControl forecast={forecast} onReplayRoute={onReplayRoute} onFocusHeating={focusHeatingWarning} />}
     <div className="map-bottomline"><div className="map-legend"><span><i className="legend-recommended" />일반 보행 경로</span>{recommended ? <span><i className="legend-forecast-detour" />{partialDetour ? '주의구간 일부 우회' : '예상구간 우회'}</span> : <span><i className="legend-network" />OSM 보행망</span>}</div><button type="button" className={`risk-toggle icing-forecast-toggle ${showForecast ? 'on' : ''}`} aria-pressed={showForecast} onClick={onToggleForecast}><Snowflake size={17} /><span>결빙 예상</span><i /></button></div>
     {(showDesignated || showCrossings || showCoverage) && <div className="surface-data-notice" role="status"><Info size={15} /><span>{showDesignated && <>주황 점은 지정도로의 시점·종점입니다. {designated.date} <a href={designated.url} target="_blank" rel="noreferrer">행안부</a>. </>}{showCrossings && <>청록 점은 횡단보도 시설 위치입니다. {crossings.date} <a href={crossings.url} target="_blank" rel="noreferrer">서울시</a>. </>}{showCoverage && '점선은 노면 관측자료가 없는 구간입니다.'}</span></div>}
     {tilesFailed && <div className="tile-warning" role="status">배경 지도를 불러오지 못했어요. 수집된 실제 OSM 보행망과 계산 경로는 계속 확인할 수 있습니다.</div>}

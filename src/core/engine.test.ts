@@ -61,8 +61,9 @@ it('applies the real Gangnam snowfall and installation records without removing 
   expect(compared.route?.segmentIds.every(id => !warningIds.has(id))).toBe(true);
   const normalWarningLength = gangnam.segments.filter(segment => warningIds.has(segment.id) && result.normal!.segmentIds.includes(segment.id))
     .reduce((total, segment) => total + segment.lengthM, 0);
-  expect(compared.heatingComparison?.normal).toBeCloseTo(normalWarningLength - 0.2 * bridge.lengthM);
-  expect(compared.heatingComparison?.alternate).toBe(0);
+  expect(compared.heatingComparison?.normal.beforeHeating).toBeCloseTo(normalWarningLength);
+  expect(compared.heatingComparison?.normal.afterHeating).toBeCloseTo(normalWarningLength - 0.2 * bridge.lengthM);
+  expect(compared.heatingComparison?.alternate).toEqual({ beforeHeating: 0, afterHeating: 0 });
 
   const dryHour = findIcingHours(JSON.parse(weather), hour.time).find(item => item.time === hour.time + 2 * 3_600_000)!;
   expect(dryHour.temperatureC).toBeLessThan(0);

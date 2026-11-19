@@ -183,11 +183,16 @@ export function searchRoutes(network: Network, options: SearchOptions): SearchRe
   return fail('no-recommendation', '실제 OSM 도로망의 일반 경로입니다. 출발·도착 위치에서 도로 연결점까지의 접근 구간은 제외합니다.', normal);
 }
 
+interface ForecastWarningScore {
+  beforeHeating: number;
+  afterHeating: number;
+}
+
 export interface ForecastDetour {
   crossings: number;
   route: Route | null;
   partial?: boolean;
-  heatingComparison?: { normal: number; alternate: number | null };
+  heatingComparison?: { normal: ForecastWarningScore; alternate: ForecastWarningScore | null };
 }
 
 /** A joint in the OSM graph is required on both sides of a flagged section. */
@@ -201,10 +206,14 @@ export function findForecastDetour(network: Network, options: SearchOptions, res
   const detour: ForecastDetour = { crossings, route: null };
   let path = shortestPath(network, origin.nodeId, destination.nodeId, options, excluded);
   if (heatedWarningSegments?.size) {
+    const warningLengths = new Map(network.segments.filter(segment => excluded.has(segment.id)).map(segment => [segment.id, segment.lengthM]));
+    const costs = new Map(warningLengths);
     // The 20% reduction is a pilot routing weight, never a measured change in icing probability.
-    const costs = new Map(network.segments.filter(segment => excluded.has(segment.id)).map(segment =>
-      [segment.id, segment.lengthM * (heatedWarningSegments.has(segment.id) ? 0.8 : 1)]));
-    const warningScore = (ids: readonly string[]) => ids.reduce((sum, id) => sum + (costs.get(id) ?? 0), 0);
+    for (const id of heatedWarningSegments) {
+      const length = warningLengths.get(id);
+      if (length !== undefined) costs.set(id, length * 0.8);
+    }
+    const warningScore = (ids: readonly string[], weights = costs) => ids.reduce((sum, id) => sum + (weights.get(id) ?? 0), 0);
     const usesHeating = (ids: readonly string[]) => ids.some(id => heatedWarningSegments.has(id) && excluded.has(id));
     const normalScore = warningScore(normal.segmentIds);
     if (!path?.length) {
@@ -217,7 +226,10 @@ export function findForecastDetour(network: Network, options: SearchOptions, res
     }
     const alternateIds = path?.map(entry => entry.segment.id);
     if (usesHeating(normal.segmentIds) || (alternateIds && usesHeating(alternateIds))) {
-      detour.heatingComparison = { normal: normalScore, alternate: alternateIds ? warningScore(alternateIds) : null };
+      detour.heatingComparison = {
+        normal: { beforeHeating: warningScore(normal.segmentIds, warningLengths), afterHeating: normalScore },
+        alternate: alternateIds ? { beforeHeating: warningScore(alternateIds, warningLengths), afterHeating: warningScore(alternateIds) } : null,
+      };
     }
   }
   if (path?.length) {

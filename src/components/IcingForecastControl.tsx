@@ -9,6 +9,8 @@ import {
 } from '../services/icing-weather';
 import './icing-forecast.css';
 
+export const heatedWarningColor = '#937000';
+
 export const forecastTime = (value: number, includeYear = false) => new Intl.DateTimeFormat('ko-KR', {
   timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
   year: includeYear ? 'numeric' : undefined,
@@ -99,7 +101,11 @@ export function useIcingForecast(network: Network | null, enabled: boolean, area
     replay, changeMode, replayScene, changeReplayScene, expanded, latestRain, buildingCount, area, gridStatus: grid?.status };
 }
 
-export function IcingForecastControl({ forecast, onReplayRoute }: { forecast: ReturnType<typeof useIcingForecast>; onReplayRoute: () => void }) {
+export function IcingForecastControl({ forecast, onReplayRoute, onFocusHeating }: {
+  forecast: ReturnType<typeof useIcingForecast>;
+  onReplayRoute: () => void;
+  onFocusHeating: () => void;
+}) {
   const selectId = useId();
   const sceneId = useId();
   const { active, hours, predicted, shade, failed, retrievedAt, setSelected, replay, changeMode,
@@ -138,11 +144,13 @@ export function IcingForecastControl({ forecast, onReplayRoute }: { forecast: Re
       {hasFreezingRain(active) && <p className="icing-area-alert"><strong>지역 예보에 어는 비·이슬비가 있습니다.</strong></p>}
       {hasSnowmeltRefreeze(active) && <p className="icing-area-alert"><strong>녹은 눈 재결빙 주의 · 앞선 12시간에 적설과 영상 기온 예보가 겹쳤습니다.</strong></p>}
       {hasFrostConditions(active) && <p className="icing-area-alert"><strong>동네 서리 주의 조건 · 약한 바람과 이슬점 근처 영하 기온</strong></p>}
-      {predicted && shade?.sections.length ? <strong>주황 점선 {shade.sections.length}개 · 재결빙 예상 주의구간{shade.sunTooLow ? ' · 그늘 미평가' : ''}</strong>
+      {predicted && shade?.sections.length ? <strong>재결빙 예상 주의구간 {shade.sections.length}개{shade.sunTooLow ? ' · 그늘 미평가' : ''}</strong>
         : predicted && shade?.sunTooLow ? <strong>지역 재결빙 주의 · 이 시각의 그늘은 미평가</strong>
         : predicted ? <strong>지역 재결빙 주의 · 확인한 보행선에 표시할 그늘 없음</strong>
         : <strong>이 시각의 예보는 재결빙 표시 조건에 해당하지 않습니다.</strong>}
-      {forecast.heatedWarningSegments.size > 0 && <small>말죽거리 보도육교의 열선 설치와 영하·강설 자료를 경로 비교에 반영합니다. 실제 가동은 미확인입니다.</small>}
+      {forecast.heatedWarningSegments.size > 0 && <small className="heated-warning-key"><i aria-hidden="true" style={{ borderColor: heatedWarningColor }} />
+        <button type="button" onClick={onFocusHeating}>열선 반영 주의 {forecast.heatedWarningSegments.size}개 보기</button> · 가동 미확인
+      </small>}
       {replay ? <small>당시 지역 예보를 현재 지도 자료에 적용한 시범입니다. <a href={icingReplays[replayScene].sourceUrl} target="_blank" rel="noreferrer">과거 예보 출처</a></small>
         : <small>예상 범위 밖의 결빙 상태는 미확인입니다. 노면 실측 자료는 연결되지 않았습니다.</small>}
       {!replay && retrievedAt !== undefined && <small><a href="https://open-meteo.com/en/docs" target="_blank" rel="noreferrer">Open-Meteo 예보</a> · {forecastTime(retrievedAt)} 조회 · OSM 건물 높이</small>}

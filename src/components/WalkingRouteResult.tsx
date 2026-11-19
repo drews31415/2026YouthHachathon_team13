@@ -48,7 +48,9 @@ export function WalkingRouteResult({ normal, detour, forecast, forecastEnabled, 
         aria-pressed={selected === route.type} onClick={() => onSelect(route.type)}>
         <span className="route-card-top"><span className="route-title"><Footprints size={18} />{route.type === 'normal' ? '일반 보행 경로' : detour?.partial ? '주의구간 일부 우회 경로' : '예상구간 우회 경로'}</span></span>
         <span className="forecast-route-metrics"><strong>{time(route.durationSeconds)}</strong><span>{distance(route.distanceM)}</span></span>
-        {score != null && <span className="route-card-caption">예상 주의 점수 {score.toFixed(1)}점</span>}
+        {score && (score.afterHeating < score.beforeHeating
+          ? <span className="route-card-caption">열선 반영 전 {score.beforeHeating.toFixed(1)}점 · 반영 후 <strong>{score.afterHeating.toFixed(1)}점</strong></span>
+          : <span className="route-card-caption">예상 주의 점수 {score.afterHeating.toFixed(1)}점</span>)}
         {route.type === 'recommended' && <span className="route-card-caption">일반 경로 대비 {distance(route.distanceM - normal.distanceM)} · {time(route.durationSeconds - normal.durationSeconds)} 추가</span>}
       </button>;
     })}
