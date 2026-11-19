@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { estimateBuildingShade, liveShadingBuildings, surfaceShadeSource, sunPosition } from '../core/icing-forecast';
 import type { Coordinate, Network } from '../core/types';
+import { maljukgeoriHeatedWarnings } from '../gangnam-pilot';
 import {
   combineLiveForecast, fetchIcingHours, fetchIcingReplay, fetchKmaForecast, fetchKmaGrid, fetchNearbyPrecipitation, forecastTemperature, hasFreezingRain,
   hasFrostConditions, hasRefreezeConditions, hasSnowmeltRefreeze, icingReplays, icingWeatherMaxAgeMs,
@@ -84,6 +85,8 @@ export function useIcingForecast(network: Network | null, enabled: boolean, area
   const shadeTime = predicted ? active?.time : undefined;
   const expanded = !replay || replayScene !== 'original';
   const shade = useMemo(() => network && shadeTime !== undefined ? estimateBuildingShade(network, shadeTime, expanded) : null, [network, shadeTime, expanded]);
+  const heatedWarningSegments = useMemo(() => area === 'gangnam' && network && shade && active
+    ? maljukgeoriHeatedWarnings(network, shade.sections, active) : new Set<string>(), [area, network, shade, active]);
   const buildingCount = useMemo(() => network ? liveShadingBuildings(network).length : 0, [network]);
   function changeMode(next: boolean) {
     if (next !== replay) { setFailed(false); setClock(Date.now()); setReplay(next); }
@@ -92,7 +95,7 @@ export function useIcingForecast(network: Network | null, enabled: boolean, area
     if (next !== replayScene) { setFailed(false); setReplayHour(undefined); setReplayScene(next); }
   }
   const latestRain = !replay ? rain.find(record => record.time <= clock && clock - record.time < icingWeatherMaxAgeMs) : undefined;
-  return { active, hours, shade, failed, retrievedAt: data?.retrievedAt, predicted, setSelected,
+  return { active, hours, shade, heatedWarningSegments, failed, retrievedAt: data?.retrievedAt, predicted, setSelected,
     replay, changeMode, replayScene, changeReplayScene, expanded, latestRain, buildingCount, area, gridStatus: grid?.status };
 }
 
@@ -139,6 +142,7 @@ export function IcingForecastControl({ forecast, onReplayRoute }: { forecast: Re
         : predicted && shade?.sunTooLow ? <strong>지역 재결빙 주의 · 이 시각의 그늘은 미평가</strong>
         : predicted ? <strong>지역 재결빙 주의 · 확인한 보행선에 표시할 그늘 없음</strong>
         : <strong>이 시각의 예보는 재결빙 표시 조건에 해당하지 않습니다.</strong>}
+      {forecast.heatedWarningSegments.size > 0 && <small>말죽거리 보도육교의 열선 설치와 영하·강설 자료를 경로 비교에 반영합니다. 실제 가동은 미확인입니다.</small>}
       {replay ? <small>당시 지역 예보를 현재 지도 자료에 적용한 시범입니다. <a href={icingReplays[replayScene].sourceUrl} target="_blank" rel="noreferrer">과거 예보 출처</a></small>
         : <small>예상 범위 밖의 결빙 상태는 미확인입니다. 노면 실측 자료는 연결되지 않았습니다.</small>}
       {!replay && retrievedAt !== undefined && <small><a href="https://open-meteo.com/en/docs" target="_blank" rel="noreferrer">Open-Meteo 예보</a> · {forecastTime(retrievedAt)} 조회 · OSM 건물 높이</small>}

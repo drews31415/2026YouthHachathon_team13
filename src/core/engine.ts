@@ -94,7 +94,8 @@ function allowedByAccessibility(segment: WalkSegment, options: SearchOptions): b
 }
 
 /** The only graph connections are shared OSM node identifiers. */
-function shortestPath(network: Network, originId: string, destinationId: string, options: SearchOptions, excluded?: ReadonlySet<string>): Traversal[] | null {
+function shortestPath(network: Network, originId: string, destinationId: string, options: SearchOptions,
+  excluded?: ReadonlySet<string>, warningCosts?: ReadonlyMap<string, number>): Traversal[] | null {
   const adjacency = new Map(network.nodes.map(node => [node.id, [] as Traversal[]]));
   for (const segment of network.segments) {
     if (excluded?.has(segment.id) || !allowedByAccessibility(segment, options)) continue;
@@ -110,7 +111,7 @@ function shortestPath(network: Network, originId: string, destinationId: string,
     if (current.distance > (distances.get(current.id) ?? Infinity)) continue;
     if (current.id === destinationId) break;
     for (const traversal of adjacency.get(current.id) ?? []) {
-      const candidate = current.distance + traversal.segment.lengthM;
+      const candidate = current.distance + traversal.segment.lengthM + (warningCosts?.get(traversal.segment.id) ?? 0);
       if (candidate < (distances.get(traversal.to) ?? Infinity)) {
         distances.set(traversal.to, candidate); previous.set(traversal.to, traversal);
         queue.push({ id: traversal.to, distance: candidate });
@@ -185,17 +186,43 @@ export function searchRoutes(network: Network, options: SearchOptions): SearchRe
 export interface ForecastDetour {
   crossings: number;
   route: Route | null;
+  partial?: boolean;
+  heatingComparison?: { normal: number; alternate: number | null };
 }
 
 /** A joint in the OSM graph is required on both sides of a flagged section. */
-export function findForecastDetour(network: Network, options: SearchOptions, result: SearchResult, excluded: ReadonlySet<string>): ForecastDetour {
+export function findForecastDetour(network: Network, options: SearchOptions, result: SearchResult,
+  excluded: ReadonlySet<string>, heatedWarningSegments?: ReadonlySet<string>): ForecastDetour {
   const { normal, run } = result;
   const { origin, destination } = options;
   if (!normal || !origin || !destination) return { crossings: 0, route: null };
   const crossings = normal.segmentIds.filter(id => excluded.has(id)).length;
   if (!crossings) return { crossings, route: null };
-  const path = shortestPath(network, origin.nodeId, destination.nodeId, options, excluded);
-  if (!path?.length) return { crossings, route: null };
-  const route = buildRoute(path, options.walkingSpeedMps, run);
-  return { crossings, route: { ...route, type: 'recommended', id: normal.id + '-detour-' + route.segmentIds.join(',') } };
+  const detour: ForecastDetour = { crossings, route: null };
+  let path = shortestPath(network, origin.nodeId, destination.nodeId, options, excluded);
+  if (heatedWarningSegments?.size) {
+    // The 20% reduction is a pilot routing weight, never a measured change in icing probability.
+    const costs = new Map(network.segments.filter(segment => excluded.has(segment.id)).map(segment =>
+      [segment.id, segment.lengthM * (heatedWarningSegments.has(segment.id) ? 0.8 : 1)]));
+    const warningScore = (ids: readonly string[]) => ids.reduce((sum, id) => sum + (costs.get(id) ?? 0), 0);
+    const usesHeating = (ids: readonly string[]) => ids.some(id => heatedWarningSegments.has(id) && excluded.has(id));
+    const normalScore = warningScore(normal.segmentIds);
+    if (!path?.length) {
+      const candidate = shortestPath(network, origin.nodeId, destination.nodeId, options, undefined, costs);
+      const candidateIds = candidate?.map(entry => entry.segment.id) ?? [];
+      if (candidate?.length && warningScore(candidateIds) < normalScore && (usesHeating(normal.segmentIds) || usesHeating(candidateIds))) {
+        path = candidate;
+        detour.partial = true;
+      }
+    }
+    const alternateIds = path?.map(entry => entry.segment.id);
+    if (usesHeating(normal.segmentIds) || (alternateIds && usesHeating(alternateIds))) {
+      detour.heatingComparison = { normal: normalScore, alternate: alternateIds ? warningScore(alternateIds) : null };
+    }
+  }
+  if (path?.length) {
+    const route = buildRoute(path, options.walkingSpeedMps, run);
+    detour.route = { ...route, type: 'recommended', id: normal.id + '-detour-' + route.segmentIds.join(',') };
+  }
+  return detour;
 }

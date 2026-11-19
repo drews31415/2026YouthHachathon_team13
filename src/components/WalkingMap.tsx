@@ -17,6 +17,7 @@ interface Props {
   run: ModelRun;
   normal: Route | null;
   recommended: Route | null;
+  partialDetour?: boolean;
   selected: 'normal' | 'recommended';
   origin?: Place;
   destination?: Place;
@@ -39,7 +40,7 @@ function segmentPopup(segment: WalkSegment) {
   return `<div class="risk-popup real-segment-popup"><span>실제 OpenStreetMap 보행망 구간</span><strong>${escape(segment.name)}</strong><dl><div><dt>구간 거리</dt><dd>${Math.round(segment.lengthM)}m</dd></div><div><dt>계단</dt><dd>${segment.stairs === true ? '계단 태그 있음' : segment.stairs === false ? '계단 아님 태그 확인' : '자료 미기재'}</dd></div><div><dt>경사</dt><dd>${segment.slope === null ? '자료 미기재' : `${escape(segment.slope)}%`}</dd></div><div><dt>노면 결빙</dt><dd>관측자료 없음 · 판단 불가</dd></div></dl>${tags.length ? `<div class="osm-tags">${tags.map(([key, value]) => `<code>${escape(key)}=${escape(value)}</code>`).join('')}</div>` : ''}<a href="${sourceUrl}" target="_blank" rel="noopener noreferrer">OSM 원본 way ${escape(segment.wayId)} ↗</a><small>자료 미기재를 통행 가능·위험 낮음으로 해석하지 않습니다.</small></div>`;
 }
 
-export function WalkingMap({ network, run, normal, recommended, selected, origin, destination, step, recenterKey,
+export function WalkingMap({ network, run, normal, recommended, partialDetour, selected, origin, destination, step, recenterKey,
   onSelectCoordinate, selectionMode = null, showForecast, forecast, onToggleForecast, onReplayRoute }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -162,12 +163,13 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
             '" target="_blank" rel="noopener noreferrer">OSM 건물 높이 출처</a>') +
         (facility ? '<p><a href="' + facility.heatingSource + '" target="_blank" rel="noopener noreferrer">서울시 열선 설치 기록</a> · ' +
           facility.heatingLengthM + 'm · 선택 시각 가동 미확인</p>' : '') +
+        (forecast.heatedWarningSegments.has(segment.id) ? '<p>영하 기온과 강설 자료를 근거로 열선 효과를 추정해 경로 비교에 반영했습니다.</p>' : '') +
         '<small>공개 기상과 보행로 특성으로 계산했습니다. 실제 노면은 미확인입니다.</small></div>',
         { maxWidth: 280 },
       );
     }
     return () => { layer.remove(); };
-  }, [showForecast, forecast.active, forecast.shade, forecast.replay, selectionMode, network]);
+  }, [showForecast, forecast.active, forecast.shade, forecast.replay, forecast.heatedWarningSegments, selectionMode, network]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -257,7 +259,7 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
       <button type="button" title="수집된 생활권 전체 보기" aria-label="수집된 생활권 전체 보기" onClick={fitNetwork}><LocateFixed size={20} /></button>
     </div>
     {showForecast && <IcingForecastControl forecast={forecast} onReplayRoute={onReplayRoute} />}
-    <div className="map-bottomline"><div className="map-legend"><span><i className="legend-recommended" />일반 보행 경로</span>{recommended ? <span><i className="legend-forecast-detour" />예상구간 우회</span> : <span><i className="legend-network" />OSM 보행망</span>}</div><button type="button" className={`risk-toggle icing-forecast-toggle ${showForecast ? 'on' : ''}`} aria-pressed={showForecast} onClick={onToggleForecast}><Snowflake size={17} /><span>결빙 예상</span><i /></button></div>
+    <div className="map-bottomline"><div className="map-legend"><span><i className="legend-recommended" />일반 보행 경로</span>{recommended ? <span><i className="legend-forecast-detour" />{partialDetour ? '주의구간 일부 우회' : '예상구간 우회'}</span> : <span><i className="legend-network" />OSM 보행망</span>}</div><button type="button" className={`risk-toggle icing-forecast-toggle ${showForecast ? 'on' : ''}`} aria-pressed={showForecast} onClick={onToggleForecast}><Snowflake size={17} /><span>결빙 예상</span><i /></button></div>
     {(showDesignated || showCrossings || showCoverage) && <div className="surface-data-notice" role="status"><Info size={15} /><span>{showDesignated && <>주황 점은 지정도로의 시점·종점입니다. {designated.date} <a href={designated.url} target="_blank" rel="noreferrer">행안부</a>. </>}{showCrossings && <>청록 점은 횡단보도 시설 위치입니다. {crossings.date} <a href={crossings.url} target="_blank" rel="noreferrer">서울시</a>. </>}{showCoverage && '점선은 노면 관측자료가 없는 구간입니다.'}</span></div>}
     {tilesFailed && <div className="tile-warning" role="status">배경 지도를 불러오지 못했어요. 수집된 실제 OSM 보행망과 계산 경로는 계속 확인할 수 있습니다.</div>}
   </div>;

@@ -1,10 +1,13 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { analyzeRisk, findPlaces, nearestPlace, searchRoutes } from './engine';
+import { analyzeRisk, findForecastDetour, findPlaces, nearestPlace, searchRoutes } from './engine';
+import { estimateBuildingShade } from './icing-forecast';
 import { buildNetwork, coordinateInside, distanceBetween, geometryLength } from './network';
 import { expireResult } from './resultLifecycle';
-import type { OsmElement, OsmPayload, Place, SearchOptions, SourceProvenance } from './types';
+import type { OsmElement, OsmPayload, Place, SearchOptions, ShadeSurface, ShadingBuilding, SourceProvenance } from './types';
+import { gangnamDemoPlaces, maljukgeoriFootbridge, maljukgeoriHeatedWarnings } from '../gangnam-pilot';
+import { findIcingHours, readIcingReplay } from '../services/icing-weather';
 
 // These tests use the checked-in, independently sourced OSM snapshot itself.
 // No synthetic graph, risk labels, weather readings or coordinates are created.
@@ -30,6 +33,42 @@ function optionsBetween(origin: Place, destination: Place): SearchOptions {
 
 const firstTwoWay = network.segments.find(segment => segment.direction === 'both')!;
 const sourceOptions = optionsBetween(actualEndpoint(firstTwoWay.from), actualEndpoint(firstTwoWay.to));
+
+it('applies the real Gangnam snowfall and installation records without removing the bridge warning', async () => {
+  const files = new URL('../../public/data/gangnam/', import.meta.url);
+  const read = (name: string) => readFileSync(new URL(name, files), 'utf8');
+  const graph = buildNetwork(JSON.parse(read('osm.json')), JSON.parse(read('provenance.json')));
+  const buildings = JSON.parse(read('buildings.json')) as { buildings: ShadingBuilding[] };
+  const surface = JSON.parse(read('surface.json')) as ShadeSurface;
+  const gangnam = { ...graph, expandedShadingBuildings: buildings.buildings, shadeSurface: surface };
+  const weather = read('icing-replay.json');
+  const hour = await readIcingReplay(new TextEncoder().encode(weather).buffer, 'gangnam');
+  const { sections } = estimateBuildingShade(gangnam, hour.time, true);
+  const heated = maljukgeoriHeatedWarnings(gangnam, sections, hour);
+  const bridge = gangnam.segments.find(segment => segment.wayId === maljukgeoriFootbridge.osmWayId)!;
+  expect([...heated]).toEqual([bridge.id]);
+  const warningIds = new Set(sections.map(section => section.segmentId));
+  expect(warningIds.has(bridge.id)).toBe(true);
+
+  const options = optionsBetween(gangnam.places.find(place => place.id === gangnamDemoPlaces.origin)!,
+    gangnam.places.find(place => place.id === gangnamDemoPlaces.destination)!);
+  const result = searchRoutes(gangnam, options);
+  const baseline = findForecastDetour(gangnam, options, result, warningIds);
+  const compared = findForecastDetour(gangnam, options, result, warningIds, heated);
+  expect(result.normal?.segmentIds).toContain(bridge.id);
+  expect(compared.crossings).toBe(5);
+  expect(compared.route?.segmentIds).toEqual(baseline.route?.segmentIds);
+  expect(compared.route?.segmentIds.every(id => !warningIds.has(id))).toBe(true);
+  const normalWarningLength = gangnam.segments.filter(segment => warningIds.has(segment.id) && result.normal!.segmentIds.includes(segment.id))
+    .reduce((total, segment) => total + segment.lengthM, 0);
+  expect(compared.heatingComparison?.normal).toBeCloseTo(normalWarningLength - 0.2 * bridge.lengthM);
+  expect(compared.heatingComparison?.alternate).toBe(0);
+
+  const dryHour = findIcingHours(JSON.parse(weather), hour.time).find(item => item.time === hour.time + 2 * 3_600_000)!;
+  expect(dryHour.temperatureC).toBeLessThan(0);
+  const laterSections = estimateBuildingShade(gangnam, dryHour.time, true).sections;
+  expect(maljukgeoriHeatedWarnings(gangnam, laterSections, dryHour).size).toBe(0);
+});
 
 // Independent unweighted reachability oracle for every actual named POI pair.
 // Dijkstra is additionally checked on geographically separated reachable pairs.

@@ -137,6 +137,15 @@ export function hasSnowmeltRefreeze(hour: IcingHour) {
   return forecastTemperature(hour) <= 0 && hour.recentThawOnSnow === true;
 }
 
+export function hasHeatingWeather(hour: IcingHour) {
+  if (forecastTemperature(hour) > 0 || hasFreezingRain(hour)) return false;
+  const weatherCode = hour.weatherCode;
+  const grid = hour.grid;
+  const gridSnow = grid && (grid.newSnow3hCm ?? 0) > 0 && hour.time >= grid.time && hour.time - grid.time <= 3 * hourMs;
+  return hour.recentSnowfall === true || (hour.snowfallCm ?? 0) > 0 ||
+    (weatherCode !== undefined && [71, 73, 75, 77, 85, 86].includes(weatherCode)) || !!gridSnow;
+}
+
 export function hasFrostConditions(hour: IcingHour) {
   if (hour.dewPointC === undefined || hour.windKmh === undefined || hour.solarWm2 === undefined) return false;
   const gap = hour.temperatureC - hour.dewPointC;
