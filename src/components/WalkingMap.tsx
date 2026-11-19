@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
 import { Layers3, LocateFixed, Minus, Plus, MapPin, Maximize2, MousePointer2, Info } from 'lucide-react';
 import type { Coordinate, ModelRun, Network, Place, Route, RouteStep, WalkSegment } from '../core/types';
+import designated from '../designated-roads.json';
+import crossings from '../crossings.json';
+import './public-map-layers.css';
 
 interface Props {
   network: Network;
@@ -32,6 +35,9 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
   const layers = useRef<L.LayerGroup | null>(null);
   const selection = useRef({ onSelectCoordinate, selectionMode });
   const [showCoverage, setShowCoverage] = useState(false);
+  const [showDesignated, setShowDesignated] = useState(false);
+  const [showCrossings, setShowCrossings] = useState(false);
+  const [layerMenu, setLayerMenu] = useState(false);
   const [tilesFailed, setTilesFailed] = useState(false);
   selection.current = { onSelectCoordinate, selectionMode };
 
@@ -73,6 +79,38 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
     if (selectionMode) { map.closePopup(); map.getContainer().classList.add('coordinate-selection-active'); }
     else map.getContainer().classList.remove('coordinate-selection-active');
   }, [selectionMode]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !showDesignated) return;
+    const markers = L.layerGroup().addTo(map);
+    const points: L.LatLngTuple[] = [];
+    for (const road of designated.records) {
+      for (const [label, coords] of [['시점', road.start], ['종점', road.end]] as const) {
+        const position: L.LatLngTuple = [coords[0], coords[1]];
+        points.push(position);
+        L.circleMarker(position, { pane: 'markerPane', radius: 8, color: '#663a00', fillColor: '#ffbb52', weight: 2, fillOpacity: .95, interactive: !selectionMode })
+          .bindPopup('<strong>' + escape(road.name) + ' · ' + label + '</strong><p>' + escape(road.road) + '</p><p>행안부 상습결빙 지정도로의 ' + label + '입니다. 보도 적용 범위와 현재 결빙은 미확인입니다.</p>')
+          .addTo(markers);
+      }
+    }
+    if (!selectionMode) map.fitBounds(L.latLngBounds(points), { padding: [40, 70], maxZoom: 15 });
+    return () => { markers.remove(); };
+  }, [showDesignated, selectionMode, network]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !showCrossings) return;
+    const markers = L.layerGroup().addTo(map);
+    for (const point of crossings.points) {
+      const popup = '<strong>' + escape(point.name) + '</strong><p>' + escape(point.crossingType) +
+        ' · 보행등 ' + escape(point.pedestrianSignal) + '</p><small>서울시 횡단보도 관리번호 ' + escape(point.id) + '</small>';
+      L.circleMarker([point.lat, point.lon], { pane: 'markerPane', radius: 6, color: '#004c59', fillColor: '#5ddbd3', weight: 2,
+        fillOpacity: .95, interactive: !selectionMode, bubblingMouseEvents: false })
+        .bindPopup(popup).addTo(markers);
+    }
+    return () => { markers.remove(); };
+  }, [showCrossings, selectionMode, network]);
 
   useEffect(() => {
     const group = layers.current;
@@ -141,12 +179,17 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
     <div className="map-topline"><span className="area-chip"><span className="live-dot" /><MapPin size={14} />서울 관악구<span className="area-chip-sub">실제 OSM 보행망</span></span><span className="map-source-tag">공개 지도 자료</span></div>
     {selectionMode && <div className="map-selection-notice" role="status"><MousePointer2 size={17} /><span>지도를 눌러 <strong>{selectionMode === 'origin' ? '출발 위치' : '도착 위치'}</strong>를 선택하세요.</span></div>}
     <div className="map-tools">
+      <button type="button" title="공공자료 표시" aria-label="공공자료 표시" aria-expanded={layerMenu} aria-controls="public-map-layers" onClick={() => setLayerMenu(!layerMenu)}><Layers3 size={19} /></button>
+      {layerMenu && <fieldset id="public-map-layers" className="public-map-layers"><legend>공공자료 표시</legend>
+        <label><input type="checkbox" checked={showCrossings} onChange={e => setShowCrossings(e.target.checked)} />횡단보도 시설 {crossings.points.length}곳</label>
+        <label><input type="checkbox" checked={showDesignated} onChange={e => { if (!e.target.checked) fitRoute(); setShowDesignated(e.target.checked); }} />상습결빙 지정도로 {designated.records.length}곳</label>
+      </fieldset>}
       <button type="button" title="경로 전체 보기" aria-label="경로 전체 보기" onClick={fitRoute}><Maximize2 size={19} /></button>
       <div className="zoom-buttons"><button type="button" aria-label="지도 확대" onClick={() => mapRef.current?.zoomIn()}><Plus size={21} /></button><button type="button" aria-label="지도 축소" onClick={() => mapRef.current?.zoomOut()}><Minus size={21} /></button></div>
       <button type="button" title="수집된 생활권 전체 보기" aria-label="수집된 생활권 전체 보기" onClick={fitNetwork}><LocateFixed size={20} /></button>
     </div>
     <div className="map-bottomline"><div className="map-legend"><span><i className="legend-recommended" />일반 보행 경로</span><span><i className="legend-network" />OSM 보행망</span></div><button type="button" className={`risk-toggle ${showCoverage ? 'on' : ''}`} aria-pressed={showCoverage} onClick={() => setShowCoverage(!showCoverage)}><Layers3 size={17} /><span>노면자료 미확보</span><i /></button></div>
-    {showCoverage && <div className="surface-data-notice" role="status"><Info size={15} /><span>점선은 노면 관측자료가 없는 구간입니다. 결빙 발생 또는 낮은 위험을 의미하지 않습니다.</span></div>}
+    {(showDesignated || showCrossings || showCoverage) && <div className="surface-data-notice" role="status"><Info size={15} /><span>{showDesignated && <>주황 점은 지정도로의 시점·종점입니다. {designated.date} <a href={designated.url} target="_blank" rel="noreferrer">행안부</a>. </>}{showCrossings && <>청록 점은 횡단보도 시설 위치입니다. {crossings.date} <a href={crossings.url} target="_blank" rel="noreferrer">서울시</a>. </>}{showCoverage && '점선은 노면 관측자료가 없는 구간입니다.'}</span></div>}
     {tilesFailed && <div className="tile-warning" role="status">배경 지도를 불러오지 못했어요. 수집된 실제 OSM 보행망과 계산 경로는 계속 확인할 수 있습니다.</div>}
   </div>;
 }

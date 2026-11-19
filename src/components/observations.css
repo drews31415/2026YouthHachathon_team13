@@ -1,0 +1,21 @@
+.service-views { display:flex; flex-wrap:wrap; gap:.5rem; margin:0 0 1.1rem }
+.service-views button,.observation-heading button { font:inherit; border:1px solid #c8d4e3; border-radius:10px; background:#fff; color:#294762; font-weight:650; padding:.6rem 1rem; min-height:44px; cursor:pointer }
+.service-views button[aria-pressed="true"] { background:#173f74; color:white; border-color:#173f74 }
+.observations,.external-planner { padding:clamp(1rem,3vw,2rem); background:white; border:1px solid #dce5ee; border-radius:20px; min-width:0 }
+.observations h2,.observation-heading,.observation-heading button { display:flex; align-items:center; gap:.5rem }
+.observations p,.observations small { line-height:1.6 }
+.observations h2 { margin:0 0 .6rem }
+.observation-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr)); gap:1rem; align-items:start }
+.observation-source { border:1px solid #dce5ee; border-radius:14px; padding:1rem; min-width:0 }
+.observation-source h3,.observation-heading p { margin:0 }
+.observation-heading { justify-content:space-between; flex-wrap:wrap }
+.observation-heading p,.observation-source small { color:#4d6177; font-size:.875rem }
+.observation-heading button { font-size:.875rem }
+.observation-status,.freeze-note { background:#edf4fc; border-radius:8px; padding:.5rem .75rem }
+.freeze-note { background:#fff0d6; color:#74430a }
+.observation-scroll { overflow-x:auto; margin-bottom:.7rem }
+.observation-scroll table { border-collapse:collapse; width:100%; text-align:left; font-size:.9rem }
+.observation-scroll th,.observation-scroll td { padding:.55rem .3rem; border-bottom:1px solid #dee6ef }
+.observation-scroll td { white-space:nowrap }.observation-scroll td small { display:block }
+.observation-source a { color:#205389; text-underline-offset:.15em }
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap }

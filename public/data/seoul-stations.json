@@ -1,0 +1,105 @@
+{
+  "source": "서울특별시 스마트서울 도시데이터 센서(S-DoT) 환경정보",
+  "sourceUrl": "https://data.seoul.go.kr/dataList/OA-22833/A/1/datasetView.do",
+  "license": "공공누리 제1유형: 출처표시 (상업적 이용 및 변경 가능)",
+  "bbox": [
+    37.473,
+    126.945,
+    37.486,
+    126.958
+  ],
+  "sheet": "S-DoT 센서 설치위치(2026. 3. 11.)",
+  "sourceSha256": "ae8246f93d8f685b6f6e54630e47b59a28958ff4d510cd0dc17e0b8089f8d7c3",
+  "stations": [
+    {
+      "id": "V02Q1940262",
+      "name": "서울특별시 관악구 봉천로49다길 46",
+      "lat": 37.483438028,
+      "lon": 126.949460805,
+      "coordinateSystem": "W84",
+      "sourceRow": 661,
+      "oldSerial": null,
+      "oldDataSerial": ""
+    },
+    {
+      "id": "V02Q1940458",
+      "name": "서울특별시 관악구 남부순환로234길 73",
+      "lat": 37.47633208,
+      "lon": 126.95621212,
+      "coordinateSystem": "W84",
+      "sourceRow": 664,
+      "oldSerial": null,
+      "oldDataSerial": ""
+    },
+    {
+      "id": "V02Q1940446",
+      "name": "서울특별시 관악구 관악로16길 13",
+      "lat": 37.480432106,
+      "lon": 126.953237798,
+      "coordinateSystem": "W84",
+      "sourceRow": 677,
+      "oldSerial": null,
+      "oldDataSerial": ""
+    },
+    {
+      "id": "V02Q1940558",
+      "name": "서울특별시 관악구 남부순환로214길 46",
+      "lat": 37.479704346,
+      "lon": 126.947473749,
+      "coordinateSystem": "W84",
+      "sourceRow": 686,
+      "oldSerial": null,
+      "oldDataSerial": ""
+    },
+    {
+      "id": "V02Q1940537",
+      "name": "서울특별시 관악구 관악로 117",
+      "lat": 37.475646812,
+      "lon": 126.952484018,
+      "coordinateSystem": "W84",
+      "sourceRow": 697,
+      "oldSerial": null,
+      "oldDataSerial": ""
+    },
+    {
+      "id": "V02Q1940555",
+      "name": "서울특별시 관악구 은천로24길 32",
+      "lat": 37.485477639,
+      "lon": 126.947493445,
+      "coordinateSystem": "W84",
+      "sourceRow": 712,
+      "oldSerial": null,
+      "oldDataSerial": ""
+    },
+    {
+      "id": "V02Q1940560",
+      "name": "서울특별시 관악구 쑥고개로 114-2",
+      "lat": 37.478910442,
+      "lon": 126.949272464,
+      "coordinateSystem": "W84",
+      "sourceRow": 718,
+      "oldSerial": null,
+      "oldDataSerial": ""
+    },
+    {
+      "id": "V02Q1940884",
+      "name": "서울특별시 관악구 행운1길 43",
+      "lat": 37.48071612,
+      "lon": 126.95702012,
+      "coordinateSystem": "W84",
+      "sourceRow": 723,
+      "oldSerial": null,
+      "oldDataSerial": ""
+    },
+    {
+      "id": "OC3CL200028",
+      "name": "서울특별시 관악구 남부순환로226길 31",
+      "lat": 37.47914822,
+      "lon": 126.953709724,
+      "coordinateSystem": "W84",
+      "sourceRow": 995,
+      "oldSerial": null,
+      "oldDataSerial": ""
+    }
+  ]
+}

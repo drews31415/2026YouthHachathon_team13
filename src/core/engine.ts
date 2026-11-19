@@ -31,7 +31,7 @@ export function findPlaces(network: Network, query: string): Place[] {
     const rank = (place: Place) => normalize(place.name) === normalized ? 0
       : place.category.includes('철도 · station') && normalize(place.name) === normalized.replace(/역$/, '') ? 1
         : normalize(place.name).startsWith(normalized) ? 2 : 3;
-    const categoryRank = (place: Place) => place.category.startsWith('기관 ·') || place.category.includes('철도 · station') ? 0
+    const categoryRank = (place: Place) => place.entrance ? -1 : place.category.startsWith('기관 ·') || place.category.includes('철도 · station') ? 0
       : place.category === '교차로' || place.category.startsWith('대중교통 ·') || place.category.includes('철도 · stop') ? 2 : 1;
     return rank(a) - rank(b) || categoryRank(a) - categoryRank(b) || a.name.localeCompare(b.name, 'ko-KR');
   }).slice(0, 50);

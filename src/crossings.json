@@ -1,0 +1,1142 @@
+{
+  "source": "서울시 교차로 및 횡단보도 시설·위치정보",
+  "url": "https://data.seoul.go.kr/dataList/OA-23081/F/1/datasetView.do",
+  "date": "2026-08-24",
+  "dateBasis": "공식 파일명 20260824의 기준일; 공개일은 2026-09-07",
+  "retrievedAt": "2026-11-19T10:14:14.2428534Z",
+  "license": "이용허락범위 제한 없음",
+  "filename": "서울시 교차로 및 횡단보도 시설·위치정보_20260824.xlsx",
+  "sourceSha256": "1a5db9ea7a1cd58e2d7f2b4246baf099a3e4d5278f2867a1b87f3d50d21541be",
+  "sourceBytes": 1735662,
+  "bbox": [
+    37.473,
+    126.945,
+    37.486,
+    126.958
+  ],
+  "points": [
+    {
+      "id": "06-0000049072",
+      "name": "관악전화국",
+      "lat": 37.4817562,
+      "lon": 126.9475408,
+      "district": "관악구",
+      "intersectionId": "1204",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4419,
+      "sourceCoordinates": {
+        "x": 195360.147352402,
+        "y": 542480.592900732,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004243",
+      "name": "관악전화국",
+      "lat": 37.4818967,
+      "lon": 126.9475623,
+      "district": "관악구",
+      "intersectionId": "1204",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4420,
+      "sourceCoordinates": {
+        "x": 195362.052602857,
+        "y": 542496.187231335,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000049136",
+      "name": "관악소방서(연등)3",
+      "lat": 37.4745244,
+      "lon": 126.9530972,
+      "district": "관악구",
+      "intersectionId": "7225",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4423,
+      "sourceCoordinates": {
+        "x": 195851.190436193,
+        "y": 541677.701800405,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000049376",
+      "name": "관악소방서(연등)3",
+      "lat": 37.474484,
+      "lon": 126.9527617,
+      "district": "관악구",
+      "intersectionId": "7225",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4425,
+      "sourceCoordinates": {
+        "x": 195821.509437259,
+        "y": 541673.228330504,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000049390",
+      "name": "관악소방서(연등)1",
+      "lat": 37.4735278,
+      "lon": 126.9532653,
+      "district": "관악구",
+      "intersectionId": "7327",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4427,
+      "sourceCoordinates": {
+        "x": 195866.00140379,
+        "y": 541567.082146291,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000052797",
+      "name": "남도전기(연등)",
+      "lat": 37.485892,
+      "lon": 126.9549095,
+      "district": "관악구",
+      "intersectionId": "7569",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4459,
+      "sourceCoordinates": {
+        "x": 196012.104454555,
+        "y": 542939.280156706,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000056594",
+      "name": "믿음약국",
+      "lat": 37.4786906,
+      "lon": 126.9571271,
+      "district": "관악구",
+      "intersectionId": "1221",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4465,
+      "sourceCoordinates": {
+        "x": 196207.8701695,
+        "y": 542139.918905187,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000037853",
+      "name": "은천삼거리",
+      "lat": 37.4854475,
+      "lon": 126.9560443,
+      "district": "관악구",
+      "intersectionId": "357",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4487,
+      "sourceCoordinates": {
+        "x": 196112.447492942,
+        "y": 542889.89840845,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000041021",
+      "name": "서울대입구역사거리",
+      "lat": 37.4814448,
+      "lon": 126.9528269,
+      "district": "관악구",
+      "intersectionId": "391",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4488,
+      "sourceCoordinates": {
+        "x": 195827.665709564,
+        "y": 542445.787599042,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000038644",
+      "name": "남도전기(연등)",
+      "lat": 37.4858601,
+      "lon": 126.9550799,
+      "district": "관악구",
+      "intersectionId": "7569",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4501,
+      "sourceCoordinates": {
+        "x": 196027.17451065,
+        "y": 542935.724428145,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000037854",
+      "name": "봉천로사거리",
+      "lat": 37.4822013,
+      "lon": 126.9533262,
+      "district": "관악구",
+      "intersectionId": "1222",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4503,
+      "sourceCoordinates": {
+        "x": 195871.867114191,
+        "y": 542529.72955621,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004283",
+      "name": "은천삼거리",
+      "lat": 37.4856935,
+      "lon": 126.9559262,
+      "district": "관악구",
+      "intersectionId": "357",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4504,
+      "sourceCoordinates": {
+        "x": 196102.013706039,
+        "y": 542917.204343884,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004726",
+      "name": "믿음약국",
+      "lat": 37.4787789,
+      "lon": 126.9572819,
+      "district": "관악구",
+      "intersectionId": "1221",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4539,
+      "sourceCoordinates": {
+        "x": 196221.567270211,
+        "y": 542149.71356693,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000041024",
+      "name": "서울대입구역사거리",
+      "lat": 37.4814991,
+      "lon": 126.9525998,
+      "district": "관악구",
+      "intersectionId": "391",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4552,
+      "sourceCoordinates": {
+        "x": 195807.584971174,
+        "y": 542451.816888997,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000041023",
+      "name": "서울대입구역사거리",
+      "lat": 37.4813056,
+      "lon": 126.9525399,
+      "district": "관악구",
+      "intersectionId": "391",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4553,
+      "sourceCoordinates": {
+        "x": 195802.272032633,
+        "y": 542430.353902975,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004111",
+      "name": "영락고교입구(연등)",
+      "lat": 37.4791818,
+      "lon": 126.9474384,
+      "district": "관악구",
+      "intersectionId": "1289",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4555,
+      "sourceCoordinates": {
+        "x": 195350.930913769,
+        "y": 542194.873755864,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004521",
+      "name": "관악구청",
+      "lat": 37.4787117,
+      "lon": 126.9521079,
+      "district": "관악구",
+      "intersectionId": "457",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4574,
+      "sourceCoordinates": {
+        "x": 195763.915010232,
+        "y": 542142.480722238,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000043394",
+      "name": "현대시장입구",
+      "lat": 37.4829869,
+      "lon": 126.9462596,
+      "district": "관악구",
+      "intersectionId": "1226",
+      "crossingType": "이단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4581,
+      "sourceCoordinates": {
+        "x": 195246.902175119,
+        "y": 542617.243722082,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000044750",
+      "name": "서울대입구역사거리",
+      "lat": 37.481072,
+      "lon": 126.9526895,
+      "district": "관악구",
+      "intersectionId": "391",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4587,
+      "sourceCoordinates": {
+        "x": 195815.495814007,
+        "y": 542404.412979882,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000044776",
+      "name": "관악소방서(연등)3",
+      "lat": 37.4746149,
+      "lon": 126.9529082,
+      "district": "관악구",
+      "intersectionId": "7225",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4589,
+      "sourceCoordinates": {
+        "x": 195834.473299893,
+        "y": 541687.749658858,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000044509",
+      "name": "현대시장입구",
+      "lat": 37.4826252,
+      "lon": 126.9465939,
+      "district": "관악구",
+      "intersectionId": "1226",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4591,
+      "sourceCoordinates": {
+        "x": 195276.445760692,
+        "y": 542577.093243646,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004720",
+      "name": "원당초교입구",
+      "lat": 37.4799019,
+      "lon": 126.9558687,
+      "district": "관악구",
+      "intersectionId": "1202",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4592,
+      "sourceCoordinates": {
+        "x": 196096.622516407,
+        "y": 542274.418481662,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004522",
+      "name": "관악구청",
+      "lat": 37.4789003,
+      "lon": 126.9523556,
+      "district": "관악구",
+      "intersectionId": "457",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4596,
+      "sourceCoordinates": {
+        "x": 195785.837363667,
+        "y": 542163.395481107,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000039053",
+      "name": "현대시장입구",
+      "lat": 37.4829666,
+      "lon": 126.9466231,
+      "district": "관악구",
+      "intersectionId": "1226",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4625,
+      "sourceCoordinates": {
+        "x": 195279.053051747,
+        "y": 542614.976063892,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000046182",
+      "name": "믿음약국",
+      "lat": 37.4789189,
+      "lon": 126.9572752,
+      "district": "관악구",
+      "intersectionId": "1221",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4645,
+      "sourceCoordinates": {
+        "x": 196220.981054169,
+        "y": 542165.251233302,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000041026",
+      "name": "서울대입구역사거리",
+      "lat": 37.4810666,
+      "lon": 126.9524529,
+      "district": "관악구",
+      "intersectionId": "391",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4649,
+      "sourceCoordinates": {
+        "x": 195794.56425753,
+        "y": 542403.826537002,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000041022",
+      "name": "서울대입구역사거리",
+      "lat": 37.4812082,
+      "lon": 126.9529763,
+      "district": "관악구",
+      "intersectionId": "391",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4651,
+      "sourceCoordinates": {
+        "x": 195840.863225041,
+        "y": 542419.523870501,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004717",
+      "name": "원당초교입구",
+      "lat": 37.4804095,
+      "lon": 126.9557962,
+      "district": "관악구",
+      "intersectionId": "1202",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4655,
+      "sourceCoordinates": {
+        "x": 196090.238329853,
+        "y": 542330.748317526,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000041025",
+      "name": "서울대입구역사거리",
+      "lat": 37.4813908,
+      "lon": 126.9530821,
+      "district": "관악구",
+      "intersectionId": "391",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4656,
+      "sourceCoordinates": {
+        "x": 195850.237577286,
+        "y": 542439.7815746,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000040950",
+      "name": "현대시장입구",
+      "lat": 37.4827963,
+      "lon": 126.9465688,
+      "district": "관악구",
+      "intersectionId": "1226",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4669,
+      "sourceCoordinates": {
+        "x": 195274.238322531,
+        "y": 542596.081461798,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000021241",
+      "name": "현대시장입구",
+      "lat": 37.4826498,
+      "lon": 126.9462781,
+      "district": "관악구",
+      "intersectionId": "1226",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4686,
+      "sourceCoordinates": {
+        "x": 195248.520615558,
+        "y": 542579.837539374,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000021242",
+      "name": "현대시장입구",
+      "lat": 37.4826636,
+      "lon": 126.9464186,
+      "district": "관악구",
+      "intersectionId": "1226",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4687,
+      "sourceCoordinates": {
+        "x": 195260.944927618,
+        "y": 542581.361200126,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000044344",
+      "name": "영락고교입구",
+      "lat": 37.479326,
+      "lon": 126.9459995,
+      "district": "관악구",
+      "intersectionId": "1290",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4730,
+      "sourceCoordinates": {
+        "x": 195223.668542536,
+        "y": 542210.955587131,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004242",
+      "name": "청룡길입구",
+      "lat": 37.4819674,
+      "lon": 126.9460907,
+      "district": "관악구",
+      "intersectionId": "1205",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4738,
+      "sourceCoordinates": {
+        "x": 195231.897140852,
+        "y": 542504.109644882,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004244",
+      "name": "현대시장입구(연등)2",
+      "lat": 37.4826812,
+      "lon": 126.9477223,
+      "district": "관악구",
+      "intersectionId": "1225",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4739,
+      "sourceCoordinates": {
+        "x": 195376.252343481,
+        "y": 542583.243620767,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004245",
+      "name": "현대시장입구",
+      "lat": 37.4828338,
+      "lon": 126.9462381,
+      "district": "관악구",
+      "intersectionId": "1226",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4740,
+      "sourceCoordinates": {
+        "x": 195244.992378747,
+        "y": 542600.260619724,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004250",
+      "name": "청룡길입구",
+      "lat": 37.4821434,
+      "lon": 126.946354,
+      "district": "관악구",
+      "intersectionId": "1205",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4743,
+      "sourceCoordinates": {
+        "x": 195255.198044903,
+        "y": 542523.628943334,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004150",
+      "name": "청룡초교",
+      "lat": 37.475765,
+      "lon": 126.952676,
+      "district": "관악구",
+      "intersectionId": "1249",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4746,
+      "sourceCoordinates": {
+        "x": 195814.00388061,
+        "y": 541815.407858051,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004251",
+      "name": "청룡길입구",
+      "lat": 37.4817821,
+      "lon": 126.9463014,
+      "district": "관악구",
+      "intersectionId": "1205",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4747,
+      "sourceCoordinates": {
+        "x": 195250.522711455,
+        "y": 542483.530222392,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004252",
+      "name": "관악전화국",
+      "lat": 37.4819529,
+      "lon": 126.9477523,
+      "district": "관악구",
+      "intersectionId": "1204",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4748,
+      "sourceCoordinates": {
+        "x": 195378.86316886,
+        "y": 542502.410765009,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004253",
+      "name": "관악전화국",
+      "lat": 37.4816469,
+      "lon": 126.947731,
+      "district": "관악구",
+      "intersectionId": "1204",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4749,
+      "sourceCoordinates": {
+        "x": 195376.962293007,
+        "y": 542468.448752784,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000034831",
+      "name": "영락고교입구",
+      "lat": 37.4793542,
+      "lon": 126.9457922,
+      "district": "관악구",
+      "intersectionId": "1290",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4757,
+      "sourceCoordinates": {
+        "x": 195205.328180726,
+        "y": 542214.096570755,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004525",
+      "name": "GS슈퍼마켓",
+      "lat": 37.4790379,
+      "lon": 126.9488932,
+      "district": "관악구",
+      "intersectionId": "3941",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4758,
+      "sourceCoordinates": {
+        "x": 195479.59320233,
+        "y": 542178.835130005,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004524",
+      "name": "GS슈퍼마켓(연등)",
+      "lat": 37.478901,
+      "lon": 126.9502614,
+      "district": "관악구",
+      "intersectionId": "1288",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4759,
+      "sourceCoordinates": {
+        "x": 195600.60279527,
+        "y": 542163.577309261,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000037855",
+      "name": "봉천로사거리(연등)",
+      "lat": 37.4836029,
+      "lon": 126.9545094,
+      "district": "관악구",
+      "intersectionId": "1247",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4760,
+      "sourceCoordinates": {
+        "x": 195976.590422236,
+        "y": 542685.229590598,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004323",
+      "name": "신봉초교",
+      "lat": 37.4859523,
+      "lon": 126.9469464,
+      "district": "관악구",
+      "intersectionId": "1812",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4798,
+      "sourceCoordinates": {
+        "x": 195307.835383534,
+        "y": 542946.331821049,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004325",
+      "name": "현대시장입구",
+      "lat": 37.4830322,
+      "lon": 126.9465006,
+      "district": "관악구",
+      "intersectionId": "1226",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4799,
+      "sourceCoordinates": {
+        "x": 195268.222696513,
+        "y": 542622.265712175,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004326",
+      "name": "현대시장입구(연등)1",
+      "lat": 37.4829366,
+      "lon": 126.945114,
+      "district": "관악구",
+      "intersectionId": "1228",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4800,
+      "sourceCoordinates": {
+        "x": 195145.579959107,
+        "y": 542611.730026691,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004328",
+      "name": "신봉초교(연등)",
+      "lat": 37.484656,
+      "lon": 126.9467433,
+      "district": "관악구",
+      "intersectionId": "1813",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4802,
+      "sourceCoordinates": {
+        "x": 195289.788653191,
+        "y": 542802.468147871,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004329",
+      "name": "신봉초교(연등)",
+      "lat": 37.4847664,
+      "lon": 126.9466551,
+      "district": "관악구",
+      "intersectionId": "1813",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4803,
+      "sourceCoordinates": {
+        "x": 195281.998897866,
+        "y": 542814.733794542,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004713",
+      "name": "진광공업사",
+      "lat": 37.4823795,
+      "lon": 126.9507901,
+      "district": "관악구",
+      "intersectionId": "1223",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4822,
+      "sourceCoordinates": {
+        "x": 195647.569728712,
+        "y": 542549.617227603,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004714",
+      "name": "봉천로사거리",
+      "lat": 37.4821114,
+      "lon": 126.9529668,
+      "district": "관악구",
+      "intersectionId": "1222",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4823,
+      "sourceCoordinates": {
+        "x": 195840.07803133,
+        "y": 542519.765835647,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004716",
+      "name": "봉천로사거리",
+      "lat": 37.4819955,
+      "lon": 126.9534186,
+      "district": "관악구",
+      "intersectionId": "1222",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4824,
+      "sourceCoordinates": {
+        "x": 195880.032088138,
+        "y": 542506.874596417,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004518",
+      "name": "관악구청(연등)",
+      "lat": 37.4781021,
+      "lon": 126.9522776,
+      "district": "관악구",
+      "intersectionId": "1248",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4825,
+      "sourceCoordinates": {
+        "x": 195778.897391437,
+        "y": 542074.816149396,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004718",
+      "name": "원당초교입구",
+      "lat": 37.4802873,
+      "lon": 126.955584,
+      "district": "관악구",
+      "intersectionId": "1202",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4826,
+      "sourceCoordinates": {
+        "x": 196071.467494707,
+        "y": 542317.201747184,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004719",
+      "name": "원당초교입구",
+      "lat": 37.4801187,
+      "lon": 126.95561,
+      "district": "관악구",
+      "intersectionId": "1202",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4827,
+      "sourceCoordinates": {
+        "x": 196073.753005213,
+        "y": 542298.486460377,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004721",
+      "name": "원당초교입구",
+      "lat": 37.4801168,
+      "lon": 126.956038,
+      "district": "관악구",
+      "intersectionId": "1202",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4828,
+      "sourceCoordinates": {
+        "x": 196111.613999555,
+        "y": 542298.257839389,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004722",
+      "name": "원당초교입구",
+      "lat": 37.4799452,
+      "lon": 126.9560422,
+      "district": "관악구",
+      "intersectionId": "1202",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4829,
+      "sourceCoordinates": {
+        "x": 196111.975572415,
+        "y": 542279.212938439,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004724",
+      "name": "원당초교입구(연등)",
+      "lat": 37.4793845,
+      "lon": 126.9578849,
+      "district": "관악구",
+      "intersectionId": "1201",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4831,
+      "sourceCoordinates": {
+        "x": 196274.931420876,
+        "y": 542216.905159454,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004725",
+      "name": "원당초교입구(연등)",
+      "lat": 37.4792574,
+      "lon": 126.957805,
+      "district": "관악구",
+      "intersectionId": "1201",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4832,
+      "sourceCoordinates": {
+        "x": 196267.854282328,
+        "y": 542202.79888547,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004528",
+      "name": "진광공업사(연등)",
+      "lat": 37.4825309,
+      "lon": 126.9492005,
+      "district": "관악구",
+      "intersectionId": "1224",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4846,
+      "sourceCoordinates": {
+        "x": 195506.984362572,
+        "y": 542566.49387935,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004530",
+      "name": "LG전자",
+      "lat": 37.4816063,
+      "lon": 126.9504388,
+      "district": "관악구",
+      "intersectionId": "1203",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4847,
+      "sourceCoordinates": {
+        "x": 195616.451659888,
+        "y": 542463.814128355,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004531",
+      "name": "LG전자",
+      "lat": 37.4814728,
+      "lon": 126.9504216,
+      "district": "관악구",
+      "intersectionId": "1203",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4848,
+      "sourceCoordinates": {
+        "x": 195614.926619451,
+        "y": 542448.998210537,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004532",
+      "name": "LG전자",
+      "lat": 37.4813661,
+      "lon": 126.9505596,
+      "district": "관악구",
+      "intersectionId": "1203",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4849,
+      "sourceCoordinates": {
+        "x": 195627.12062361,
+        "y": 542437.158680324,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004361",
+      "name": "관악소방서(연등)1",
+      "lat": 37.4735845,
+      "lon": 126.9530973,
+      "district": "관악구",
+      "intersectionId": "7327",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 4878,
+      "sourceCoordinates": {
+        "x": 195851.150311253,
+        "y": 541573.381574832,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004287",
+      "name": "봉천로사거리(연등)",
+      "lat": 37.483468,
+      "lon": 126.9541658,
+      "district": "관악구",
+      "intersectionId": "1247",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4908,
+      "sourceCoordinates": {
+        "x": 195946.196225507,
+        "y": 542670.276743943,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000004294",
+      "name": "은천삼거리",
+      "lat": 37.4852991,
+      "lon": 126.9561616,
+      "district": "관악구",
+      "intersectionId": "357",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4912,
+      "sourceCoordinates": {
+        "x": 196122.81448634,
+        "y": 542873.42298652,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000030220",
+      "name": "원당초교입구",
+      "lat": 37.4805106,
+      "lon": 126.9559139,
+      "district": "관악구",
+      "intersectionId": "1202",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4929,
+      "sourceCoordinates": {
+        "x": 196100.657644151,
+        "y": 542341.968040071,
+        "crs": "EPSG:5186"
+      }
+    }
+  ],
+  "coordinateReference": {
+    "sourceCrs": "EPSG:5186",
+    "outputCrs": "EPSG:4326",
+    "axisMapping": "원본 H(X)=easting, I(Y)=northing; always_xy=True",
+    "basis": "OA-23081 파일 자체에는 좌표계 표기가 없다. EPSG:5186을 명시한 OA-15554에서 동일 횡단보도 관리번호와 X/Y가 일치하는 것을 직접 확인한 뒤 적용했다.",
+    "referenceUrl": "https://data.seoul.go.kr/dataList/OA-15554/S/1/datasetView.do",
+    "referenceEndpoint": "https://data.seoul.go.kr/dataList/dataView.do",
+    "anchor": {
+      "id": "06-0000041021",
+      "name": "서울대입구역사거리",
+      "x": 195827.665709564,
+      "y": 542445.787599042,
+      "lat": 37.48144482136103,
+      "lon": 126.95282690129902
+    },
+    "anchorResponseSha256": "beff7bbcc347eea2986f73e16abb8f3ae0e05efd4de9fb88b84c6608324b6103",
+    "library": "pyproj 3.8.0",
+    "projectionLibrary": "9.8.1",
+    "roundTripToleranceMeters": 0.01
+  },
+  "coverage": {
+    "sourceDataRows": 21776,
+    "gwanakRows": 624,
+    "bboxPoints": 68,
+    "invalidCoordinateRows": [],
+    "distinctOutputCoordinates": 68,
+    "coincidentCoordinateGroups": 0
+  },
+  "limitations": [
+    "2026-08-24 기준 공개 시설 목록이며 현재 운영·폐쇄·공사 상태를 확인한 자료가 아니다.",
+    "시설별 제공 위치점이다. 횡단보도의 양 끝점·폭·전체 선형으로 해석하거나 OSM 보행 연결을 자동 생성하지 않는다.",
+    "같은 교차로의 여러 횡단보도는 이름이 같을 수 있다. 관리번호를 별개로 보존한다.",
+    "원문에 보행등 유/무가 제공되어 그대로 보존한다. 현재 신호나 보행 허용을 뜻하지 않는다.",
+    "좌표계는 공식 동일시설 좌표 앵커로 대조했다. 변환 수치 정밀도는 원자료의 현장 위치 정확도를 보증하지 않는다."
+  ]
+}

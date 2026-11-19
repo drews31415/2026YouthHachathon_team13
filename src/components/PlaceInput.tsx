@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { MapPin, TrainFront, Building2, Search, X } from 'lucide-react';
+import { MapPin, TrainFront, Building2, Search, X, Bike, BusFront, DoorOpen } from 'lucide-react';
 import { findPlaces } from '../core/engine';
 import type { Network, Place } from '../core/types';
 
@@ -10,6 +10,15 @@ interface Props {
   kind: 'origin' | 'destination';
   onChange: (value: string) => void;
   onSelect: (place: Place) => void;
+}
+
+function placeDisplay(category: string) {
+  if (category.includes('출입구') || category.includes('subway_entrance')) return { Icon: DoorOpen, label: '지하철 출입구 · OSM' };
+  if (category === '시설 · bicycle_rental') return { Icon: Bike, label: '자전거 대여소' };
+  if (category === '도로시설 · bus_stop') return { Icon: BusFront, label: '버스 정류장' };
+  if (category === '대중교통 · platform') return { Icon: MapPin, label: '대중교통 승강장' };
+  if (category.startsWith('철도 ·')) return { Icon: TrainFront, label: category };
+  return { Icon: category.startsWith('기관 ·') ? Building2 : MapPin, label: category };
 }
 
 export function PlaceInput({ network, label, value, kind, onChange, onSelect }: Props) {
@@ -46,12 +55,14 @@ export function PlaceInput({ network, label, value, kind, onChange, onSelect }: 
     </div>
     {open && <div className="place-dropdown" id={`${id}-list`} role="listbox" aria-label={`${label} 검색 결과`}>
       <div className="dropdown-caption"><Search size={12} /> OpenStreetMap에 등록된 실제 장소</div>
-      {places.length ? places.map((place, index) => <button type="button" role="option" aria-selected={active === index}
+      {places.length ? places.map((place, index) => {
+        const { Icon, label } = placeDisplay(place.category);
+        return <button type="button" role="option" aria-selected={active === index}
         key={place.id} id={`${id}-${place.id}`} className={active === index ? 'active' : ''}
         onMouseDown={e => e.preventDefault()} onMouseEnter={() => setActive(index)} onClick={() => select(place)}>
-        <span className="place-result-icon">{place.name.includes('역') ? <TrainFront size={17} /> : place.name.includes('청') ? <Building2 size={17} /> : <MapPin size={17} />}</span>
-        <span><strong>{place.name}</strong><small>{place.category}</small></span>
-      </button>) : <p className="no-places">수집된 생활권에 일치하는 장소가 없어요.<br />다른 이름을 검색하거나 지도에서 위치를 선택해 주세요.</p>}
+        <span className="place-result-icon"><Icon size={17} /></span>
+        <span><strong>{place.name}</strong><small>{label}</small></span>
+      </button>; }) : <p className="no-places">수집된 생활권에 일치하는 장소가 없어요.<br />다른 이름을 검색하거나 지도에서 위치를 선택해 주세요.</p>}
     </div>}
   </div>;
 }

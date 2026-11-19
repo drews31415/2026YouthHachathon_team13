@@ -1,4 +1,5 @@
-import { buildNetwork } from '../core/network';
+import { addOsmSubwayEntrances, buildNetwork } from '../core/network';
+import entranceSource from '../subway-entrances.json';
 import type { Network, SourceProvenance } from '../core/types';
 
 /** Only the acquired public snapshot is loaded; there is no fallback graph. */
@@ -15,5 +16,5 @@ export async function fetchNetwork(signal?: AbortSignal): Promise<Network> {
   if (hash !== provenance.sha256) throw new Error('보행망 원본과 출처 기록이 일치하지 않아 사용을 중단했습니다.');
   const network = buildNetwork(JSON.parse(raw), provenance);
   if (!network.segments.length) throw new Error('사용 가능한 실제 보행 구간이 없습니다.');
-  return network;
+  return addOsmSubwayEntrances(network, entranceSource);
 }

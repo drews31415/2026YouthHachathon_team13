@@ -1,0 +1,43 @@
+{
+  "source": "기상청 기상자료개방포털 관측지점정보",
+  "sourceUrl": "https://data.kma.go.kr/tmeta/stn/selectStnList.do",
+  "note": "공식 현재 지점 상세 표에서 추출. 지도 좌표는 골목 노면 관측 위치가 아닙니다.",
+  "stations": [
+    {
+      "id": 509,
+      "name": "관악",
+      "lat": 37.45284,
+      "lon": 126.95015,
+      "elevationM": 141.64,
+      "coordinateReferenceSystem": "WGS84",
+      "sourceUrl": "https://data.kma.go.kr/tmeta/stn/selectStnDetail.do?pgmNo=82&isSelectStn=Y&stdStnNo=509",
+      "retrievedAt": "2026-11-19T10:01:11.195Z",
+      "sourceTableSha256": "f393cda599dbfa2bbd95224448ab30ecf83a2a9a0825146240b304f0e05a2e91",
+      "gpsMeasuredOn": "2005-07-08"
+    },
+    {
+      "id": 410,
+      "name": "기상청",
+      "lat": 37.4933,
+      "lon": 126.91746,
+      "elevationM": 41.758,
+      "coordinateReferenceSystem": "WGS84",
+      "sourceUrl": "https://data.kma.go.kr/tmeta/stn/selectStnDetail.do?pgmNo=82&isSelectStn=Y&stdStnNo=410",
+      "retrievedAt": "2026-11-19T10:01:11.811Z",
+      "sourceTableSha256": "b6f75d513742b173a92aa97a50a8de6f6764c5b8e5cc6471038d28f8b1e329f4",
+      "gpsMeasuredOn": "2005-07-20"
+    },
+    {
+      "id": 401,
+      "name": "서초",
+      "lat": 37.48462,
+      "lon": 127.02601,
+      "elevationM": 33.05,
+      "coordinateReferenceSystem": "WGS84",
+      "sourceUrl": "https://data.kma.go.kr/tmeta/stn/selectStnDetail.do?pgmNo=82&isSelectStn=Y&stdStnNo=401",
+      "retrievedAt": "2026-11-19T10:01:12.334Z",
+      "sourceTableSha256": "2c5a458eb7d6fb58c451adf2105b01a8a065b32bdaf235279989be966c5a829a",
+      "gpsMeasuredOn": "2005-07-19"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+# These public downloads are identified by byte-level hashes.
+public/data/osm.json -text
+public/data/weather.json -text
+public/data/seoul-*.json -text
+public/data/kma-*.json -text
+src/crossings.json -text

@@ -5,6 +5,7 @@ export interface SourceProvenance {
   license: string; licenseUrl: string; sha256: string;
   bbox: [number, number, number, number]; // south, west, north, east
   query?: string; limitations?: string[];
+  sourceFileSha256?: string;
 }
 export interface Place {
   id: string; name: string; category: string;
@@ -13,6 +14,7 @@ export interface Place {
   snapDistanceM: number; // straight-line gap, NOT a verified walking connection
   sourceId: string; sourceType: 'node' | 'way' | 'coordinate'; sourceUrl: string | null;
   aliases?: string[]; // only verbatim alternate names recorded in the source
+  entrance?: { exitNumber: string; stationRelationId: string; stationName: string; sourceTimestamp: string; wheelchair: string | null };
 }
 export interface WalkNode { id: string; coordinate: Coordinate; tags: Record<string, string>; }
 export interface WalkSegment {
@@ -25,6 +27,16 @@ export interface Network {
   nodes: WalkNode[]; segments: WalkSegment[]; places: Place[];
   bounds: [Coordinate, Coordinate]; source: string; provenance: SourceProvenance;
   exclusions: { inaccessibleWays: number; blockedNodes: number; blockedSegments: number; outsideOrMissingSegments: number; unsnappedPlaces: number };
+  placeCounts: { osmNamedPlaces: number; osmSubwayEntrances: number; officialSubwayEntrances: number; total: number };
+  entranceConnections?: { sourceRecordCount: number; added: number; duplicateIds: number; outsideBounds: number; unconnected: { sourceId: string; reason: string }[] };
+  subwayEntranceSource?: { source: string; endpoint: string; osmTimestamp: string; extractedAt: string; sourceSha256: string; sourceRecordsSha256: string; license: string; licenseUrl: string };
+}
+
+export interface OsmEntranceDataset {
+  source: string; sourceSha256: string; sourceRecordsSha256: string; endpoint: string; osmTimestamp: string; extractedAt: string; license: string; licenseUrl: string;
+  selection: { relationId: number; nodeIds: number[] };
+  nodes: { type: string; id: number; lat: number; lon: number; tags: Record<string, string>; timestamp: string; version: number }[];
+  relations: { type: string; id: number; tags: Record<string, string>; members: { type: string; ref: number; role: string }[] }[];
 }
 export interface RiskEstimate {
   segmentId: string; level: RiskLevel; score: number | null; reasons: string[];

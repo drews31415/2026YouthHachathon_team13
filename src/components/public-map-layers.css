@@ -1,0 +1,17 @@
+.public-map-layers {
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 0;
+  width: max-content;
+  max-width: 225px;
+  margin: 0;
+  padding: 8px 12px;
+  color: #143948;
+  background: white;
+  border: 1px solid #b9ccce;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px #17363d24;
+}
+.public-map-layers legend { padding: 2px 6px; background: white; border-radius: 4px; font-size: 12px; font-weight: 700; }
+.public-map-layers label { display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: 13px; cursor: pointer; }
+.public-map-layers input { width: 16px; height: 16px; accent-color: #065f62; }

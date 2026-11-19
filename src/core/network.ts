@@ -1,4 +1,4 @@
-import type { Coordinate, Network, OsmElement, OsmPayload, Place, SourceProvenance, WalkNode, WalkSegment } from './types';
+import type { Coordinate, Network, OsmElement, OsmEntranceDataset, OsmPayload, Place, SourceProvenance, WalkNode, WalkSegment } from './types';
 
 // Tag semantics checked against the public OSM documentation:
 // https://wiki.openstreetmap.org/wiki/Key:access
@@ -195,7 +195,8 @@ export function buildNetwork(payload: OsmPayload, provenance: SourceProvenance):
   }
   const nodes = [...connectedNodes].map(id => knownNodes.get(id)!);
   if (!segments.length || !nodes.length) throw new Error('수집 범위 안에서 이용 가능한 OSM 보행 구간을 찾지 못했습니다.');
-  const network: Network = { nodes, segments, places: [], bounds, source: checked.source, provenance: checked, exclusions };
+  const network: Network = { nodes, segments, places: [], bounds, source: checked.source, provenance: checked, exclusions,
+    placeCounts: { osmNamedPlaces: 0, osmSubwayEntrances: 0, officialSubwayEntrances: 0, total: 0 } };
   const candidates: { element: OsmElement; coordinate: Coordinate; type: 'node' | 'way' }[] = [];
   for (const element of rawNodes.values()) {
     const tags = normalizedTags(element.tags);
@@ -228,5 +229,57 @@ export function buildNetwork(payload: OsmPayload, provenance: SourceProvenance):
     network.places.push(place);
   }
   network.places.sort((a, b) => a.name.localeCompare(b.name, 'ko-KR') || a.id.localeCompare(b.id));
+  network.placeCounts.osmNamedPlaces = network.places.length;
+  network.placeCounts.total = network.places.length;
   return network;
+}
+
+/**
+ * Attach actual entrance POIs missing from the original named-object extraction.
+ * This never adds graph nodes/edges, edits osm.json, infers underground paths,
+ * or treats a nearest-node gap as a verified sidewalk access route.
+ */
+export function addOsmSubwayEntrances(network: Network, source: OsmEntranceDataset): Network {
+  if (!source || source.sourceSha256 !== network.provenance.sourceFileSha256
+    || source.osmTimestamp !== network.provenance.osmTimestamp
+    || !/^[a-f0-9]{64}$/.test(source.sourceRecordsSha256 ?? '')
+    || !Number.isFinite(Date.parse(source.extractedAt)) || !Array.isArray(source.nodes) || !Array.isArray(source.relations)) {
+    throw new Error('지하철 출입구 원본과 보행망의 출처가 일치하지 않습니다.');
+  }
+  const relation = source.relations.find(item => item.id === source.selection?.relationId && item.type === 'relation');
+  const stationName = relation?.tags['name:ko'] || relation?.tags.name;
+  if (!relation || relation.tags.public_transport !== 'stop_area' || !stationName) throw new Error('지하철 출입구의 원본 역 관계를 확인할 수 없습니다.');
+  const members = new Set(relation.members.filter(member => member.type === 'node').map(member => member.ref));
+  const expected = new Set(source.selection.nodeIds);
+  const places = [...network.places];
+  const existingIds = new Set(places.map(place => place.id));
+  const report: NonNullable<Network['entranceConnections']> = { sourceRecordCount: source.nodes.length, added: 0, duplicateIds: 0, outsideBounds: 0, unconnected: [] };
+  for (const node of source.nodes) {
+    const exitNumber = node.tags?.ref;
+    if (node.type !== 'node' || !Number.isSafeInteger(node.id) || !expected.has(node.id) || !members.has(node.id)
+      || node.tags.railway !== 'subway_entrance' || !exitNumber || !/^\d+(?:-\d+)?$/.test(exitNumber)
+      || node.tags.description !== `${stationName}역 ${exitNumber}번출구`
+      || !Number.isFinite(Date.parse(node.timestamp)) || !Number.isFinite(node.lon) || !Number.isFinite(node.lat)) {
+      throw new Error('지하철 출입구의 원문 번호·설명·역 소속을 확인할 수 없습니다.');
+    }
+    const id = `node/${node.id}`;
+    if (existingIds.has(id)) { report.duplicateIds++; continue; }
+    const coordinate: Coordinate = [node.lon, node.lat];
+    if (!coordinateInside(coordinate, network.bounds)) { report.outsideBounds++; continue; }
+    if (!isNodePassable(node.tags)) { report.unconnected.push({ sourceId: String(node.id), reason: '출입 접근권한을 확인할 수 없음' }); continue; }
+    const snap = nearestNode(network, coordinate);
+    if (!snap) { report.unconnected.push({ sourceId: String(node.id), reason: '80m 이내 실제 도보망 연결점 없음' }); continue; }
+    places.push({ id, name: node.tags.description, category: '지하철 출입구 · OSM', coordinate,
+      nodeId: snap.node.id, routeCoordinate: snap.node.coordinate, snapDistanceM: snap.distanceM,
+      sourceType: 'node', sourceId: String(node.id), sourceUrl: `https://www.openstreetmap.org/node/${node.id}`,
+      aliases: [stationName], entrance: { exitNumber, stationRelationId: String(relation.id), stationName, sourceTimestamp: node.timestamp, wheelchair: node.tags.wheelchair ?? null },
+    });
+    existingIds.add(id); report.added++;
+  }
+  places.sort((a,b) => a.name.localeCompare(b.name, 'ko-KR') || a.id.localeCompare(b.id));
+  return { ...network, places, entranceConnections: report,
+    placeCounts: { osmNamedPlaces: places.filter(place => !place.entrance).length, osmSubwayEntrances: places.filter(place => !!place.entrance).length, officialSubwayEntrances: 0, total: places.length },
+    subwayEntranceSource: { source: source.source, endpoint: source.endpoint, osmTimestamp: source.osmTimestamp, extractedAt: source.extractedAt,
+      sourceSha256: source.sourceSha256, sourceRecordsSha256: source.sourceRecordsSha256, license: source.license, licenseUrl: source.licenseUrl },
+  };
 }
