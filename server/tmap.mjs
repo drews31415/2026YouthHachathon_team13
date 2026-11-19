@@ -170,12 +170,17 @@ export async function getTmapRoute(request, env = globalThis.process?.env ?? {})
   const distanceMeters = numeric(summary?.totalDistance);
   const durationSeconds = numeric(summary?.totalTime);
   if (distanceMeters === null || durationSeconds === null || distanceMeters <= 0 || durationSeconds <= 0) throw new TmapError('TMAP 응답에 유효한 경로 거리·소요시간이 없어요.', 502, 'TMAP_INVALID_RESPONSE');
-  const steps = payload.features.filter(feature => feature?.geometry?.type === 'Point' && safeText(feature?.properties?.description, 1000))
+  const validPoint = point => Array.isArray(point) && validKoreanCoordinate(point[1], point[0]);
+  const lines = payload.features.filter(feature => feature?.geometry?.type === 'LineString').map(feature => feature.geometry.coordinates);
+  if (!lines.length || lines.some(line => !Array.isArray(line) || line.length < 2 || !line.every(validPoint))) {
+    throw new TmapError('지도에 표시할 보행 경로 좌표를 받지 못했어요.', 502, 'TMAP_INVALID_RESPONSE');
+  }
+  const steps = payload.features.filter(feature => feature?.geometry?.type === 'Point' && validPoint(feature.geometry.coordinates) && safeText(feature?.properties?.description, 1000))
     .map((feature, index) => ({ index: index + 1, instruction: safeText(feature.properties.description, 1000), name: safeText(feature.properties.name, 150),
-      distanceMeters: numeric(feature.properties.distance), durationSeconds: numeric(feature.properties.time) }));
+      coordinate: feature.geometry.coordinates, distanceMeters: numeric(feature.properties.distance), durationSeconds: numeric(feature.properties.time) }));
   return {
     source: 'TMAP 보행자 경로 API', retrievedAt: new Date().toISOString(),
-    distanceMeters, durationSeconds, steps: steps.slice(0, 500), stepsTruncated: steps.length > 500,
+    distanceMeters, durationSeconds, lines, steps: steps.slice(0, 500), stepsTruncated: steps.length > 500,
     searchOption, optionLabel: request.avoidStairs ? '최단거리 + 계단 제외' : '최단거리',
     startName: start.name, endName: end.name, avoidsIce: false,
     notice: 'TMAP의 일반 보행 경로입니다. 결빙 회피 결과가 아니며 휠체어·보행약자에게 적합한 경로임을 보장하지 않습니다.',

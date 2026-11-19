@@ -28,11 +28,9 @@
   z-index: 650;
 }
 
-.flow-header-home { grid-template-columns: 1fr auto; }
-.flow-header h1 { margin: 0; font-size: 22px; font-weight: 850; letter-spacing: -.055em; }
-.flow-region { display: flex; align-items: center; gap: 6px; color: var(--flow-muted); font-size: 14px; font-weight: 650; }
+.flow-header h1 { grid-column: 2; margin: 0; font-size: 22px; font-weight: 850; letter-spacing: -.055em; }
 
-.flow-back, .flow-menu > summary, .flow-dialog-body header button {
+.flow-back {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -48,37 +46,6 @@
   border-radius: 12px;
 }
 
-.flow-menu { justify-self: end; position: relative; }
-.flow-menu > summary { display: grid; place-items: center; cursor: pointer; list-style: none; }
-.flow-menu > summary::-webkit-details-marker { display: none; }
-.flow-menu[open] > summary { background: var(--flow-pale); color: var(--flow-blue); }
-.flow-menu-items {
-  position: absolute;
-  top: calc(100% + 5px);
-  right: 0;
-  display: grid;
-  width: min(244px, calc(100vw - 36px));
-  padding: 5px;
-  border: 1px solid var(--flow-border);
-  border-radius: 15px;
-  background: #fff;
-  box-shadow: 0 12px 32px #17365d28;
-}
-
-.flow-menu-items > :is(a, button) {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--flow-ink);
-  font: inherit;
-  font-size: 15px;
-  text-decoration: none;
-  text-align: left;
-}
-.flow-menu-items > :is(a, button):hover, .flow-menu-items [aria-current="page"] { background: var(--flow-pale); color: #0042ba; }
 .flow-shell :is(button, a, summary, select):focus-visible { outline: 3px solid #0a66ff; outline-offset: 3px; }
 
 .flow-layout {
@@ -90,17 +57,11 @@
   border-radius: 24px;
   box-shadow: 0 14px 40px #17365d12;
 }
-.stage-home { grid-template-areas: "intro" "map" "action"; }
 .stage-search { grid-template-areas: "input" "map" "action"; }
 .stage-result { grid-template-areas: "journey" "map" "result"; }
 .stage-guide { grid-template-areas: "instruction" "map" "guide"; }
 
-.flow-hero, .flow-inputs, .flow-results, .flow-guide, .flow-actions { min-width: 0; padding: 20px; }
-.flow-hero { grid-area: intro; text-align: center; padding: 46px 16px 25px; }
-.flow-brand { display: flex; align-items: center; justify-content: center; gap: 9px; font-size: clamp(30px, 8vw, 43px); font-weight: 950; letter-spacing: -.065em; }
-.flow-brand svg { color: var(--flow-blue); }
-.flow-hero h1 { margin: 24px 0 11px; font-size: clamp(38px, 10.4vw, 53px); line-height: 1.16; letter-spacing: -.075em; font-weight: 950; }
-.flow-hero p { margin: 0; color: #2d3b53; font-size: clamp(16px, 4.3vw, 23px); font-weight: 750; letter-spacing: -.035em; }
+.flow-inputs, .flow-results, .flow-guide, .flow-actions { min-width: 0; padding: 20px; }
 
 .flow-inputs { grid-area: input; position: relative; z-index: 6; }
 .flow-inputs h2 { margin: 0 0 15px; font-size: clamp(26px, 7vw, 34px); line-height: 1.2; letter-spacing: -.055em; font-weight: 900; }
@@ -371,22 +332,10 @@
 .flow-loading > svg { color: var(--flow-blue); }
 .flow-loading p { margin: 0; }
 .flow-loading .flow-primary { width: auto; }
-.flow-source-dialog { width: min(520px, calc(100% - 26px)); max-height: 88dvh; margin: auto; padding: 0; border: 1px solid var(--flow-border); border-radius: 20px; color: var(--flow-ink); }
-.flow-source-dialog::backdrop { background: #0a204c69; }
-.flow-dialog-body { padding: 20px; }
-.flow-dialog-body header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.flow-dialog-body header h2 { margin: 0; font-size: 23px; }
-.flow-dialog-body dt { margin-top: 12px; font-weight: 850; }
-.flow-dialog-body dd { margin: 3px 0; color: var(--flow-muted); line-height: 1.6; }
-.flow-shell.large-text .flow-route-name, .flow-shell.large-text .flow-location, .flow-shell.large-text .flow-inputs .place-input-row input { font-size: 19px; }
-.flow-shell.large-text .flow-muted, .flow-shell.large-text .flow-options, .flow-shell.large-text .flow-map-settings, .flow-shell.large-text .flow-result-details { font-size: 16px; }
 
 @media (min-width: 820px) {
   .flow-workspace { padding-inline: 28px; }
   .flow-header { padding-inline: 4px; }
-  .stage-home { width: min(660px, 100%); margin-inline: auto; }
-  .stage-home .flow-map-canvas { height: 340px; }
-  .stage-home .flow-actions { padding: 10px 32px 24px; }
   .stage-search { grid-template-columns: minmax(310px, .8fr) minmax(0, 1.2fr); grid-template-areas: "input map" "action map"; grid-template-rows: 1fr auto; }
   .stage-result { grid-template-columns: minmax(0, 1.35fr) minmax(310px, 1fr); grid-template-areas: "journey journey" "map result"; }
   .stage-guide { grid-template-columns: minmax(0, 1.35fr) minmax(310px, 1fr); grid-template-areas: "instruction instruction" "map guide"; }
@@ -409,8 +358,7 @@
   .flow-workspace { padding-inline: 0; }
   .flow-header { background: #fff; padding-inline: 10px; }
   .flow-layout { border-inline: 0; border-bottom: 0; border-radius: 0; box-shadow: none; }
-  .flow-hero, .flow-inputs, .flow-results, .flow-guide, .flow-actions { padding-inline: 14px; }
-  .flow-hero { padding-top: 30px; }
+  .flow-inputs, .flow-results, .flow-guide, .flow-actions { padding-inline: 14px; }
   .flow-journey, .flow-instruction { margin-inline: 13px; }
   .flow-route-row { padding-inline: 7px; gap: 5px; }
 }
@@ -420,13 +368,4 @@
   .flow-inputs .place-field-body label { font-size: 15px; margin-right: 7px; padding-right: 7px; }
   .flow-inputs .place-input-row input, .flow-inputs .place-input-row input::placeholder { font-size: 15px; }
   .flow-route-name { font-size: 14px; }
-}
-
-@media (max-width: 819px) and (max-height: 700px) {
-  .flow-hero { padding-top: 22px; padding-bottom: 15px; }
-  .flow-brand { font-size: 33px; }
-  .flow-brand svg { width: 35px; height: 35px; }
-  .flow-hero h1 { margin-block: 17px 8px; font-size: clamp(34px, 9vw, 43px); }
-  .stage-home .flow-map-canvas { height: clamp(175px, 30dvh, 245px); }
-  .stage-home .flow-actions { padding-top: 10px; }
 }

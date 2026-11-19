@@ -14,6 +14,7 @@ export interface Place {
   snapDistanceM: number; // straight-line gap, NOT a verified walking connection
   sourceId: string; sourceType: 'node' | 'way' | 'coordinate'; sourceUrl: string | null;
   aliases?: string[]; // only verbatim alternate names recorded in the source
+  address?: string;
   entrance?: { exitNumber: string; stationRelationId: string; stationName: string; sourceTimestamp: string; wheelchair: string | null };
 }
 export interface WalkNode { id: string; coordinate: Coordinate; tags: Record<string, string>; }
@@ -61,6 +62,8 @@ export interface Route {
   id: string; type: 'normal' | 'recommended'; distanceM: number; durationSeconds: number;
   coordinates: Coordinate[]; segmentIds: string[]; steps: RouteStep[];
   highRiskCount: number; unknownCount: number;
+  provider?: 'tmap';
+  lines?: Coordinate[][];
 }
 export interface SearchOptions {
   origin: Place | null; destination: Place | null; walkingSpeedMps: number;

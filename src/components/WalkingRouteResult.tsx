@@ -38,7 +38,7 @@ export function WalkingRouteResult({ normal, detour, forecast, forecastEnabled, 
     : '';
 
   return <div className="flow-comparison">
-    {forecast.replay && forecast.active && <p className="flow-route-date">과거 예보 기준 · {forecastTime(forecast.active.time, true)} KST</p>}
+    {forecastEnabled && forecast.replay && forecast.active && <p className="flow-route-date">과거 예보 기준 · {forecastTime(forecast.active.time, true)} KST</p>}
     <div className="flow-route-card" aria-label="경로 선택">
       {routes.map(route => {
         const recommended = route.type === 'recommended';
@@ -53,10 +53,10 @@ export function WalkingRouteResult({ normal, detour, forecast, forecastEnabled, 
     </div>
     {extra > 0 && <div className="flow-extra">{time(extra)} 더 걸려요</div>}
     {status && <p className="flow-route-status" role="status">{status}</p>}
-    {forecast.active && hasFreezingRain(forecast.active) && <p className="flow-route-status" role="status">이 지역에 어는 비 예보가 있어요</p>}
-    <p className="flow-muted"><Info size={16} />실제 노면 상태와 다를 수 있어요</p>
-    <button className="flow-primary" type="button" onClick={onNavigate}><Navigation size={22} />이 길로 안내 보기</button>
-    {forecast.active && <details className="flow-result-details">
+    {forecastEnabled && forecast.active && hasFreezingRain(forecast.active) && <p className="flow-route-status" role="status">이 지역에 어는 비 예보가 있어요</p>}
+    <p className="flow-muted"><Info size={16} />{normal.provider === 'tmap' ? 'TMAP 보행 경로 · 이 경로의 결빙 예상 자료는 없어요' : '실제 노면 상태와 다를 수 있어요'}</p>
+    {normal.steps.length > 0 && <button className="flow-primary" type="button" onClick={onNavigate}><Navigation size={22} />이 길로 안내 보기</button>}
+    {forecastEnabled && forecast.active && <details className="flow-result-details">
       <summary>경로 계산 상세</summary>
       {forecast.active && !forecast.replay && <p>결빙 예상 기준 · {forecastTime(forecast.active.time)} KST</p>}
       <p>일반 경로는 설정한 보행 조건에서 거리가 가장 짧은 경로예요.</p>

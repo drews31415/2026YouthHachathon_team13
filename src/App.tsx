@@ -1,22 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, ArrowUpDown, ChevronLeft, ChevronRight, Clock3, Footprints, Map, MapPin, Navigation, RefreshCw, Settings2, Snowflake, Volume2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpDown, ChevronLeft, ChevronRight, Clock3, Footprints, Map, MapPin, Navigation, RefreshCw, Volume2 } from 'lucide-react';
 import { analyzeRisk, findForecastDetour, nearestPlace, searchRoutes } from './core/engine';
+import { coordinateInside } from './core/network';
 import type { Coordinate, Network, Place, Route, SearchOptions, SearchResult } from './core/types';
 import { fetchNetwork } from './services/network';
-import type { IcingArea } from './services/icing-weather';
-import icingRegions from '../icing-regions.json';
+import { coordinatePlace, fetchTmapWalkingRoute } from './services/tmap';
 import { gangnamDemoPlaces } from './gangnam-pilot';
 import { PlaceInput } from './components/PlaceInput';
 import { WalkingMap } from './components/WalkingMap';
 import { useIcingForecast } from './components/IcingForecastControl';
 import { WalkingRouteResult } from './components/WalkingRouteResult';
-import Observations from './components/Observations';
-import TmapPlanner from './components/TmapPlanner';
 import './walking-flow.css';
 
 const defaults: SearchOptions = { origin: null, destination: null, walkingSpeedMps: 1, avoidStairs: false, maxSlopePercent: null };
 const distance = (m: number) => m >= 1000 ? `${(m / 1000).toFixed(2)}km` : `${Math.round(m)}m`;
-const stamp = (s: string) => new Date(s).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
+const area = 'gangnam';
 
 function duration(seconds: number) {
   const rounded = Math.round(seconds);
@@ -24,11 +22,7 @@ function duration(seconds: number) {
 }
 
 export default function App() {
-  const [area] = useState<IcingArea>(() => new URLSearchParams(window.location.search).get('area') === 'gangnam' ? 'gangnam' : 'gwanak');
-  const areaLabel = icingRegions[area].label;
-  const [startDemo] = useState(() => area === 'gangnam' && new URLSearchParams(window.location.search).get('demo') === '1');
-  const [view, setView] = useState<'map' | 'weather' | 'tmap'>('map');
-  const [page, setPage] = useState<'home' | 'search'>(startDemo ? 'search' : 'home');
+  const [startDemo] = useState(() => new URLSearchParams(window.location.search).get('demo') === '1');
   const [network, setNetwork] = useState<Network | null>(null);
   const [dataError, setDataError] = useState('');
   const [reload, setReload] = useState(0);
@@ -36,32 +30,32 @@ export default function App() {
   const [originQuery, setOriginQuery] = useState('');
   const [destinationQuery, setDestinationQuery] = useState('');
   const [result, setResult] = useState<SearchResult | null>(null);
+  const [routing, setRouting] = useState(false);
   const [message, setMessage] = useState('');
   const [locating, setLocating] = useState(false);
-  const [info, setInfo] = useState(false);
-  const [largeText, setLargeText] = useState(() => { try { return localStorage.getItem('bbzr-large-text') === 'true'; } catch { return false; } });
   const [selectionMode, setSelectionMode] = useState<'origin' | 'destination' | null>(null);
   const [navigation, setNavigation] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [recenterKey, setRecenterKey] = useState(0);
   const [showForecast, setShowForecast] = useState(startDemo);
   const [selectedRoute, setSelectedRoute] = useState<Route['type'] | null>(null);
-  const modal = useRef<HTMLDialogElement>(null);
-  const menu = useRef<HTMLDetailsElement>(null);
   const mapSection = useRef<HTMLElement>(null);
   const locationRequest = useRef(0);
+  const pendingRoute = useRef<AbortController | null>(null);
   const demoPending = useRef(startDemo);
   const run = useMemo(() => network ? analyzeRisk(network) : null, [network]);
-  const forecast = useIcingForecast(network, !!network && showForecast && view === 'map', area, startDemo);
+  const hasOutsideEndpoint = network && [options.origin, options.destination].some(place => place && !coordinateInside(place.coordinate, network.bounds));
+  const allowForecast = !hasOutsideEndpoint && result?.normal?.provider !== 'tmap';
+  const forecast = useIcingForecast(network, !!network && showForecast && allowForecast, area, startDemo);
   const detour = useMemo(() => {
     const sections = forecast.shade?.sections;
-    if (!network || !result?.normal || !sections?.length) return null;
+    if (!network || !result?.normal || result.normal.provider || !sections?.length) return null;
     return findForecastDetour(network, options, result, new Set(sections.map(section => section.segmentId)), forecast.heatedWarningSegments);
   }, [network, options, result, forecast.shade, forecast.heatedWarningSegments]);
   const recommended = detour?.route ?? null;
   const route = recommended && selectedRoute !== 'normal' ? recommended : result?.normal ?? null;
   const step = navigation ? route?.steps[stepIndex] : undefined;
-  const stage = step ? 'guide' : route ? 'result' : page;
+  const stage = step ? 'guide' : route ? 'result' : 'search';
 
   useEffect(() => {
     const controller = new AbortController();
@@ -72,18 +66,17 @@ export default function App() {
       if (!controller.signal.aborted) setDataError(error instanceof Error && error.name === 'TimeoutError' ? '보행망 조회 시간이 초과되었습니다. 다시 불러와 주세요.' : error instanceof Error && error.name !== 'TypeError' && error.name !== 'SyntaxError' ? error.message : '실제 자료를 불러오지 못했습니다. 다시 불러와 주세요.');
     });
     return () => controller.abort();
-  }, [area, reload]);
-  useEffect(() => { try { localStorage.setItem('bbzr-large-text', String(largeText)); } catch { /* optional preference */ } }, [largeText]);
-  useEffect(() => { if (info) modal.current?.showModal(); else modal.current?.close(); }, [info]);
-  useEffect(() => () => window.speechSynthesis?.cancel(), []);
+  }, [reload]);
+  useEffect(() => () => { pendingRoute.current?.abort(); window.speechSynthesis?.cancel(); }, []);
   useEffect(() => {
     setNavigation(false); setStepIndex(0);
     window.speechSynthesis?.cancel();
   }, [route?.id]);
-  useEffect(() => { window.scrollTo(0, 0); }, [stage, view]);
+  useEffect(() => { window.scrollTo(0, 0); }, [stage]);
 
   function change(next: Partial<SearchOptions>) {
     locationRequest.current += 1; setLocating(false);
+    pendingRoute.current?.abort(); setRouting(false);
     setOptions(old => ({ ...old, ...next })); setResult(null); setNavigation(false); setMessage('');
     window.speechSynthesis?.cancel();
   }
@@ -93,8 +86,7 @@ export default function App() {
   }
   function point(coordinate: Coordinate, kind: 'origin' | 'destination', name?: string) {
     if (!network) return;
-    const place = nearestPlace(network, coordinate);
-    if (!place) { setMessage('지도에 표시된 보행로 가까이에서 위치를 선택해 주세요.'); return; }
+    const place = nearestPlace(network, coordinate) ?? coordinatePlace(coordinate, '지도에서 선택한 위치');
     if (name) place.name = name;
     select(kind, place);
   }
@@ -110,18 +102,49 @@ export default function App() {
       setLocating(false); setMessage(error.code === 1 ? '위치 접근을 허용하지 않았습니다. 지도에서 출발지를 선택할 수 있습니다.' : '현재 위치를 가져오지 못했습니다. 지도에서 출발지를 선택해 주세요.');
     }, { timeout: 10000, maximumAge: 30000, enableHighAccuracy: true });
   }
-  function calculate(nextOptions = options, selected: Route['type'] | null = null) {
-    if (!network) return;
+  async function calculate(nextOptions = options, selected: Route['type'] | null = null) {
+    if (!network || !run) return;
+    const { origin, destination } = nextOptions;
+    if (!origin || !destination) { setMessage('검색 결과나 지도에서 출발지와 목적지를 선택해 주세요.'); return; }
+    pendingRoute.current?.abort();
+    setRouting(false);
     window.speechSynthesis?.cancel(); setNavigation(false); setSelectionMode(null);
-    const next = searchRoutes(network, nextOptions);
-    if (next.normal) setShowForecast(true);
-    setPage('search');
-    setSelectedRoute(selected); setResult(next);
     setRecenterKey(k => k + 1); setMessage(''); setStepIndex(0);
+    const connect = (place: Place) => {
+      if (place.nodeId) return place;
+      const snapped = nearestPlace(network, place.coordinate);
+      return snapped ? { ...snapped, name: place.name, address: place.address } : place;
+    };
+    const localOptions = { ...nextOptions, origin: connect(origin), destination: connect(destination) };
+    const next = searchRoutes(network, localOptions);
+    setSelectedRoute(selected);
+    if (next.normal) {
+      setOptions(localOptions); setResult(next); setShowForecast(true);
+      return;
+    }
+    if (nextOptions.maxSlopePercent !== null) {
+      setResult(next);
+      if (next.status === 'out-of-area') setMessage('이 지역에는 확인된 경사 정보가 부족해요. 경사 조건을 해제하면 일반 보행 경로를 검색할 수 있어요.');
+      return;
+    }
+    // Preserve the stricter stair filter where the local graph can be evaluated.
+    if (nextOptions.avoidStairs && next.status === 'no-route') { setResult(next); return; }
+    const controller = new AbortController();
+    pendingRoute.current = controller;
+    setResult(null); setRouting(true);
+    try {
+      const normal = await fetchTmapWalkingRoute(origin, destination, nextOptions, controller.signal);
+      if (!controller.signal.aborted) setResult({ status: 'ok', message: '', run, normal, recommended: null, extraSeconds: null });
+    } catch (error) {
+      if (!controller.signal.aborted) setMessage(error instanceof Error && error.name !== 'TypeError' && error.name !== 'TimeoutError'
+        ? error.message : '보행 경로를 불러오지 못했어요. 다시 시도해 주세요.');
+    } finally {
+      if (pendingRoute.current === controller) { pendingRoute.current = null; setRouting(false); }
+    }
   }
   function showReplayRoute() {
     if (!network || !forecast.replay || !forecast.active) return;
-    const ids = forecast.replayScene === 'gangnam' ? gangnamDemoPlaces : { origin: 'node/3404830015', destination: 'node/3404830009' };
+    const ids = gangnamDemoPlaces;
     const origin = network.places.find(place => place.id === ids.origin);
     const destination = network.places.find(place => place.id === ids.destination);
     if (!origin || !destination) return;
@@ -144,19 +167,8 @@ export default function App() {
 
   function back() {
     window.speechSynthesis?.cancel();
-    if (view !== 'map') { setView('map'); return; }
     if (step) { setNavigation(false); return; }
     if (route) { setResult(null); return; }
-    locationRequest.current += 1;
-    setLocating(false);
-    setSelectionMode(null);
-    setShowForecast(false);
-    setPage('home');
-  }
-
-  function section(next: typeof view) {
-    if (menu.current) menu.current.open = false;
-    setView(next);
   }
 
   function chooseOnMap(kind: 'origin' | 'destination') {
@@ -171,49 +183,27 @@ export default function App() {
   }
 
   const remaining = step && route ? route.steps.slice(stepIndex) : [];
-  const title = view === 'weather' ? '기상 관측' : view === 'tmap' ? 'TMAP 길찾기'
-    : stage === 'guide' ? '이동 안내' : stage === 'result' ? '경로 확인' : '경로 찾기';
-  const home = view === 'map' && stage === 'home';
+  const title = stage === 'guide' ? '이동 안내' : stage === 'result' ? '경로 확인' : '빙빙제로';
 
-  return <div className={'app-shell flow-shell' + (largeText ? ' large-text' : '')}>
+  return <div className="app-shell flow-shell">
     <a className="skip-link" href="#walking-content">본문으로 바로가기</a>
     <main className="flow-workspace" id="walking-content">
-      <header className={'flow-header' + (home ? ' flow-header-home' : '')}>
-        {home ? <span className="flow-region"><MapPin size={15} />{areaLabel}</span>
-          : <button className="flow-back" type="button" onClick={back} aria-label="이전 화면"><ArrowLeft size={22} /><span>이전</span></button>}
-        {!home && <h1>{title}</h1>}
-        <details className="flow-menu" ref={menu}>
-          <summary aria-label="설정 및 다른 서비스"><Settings2 size={22} /></summary>
-          <nav className="flow-menu-items" aria-label="설정 및 다른 서비스">
-            <a href="/" aria-current={view === 'map' && area === 'gwanak' ? 'page' : undefined}>관악구 보행 지도</a>
-            <a href="/?area=gangnam" aria-current={view === 'map' && area === 'gangnam' ? 'page' : undefined}>강남구 보행 지도</a>
-            <a href="/?area=gangnam&demo=1">말죽거리 · 과거 예보 예시</a>
-            <button type="button" onClick={() => section('weather')}>관악 기상 관측</button>
-            <button type="button" onClick={() => section('tmap')}>TMAP 길찾기</button>
-            <button type="button" aria-pressed={largeText} onClick={() => setLargeText(value => !value)}>{largeText ? '기본 글씨' : '큰 글씨'}</button>
-            <button type="button" onClick={() => { if (menu.current) menu.current.open = false; setInfo(true); }}>데이터 출처</button>
-          </nav>
-        </details>
+      <header className="flow-header">
+        {stage !== 'search' && <button className="flow-back" type="button" onClick={back} aria-label="이전 화면"><ArrowLeft size={22} /><span>이전</span></button>}
+        <h1>{title}</h1>
       </header>
 
-      {view === 'weather' ? <Observations /> : view === 'tmap' ? <TmapPlanner />
-        : !network || !run ? <section className="flow-loading" role="status">
+      {!network || !run ? <section className="flow-loading" role="status">
           <Map size={30} />
           <p>{dataError || '지도를 불러오는 중…'}</p>
           {dataError && <button type="button" className="flow-primary" onClick={() => { demoPending.current = startDemo; setReload(x => x + 1); }}><RefreshCw size={18} />다시 불러오기</button>}
         </section>
         : <div className={'flow-layout stage-' + stage}>
-          {stage === 'home' && <section className="flow-hero">
-            <div className="flow-brand"><Snowflake size={42} strokeWidth={2.6} />빙빙제로</div>
-            <h1>빙판길을 피해<br />걸어가세요</h1>
-            <p>보행약자 우선 길안내</p>
-          </section>}
-
           {stage === 'search' && <form className="flow-inputs" id="route-search" onSubmit={event => { event.preventDefault(); calculate(); }}>
             <h2>어디로 가시나요?</h2>
             <div className="place-fields">
-              <PlaceInput network={network} label="출발지" kind="origin" value={originQuery} onChange={value => { setOriginQuery(value); change({ origin: null }); }} onSelect={place => select('origin', place)} />
-              <PlaceInput network={network} label="목적지" kind="destination" value={destinationQuery} onChange={value => { setDestinationQuery(value); change({ destination: null }); }} onSelect={place => select('destination', place)} />
+              <PlaceInput network={network} selected={options.origin} label="출발지" kind="origin" value={originQuery} onChange={value => { setOriginQuery(value); change({ origin: null }); }} onSelect={place => select('origin', place)} />
+              <PlaceInput network={network} selected={options.destination} label="목적지" kind="destination" value={destinationQuery} onChange={value => { setDestinationQuery(value); change({ destination: null }); }} onSelect={place => select('destination', place)} />
               <button type="button" className="swap-button" aria-label="출발지와 목적지 바꾸기" onClick={() => {
                 setOriginQuery(destinationQuery); setDestinationQuery(originQuery); change({ origin: options.destination, destination: options.origin });
               }}><ArrowUpDown size={19} /></button>
@@ -229,11 +219,11 @@ export default function App() {
               <label className="flow-speed" htmlFor="walking-speed">보행속도<select id="walking-speed" value={options.walkingSpeedMps} onChange={e => change({ walkingSpeedMps: Number(e.target.value) })}>
                 <option value={.8}>0.8m/s</option><option value={1}>1.0m/s</option><option value={1.2}>1.2m/s</option>
               </select></label>
-              <label className="flow-check"><input type="checkbox" checked={options.avoidStairs} onChange={e => change({ avoidStairs: e.target.checked })} />계단 없음이 확인된 구간만</label>
+              <label className="flow-check"><input type="checkbox" checked={options.avoidStairs} onChange={e => change({ avoidStairs: e.target.checked })} />계단 피하기</label>
               <label className="flow-check"><input type="checkbox" checked={options.maxSlopePercent === 5} onChange={e => change({ maxSlopePercent: e.target.checked ? 5 : null })} />경사 5% 이하가 확인된 구간만</label>
             </details>
             {message && <p className="flow-error" role="status">{message}</p>}
-            {result && !result.normal && <p className="flow-error" role="alert">{result.message}</p>}
+            {result && !result.normal && !message && <p className="flow-error" role="alert">{result.message}</p>}
           </form>}
 
           {stage === 'result' && <div className="flow-journey" aria-label="선택한 출발지와 목적지">
@@ -244,19 +234,18 @@ export default function App() {
 
           <section className="flow-map" ref={mapSection} aria-label="보행 지도">
             <WalkingMap network={network} run={result?.run ?? run} normal={result?.normal ?? null} recommended={recommended}
-              selected={route?.type ?? 'normal'} stage={stage} showForecast={showForecast} forecast={forecast}
+              selected={route?.type ?? 'normal'} stage={stage} showForecast={showForecast && allowForecast} allowForecast={allowForecast} forecast={forecast}
               onToggleForecast={() => setShowForecast(value => !value)} onReplayRoute={showReplayRoute}
-              origin={stage === 'home' ? undefined : options.origin ?? undefined}
-              destination={stage === 'home' ? undefined : options.destination ?? undefined}
+              origin={options.origin ?? undefined}
+              destination={options.destination ?? undefined}
               step={step} recenterKey={recenterKey} selectionMode={selectionMode}
               onSelectCoordinate={coordinate => { if (selectionMode) point(coordinate, selectionMode); }} />
           </section>
 
-          {stage === 'home' && <div className="flow-actions"><button type="button" className="flow-primary" onClick={() => setPage('search')}><MapPin size={25} />목적지 입력하기</button></div>}
-          {stage === 'search' && <div className="flow-actions"><button type="submit" form="route-search" className="flow-primary"><Footprints size={24} />경로 확인하기</button></div>}
+          {stage === 'search' && <div className="flow-actions"><button type="submit" form="route-search" className="flow-primary" disabled={routing}><Footprints size={24} />{routing ? '경로를 찾는 중…' : '경로 확인하기'}</button></div>}
 
           {stage === 'result' && result?.normal && route && <section className="flow-results" aria-label="경로 비교" aria-live="polite">
-            <WalkingRouteResult normal={result.normal} detour={detour} forecast={forecast} forecastEnabled={showForecast}
+            <WalkingRouteResult normal={result.normal} detour={detour} forecast={forecast} forecastEnabled={showForecast && allowForecast}
               selected={route.type} onSelect={setSelectedRoute} onNavigate={() => { setNavigation(true); setStepIndex(0); }} />
           </section>}
 
@@ -277,17 +266,5 @@ export default function App() {
           </section>}
         </div>}
     </main>
-    <dialog ref={modal} className="flow-source-dialog" aria-labelledby="source-title" onCancel={() => setInfo(false)} onClick={e => { if (e.target === e.currentTarget) setInfo(false); }}>
-      <div className="flow-dialog-body">
-        <header><h2 id="source-title">데이터 출처</h2><button type="button" aria-label="닫기" onClick={() => setInfo(false)}><X size={24} /></button></header>
-        <dl>
-          <dt>보행 지도</dt><dd>OpenStreetMap에 따로 등록된 보도·횡단 구간 등 보행로를 연결해 경로를 계산합니다.{network && <> · {stamp(network.provenance.osmTimestamp)} KST</>}</dd>
-          <dt>결빙 예상</dt><dd>기상청과 Open-Meteo 기상, OSM 건물·보행 교량, Copernicus 표면 높이 등 공개 자료를 사용합니다. 실제 노면 상태는 다를 수 있습니다.</dd>
-          <dt>보행 시간</dt><dd>신호 대기와 장소에서 공개 보행망까지의 접근 거리는 제외합니다.</dd>
-          <dt>위치 처리</dt><dd>보행 지도는 선택 위치를 브라우저에서 처리합니다. TMAP 검색·길찾기에는 입력한 장소 정보가 TMAP에 전송됩니다.</dd>
-        </dl>
-        {network && <p className="source-downloads"><a href={area === 'gangnam' ? '/data/gangnam/osm.json' : '/data/osm.json'} download>지도 원본 JSON</a> · <a href={area === 'gangnam' ? '/data/gangnam/provenance.json' : '/data/provenance.json'} download>출처·검증 기록</a></p>}
-      </div>
-    </dialog>
   </div>;
 }
