@@ -3,10 +3,13 @@ import * as L from 'leaflet';
 import { Layers3, LocateFixed, Minus, Plus, MapPin, Maximize2, MousePointer2, Info, Snowflake } from 'lucide-react';
 import type { Coordinate, ModelRun, Network, Place, Route, RouteStep, WalkSegment } from '../core/types';
 import { forecastTime, IcingForecastControl, type useIcingForecast } from './IcingForecastControl';
-import { forecastTemperature, hasSnowmeltRefreeze } from '../services/icing-weather';
+import { forecastTemperature, hasSnowmeltRefreeze, usesGridTemperature } from '../services/icing-weather';
 import { surfaceShadeSource } from '../core/icing-forecast';
 import designated from '../designated-roads.json';
-import crossings from '../crossings.json';
+import gwanakCrossings from '../crossings.json';
+import gangnamCrossings from '../gangnam-crossings.json';
+import icingRegions from '../../icing-regions.json';
+import { maljukgeoriFootbridge } from '../gangnam-pilot';
 import './public-map-layers.css';
 
 interface Props {
@@ -47,6 +50,9 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
   const [showCrossings, setShowCrossings] = useState(false);
   const [layerMenu, setLayerMenu] = useState(false);
   const [tilesFailed, setTilesFailed] = useState(false);
+  const gangnam = forecast.area === 'gangnam';
+  const crossings = gangnam ? gangnamCrossings : gwanakCrossings;
+  const areaLabel = icingRegions[forecast.area].label;
   selection.current = { onSelectCoordinate, selectionMode };
 
   function fitNetwork() {
@@ -119,7 +125,7 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
         .bindPopup(popup).addTo(markers);
     }
     return () => { markers.remove(); };
-  }, [showCrossings, selectionMode, network]);
+  }, [showCrossings, selectionMode, network, crossings]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -130,6 +136,7 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
     for (const section of forecast.shade.sections) {
       const segment = segments.get(section.segmentId);
       if (!segment) continue;
+      const facility = segment.wayId === maljukgeoriFootbridge.osmWayId ? maljukgeoriFootbridge : undefined;
       const line = L.polyline(latlngs(section.coordinates), {
         pane: 'icingForecast', color: '#a63f06', weight: 5, opacity: .96, dashArray: '6 6',
         interactive: !selectionMode, bubblingMouseEvents: false,
@@ -137,19 +144,25 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
       if (!selectionMode) line.bindPopup(
         '<div class="risk-popup"><strong>재결빙 예상 주의구간</strong><p>' + escape(segment.name) +
         ' · ' + escape(forecastTime(hour.time, forecast.replay)) + ' KST' + (forecast.replay ? ' · 과거 예보 시범' : '') +
-        '</p><p>' + (hour.kma ? '기상청' : 'Open-Meteo') + ' 기온 ' + escape(forecastTemperature(hour)) +
-        '°C · ' + (section.buildingId === null ? '표면 높이로 추정한 그늘' : '건물 그늘 추정') + '</p>' +
+        '</p><p>' + (usesGridTemperature(hour) ? '기상청 500m 분석' : hour.kma ? '기상청 예보' : 'Open-Meteo') + ' 기온 ' + escape(forecastTemperature(hour)) +
+        '°C · ' + (section.bridge ? '찬 공기에 노출되는 보행 교량' : section.buildingId === null ? '표면 높이로 추정한 그늘' : '건물 그늘 추정') + '</p>' +
         (hasSnowmeltRefreeze(hour) ? '<p>전 12시간 적설과 영상 기온 예보 후 영하 도달</p>' : '') +
         (hour.precedingPrecipMm !== null ? '<p>Open-Meteo 직전 6시간 강수 ' + escape(hour.precedingPrecipMm.toFixed(1)) + 'mm</p>' : '') +
         (hour.kma?.wet ? '<p>기상청 1시간 강수 예보 ' + escape(hour.kma.precipitation ?? '강수 형태 확인') + '</p>' : '') +
         (hour.nearbyPrecipitation ? '<p>기상청 ' + escape(hour.nearbyPrecipitation.station) + ' AWS · ' +
           escape(forecastTime(hour.nearbyPrecipitation.time)) + ' · 최근 1시간 강수 ' + escape(hour.nearbyPrecipitation.mm) + 'mm</p>' : '') +
+        (hour.gridMoisture && hour.grid ? '<p>기상청 500m 분석의 최근 눈·강수 근거' +
+          (hour.grid.snowDepthCm === null ? '' : ' · 적설 ' + escape(hour.grid.snowDepthCm) + 'cm') + '</p>' : '') +
         (segment.tags.surface ? '<p>OSM 노면 재질 ' + escape(segment.tags.surface) + '</p>' : '') +
-        (section.buildingId === null
+        (section.bridge
+          ? '<a href="https://www.openstreetmap.org/way/' + encodeURIComponent(segment.wayId) + '" target="_blank" rel="noopener noreferrer">보행 교량 OSM 원본</a>'
+          : section.buildingId === null
           ? '<a href="' + surfaceShadeSource.url + '" target="_blank" rel="noopener noreferrer">Copernicus 표면 높이 출처</a>'
           : '<a href="https://www.openstreetmap.org/way/' + section.buildingId +
             '" target="_blank" rel="noopener noreferrer">OSM 건물 높이 출처</a>') +
-        '<small>공개 기상 예보와 그늘 추정을 합친 결과입니다. 실제 노면은 미확인입니다.</small></div>',
+        (facility ? '<p><a href="' + facility.heatingSource + '" target="_blank" rel="noopener noreferrer">서울시 열선 설치 기록</a> · ' +
+          facility.heatingLengthM + 'm · 선택 시각 가동 미확인</p>' : '') +
+        '<small>공개 기상과 보행로 특성으로 계산했습니다. 실제 노면은 미확인입니다.</small></div>',
         { maxWidth: 280 },
       );
     }
@@ -229,14 +242,14 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
   }, [normal, recommended, selected, recenterKey, network]);
 
   return <div className="map-wrapper real-data-map">
-    <div className="walking-map" ref={host} role="region" aria-label="관악구 실제 OpenStreetMap 보행망. 노면 결빙 관측자료는 확보되지 않았습니다." />
-    <div className="map-topline"><span className="area-chip"><span className="live-dot" /><MapPin size={14} />서울 관악구<span className="area-chip-sub">실제 OSM 보행망</span></span><span className="map-source-tag">공개 지도 자료</span></div>
+    <div className="walking-map" ref={host} role="region" aria-label={areaLabel + ' 실제 OpenStreetMap 보행망. 노면 결빙 관측자료는 확보되지 않았습니다.'} />
+    <div className="map-topline"><span className="area-chip"><span className="live-dot" /><MapPin size={14} />서울 {areaLabel}<span className="area-chip-sub">실제 OSM 보행망</span></span><span className="map-source-tag">공개 지도 자료</span></div>
     {selectionMode && <div className="map-selection-notice" role="status"><MousePointer2 size={17} /><span>지도를 눌러 <strong>{selectionMode === 'origin' ? '출발 위치' : '도착 위치'}</strong>를 선택하세요.</span></div>}
     <div className="map-tools">
       <button type="button" title="공공자료 표시" aria-label="공공자료 표시" aria-expanded={layerMenu} aria-controls="public-map-layers" onClick={() => setLayerMenu(!layerMenu)}><Layers3 size={19} /></button>
       {layerMenu && <fieldset id="public-map-layers" className="public-map-layers"><legend>공공자료 표시</legend>
         <label><input type="checkbox" checked={showCrossings} onChange={e => setShowCrossings(e.target.checked)} />횡단보도 시설 {crossings.points.length}곳</label>
-        <label><input type="checkbox" checked={showDesignated} onChange={e => { if (!e.target.checked) fitRoute(); setShowDesignated(e.target.checked); }} />상습결빙 지정도로 {designated.records.length}곳</label>
+        {!gangnam && <label><input type="checkbox" checked={showDesignated} onChange={e => { if (!e.target.checked) fitRoute(); setShowDesignated(e.target.checked); }} />상습결빙 지정도로 {designated.records.length}곳</label>}
         <label><input type="checkbox" checked={showCoverage} onChange={e => setShowCoverage(e.target.checked)} />노면 관측 미확인 구간</label>
       </fieldset>}
       <button type="button" title="경로 전체 보기" aria-label="경로 전체 보기" onClick={fitRoute}><Maximize2 size={19} /></button>

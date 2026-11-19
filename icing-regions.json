@@ -1,0 +1,12 @@
+{
+  "gwanak": {
+    "label": "관악구",
+    "weatherCenter": [126.9516, 37.4784],
+    "kmaGrid": { "nx": 59, "ny": 125 }
+  },
+  "gangnam": {
+    "label": "강남구 · 말죽거리",
+    "weatherCenter": [127.0377727, 37.48536752],
+    "kmaGrid": { "nx": 61, "ny": 125 }
+  }
+}

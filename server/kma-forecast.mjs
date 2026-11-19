@@ -1,8 +1,8 @@
+import regions from '../icing-regions.json' with { type: 'json' };
 const root = 'https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0/';
 const hour = 3_600_000;
 const hourKst = 9 * hour;
 const day = 24 * hour;
-const grid = { nx: 59, ny: 125 };
 const products = {
   ultra: { endpoint: 'getUltraSrtFcst', temperature: 'T1H', precipitation: 'RN1', maxIssueAge: 3 * hour },
   short: { endpoint: 'getVilageFcst', temperature: 'TMP', precipitation: 'PCP', maxIssueAge: 7 * hour },
@@ -34,7 +34,7 @@ function precipitationText(value) {
   return value.trim();
 }
 
-export function parseKmaForecast(payload, kind, now = Date.now()) {
+export function parseKmaForecast(payload, kind, now = Date.now(), grid = regions.gwanak.kmaGrid) {
   const product = products[kind];
   const response = payload?.response;
   const items = response?.body?.items?.item;
@@ -67,7 +67,7 @@ export function parseKmaForecast(payload, kind, now = Date.now()) {
   }).sort((a, b) => a.time - b.time);
 }
 
-async function fetchProduct(key, kind, now) {
+async function fetchProduct(key, kind, now, grid) {
   const stamp = new Date(requestIssue(kind, now)).toISOString();
   const url = new URL(products[kind].endpoint, root);
   url.search = new URLSearchParams({
@@ -78,26 +78,28 @@ async function fetchProduct(key, kind, now) {
     const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(10_000) });
     if (!response.ok || Number(response.headers.get('content-length')) > 500_000) return [];
     const text = await response.text();
-    return text.length <= 500_000 && !text.includes(key) ? parseKmaForecast(JSON.parse(text), kind, Date.now()) : [];
+    return text.length <= 500_000 && !text.includes(key) ? parseKmaForecast(JSON.parse(text), kind, Date.now(), grid) : [];
   } catch {
     return [];
   }
 }
 
-let cache;
-let pending;
-export async function getKmaForecast(env) {
+const cache = new Map();
+const pending = new Map();
+export async function getKmaForecast(env, area = 'gwanak') {
   const now = Date.now();
-  if (cache?.expires > now) return cache.data;
+  const cached = cache.get(area);
+  if (cached?.expires > now) return cached.data;
   const key = typeof env?.KMA_API_KEY === 'string' ? env.KMA_API_KEY.trim() : '';
   if (!key) throw new Error('missing-server-key');
-  if (!pending) {
-    pending = Promise.all([fetchProduct(key, 'ultra', now), fetchProduct(key, 'short', now)]).then(([ultra, short]) => {
+  if (!pending.has(area)) {
+    const grid = regions[area].kmaGrid;
+    pending.set(area, Promise.all([fetchProduct(key, 'ultra', now, grid), fetchProduct(key, 'short', now, grid)]).then(([ultra, short]) => {
       if (!ultra.length && !short.length) throw new Error('no-current-kma-forecasts');
       const data = { source: '기상청 API허브', grid, retrievedAt: Date.now(), ultra, short };
-      cache = { data, expires: Date.now() + (ultra.length && short.length ? 180_000 : 60_000) };
+      cache.set(area, { data, expires: Date.now() + (ultra.length && short.length ? 180_000 : 60_000) });
       return data;
-    }).finally(() => { pending = undefined; });
+    }).finally(() => pending.delete(area)));
   }
-  return pending;
+  return pending.get(area);
 }

@@ -1,16 +1,33 @@
 import replaySource from '../icing-replay-source.json';
 import snowReplaySource from '../icing-snow-replay-source.json';
+import gangnamReplaySource from '../icing-gangnam-replay-source.json';
+import gangnamGridReplay from '../icing-gangnam-grid-replay.json';
+import icingRegions from '../../icing-regions.json';
 import { distanceBetween } from '../core/network';
 
 export const icingForecastUrl = 'https://api.open-meteo.com/v1/forecast?latitude=37.4784&longitude=126.9516&hourly=temperature_2m,precipitation,weather_code,snow_depth,snowfall,dew_point_2m,wind_speed_10m,shortwave_radiation&past_days=1&forecast_days=2&timeformat=unixtime&timezone=GMT';
 const hourSeconds = 3600;
+const hourMs = 3600_000;
 export const icingWeatherMaxAgeMs = 30 * 60_000;
+export type IcingArea = keyof typeof icingRegions;
 export const icingReplays = {
   original: { ...replaySource, path: '/data/icing-replay.json' },
   snow: { ...snowReplaySource, path: '/data/icing-snow-replay.json' },
+  gangnam: { ...gangnamReplaySource, path: '/data/gangnam/icing-replay.json' },
 };
 export type IcingReplay = keyof typeof icingReplays;
-const weatherCenter: [number, number] = [126.9516, 37.4784];
+
+export interface KmaGridRow {
+  time: number;
+  temperatureC: number | null;
+  dewPointC: number | null;
+  humidity: number | null;
+  windMps: number | null;
+  rain60mMm: number | null;
+  snowDepthCm: number | null;
+  newSnow3hCm: number | null;
+}
+type GridWeather = { status: 'ok'; rows: KmaGridRow[] } | { status: 'unavailable' | 'permission' };
 
 export interface NearbyPrecipitation {
   station: string;
@@ -33,6 +50,8 @@ export interface IcingHour {
   solarWm2?: number;
   recentSnowfall?: boolean;
   recentThawOnSnow?: boolean;
+  grid?: KmaGridRow;
+  gridMoisture?: boolean;
 }
 
 interface KmaForecastHour {
@@ -111,7 +130,7 @@ export function findIcingHours(payload: unknown, nowMs: number): IcingHour[] {
 export function hasRefreezeConditions(hour: IcingHour) {
   return forecastTemperature(hour) <= 0 &&
     ((hour.precedingPrecipMm ?? 0) > 0 || hour.kma?.wet === true || (hour.nearbyPrecipitation?.mm ?? 0) > 0 ||
-      hour.recentSnowfall === true || hasSnowmeltRefreeze(hour));
+      hour.recentSnowfall === true || hour.gridMoisture === true || hasSnowmeltRefreeze(hour));
 }
 
 export function hasSnowmeltRefreeze(hour: IcingHour) {
@@ -125,7 +144,26 @@ export function hasFrostConditions(hour: IcingHour) {
     hour.windKmh <= 10 && hour.solarWm2 < 5;
 }
 
-export function forecastTemperature(hour: IcingHour) { return hour.kma?.temperatureC ?? hour.temperatureC; }
+export function usesGridTemperature(hour: IcingHour) {
+  return hour.grid?.time === hour.time && hour.grid.temperatureC !== null;
+}
+
+export function forecastTemperature(hour: IcingHour) {
+  return (usesGridTemperature(hour) ? hour.grid?.temperatureC : null) ?? hour.kma?.temperatureC ?? hour.temperatureC;
+}
+
+export function withKmaGrid(hour: IcingHour, rows: KmaGridRow[], now: number): IcingHour {
+  const candidates = rows.filter(row => row.time <= Math.min(now, hour.time) && row.time >= now - 90 * 60_000);
+  const grid = candidates.at(-1);
+  if (!grid) return hour;
+  const gridMoisture = candidates.some(row => {
+    const age = hour.time - row.time;
+    return ((row.rain60mMm ?? 0) > 0 && age <= 5 * hourMs) ||
+      ((row.newSnow3hCm ?? 0) > 0 && age <= 3 * hourMs) ||
+      ((row.snowDepthCm ?? 0) > 0 && age <= 2 * hourMs);
+  });
+  return { ...hour, grid, gridMoisture };
+}
 
 export function combineLiveForecast(hours: IcingHour[], kma: KmaForecast | undefined, now: number): IcingHour[] {
   const hourMs = hourSeconds * 1000;
@@ -145,9 +183,9 @@ export function combineLiveForecast(hours: IcingHour[], kma: KmaForecast | undef
   return [...combined.values()].sort((a, b) => a.time - b.time);
 }
 
-export async function fetchKmaForecast(signal: AbortSignal): Promise<KmaForecast | undefined> {
+export async function fetchKmaForecast(signal: AbortSignal, area: IcingArea = 'gwanak'): Promise<KmaForecast | undefined> {
   const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(12_000)]);
-  const response = await fetch('/api/kma/forecast', { signal: requestSignal, cache: 'no-store' });
+  const response = await fetch('/api/kma/forecast?area=' + area, { signal: requestSignal, cache: 'no-store' });
   if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return undefined;
   const data: KmaForecast = await response.json();
   requestSignal.throwIfAborted();
@@ -155,11 +193,25 @@ export async function fetchKmaForecast(signal: AbortSignal): Promise<KmaForecast
   return data;
 }
 
+export async function fetchKmaGrid(signal: AbortSignal, area: IcingArea): Promise<GridWeather> {
+  const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(12_000)]);
+  const response = await fetch('/api/kma/grid?area=' + area, { signal: requestSignal, cache: 'no-store' });
+  if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return { status: 'unavailable' };
+  const packet: GridWeather = await response.json();
+  requestSignal.throwIfAborted();
+  if (packet?.status === 'permission') return { status: 'permission' };
+  if (packet?.status !== 'ok' || !Array.isArray(packet.rows)) return { status: 'unavailable' };
+  const rows = packet.rows.filter(row => Number.isFinite(row?.time) &&
+    [row.temperatureC, row.dewPointC, row.humidity, row.windMps, row.rain60mMm, row.snowDepthCm, row.newSnow3hCm]
+      .every(value => value === null || Number.isFinite(value))).sort((a, b) => a.time - b.time);
+  return rows.length ? { status: 'ok', rows } : { status: 'unavailable' };
+}
+
 export function hasFreezingRain(hour: IcingHour) {
   return hour.weatherCode !== undefined && [56, 57, 66, 67].includes(hour.weatherCode);
 }
 
-export function readNearbyPrecipitation(payload: unknown, now: number): NearbyPrecipitation[] {
+export function readNearbyPrecipitation(payload: unknown, now: number, area: IcingArea = 'gwanak'): NearbyPrecipitation[] {
   const stations = (payload as { stations?: unknown } | null)?.stations;
   if (!Array.isArray(stations)) return [];
   const nearby: NearbyPrecipitation[] = [];
@@ -168,7 +220,8 @@ export function readNearbyPrecipitation(payload: unknown, now: number): NearbyPr
         !Number.isFinite(station.rain60mMm) || station.rain60mMm < 0) continue;
     const time = Date.parse(station.observedAt);
     if (!Number.isFinite(time) || time > now || now - time >= icingWeatherMaxAgeMs) continue;
-    const distanceM = distanceBetween(weatherCenter, [station.lon, station.lat]);
+    const [lon, lat] = icingRegions[area].weatherCenter;
+    const distanceM = distanceBetween([lon, lat], [station.lon, station.lat]);
     if (distanceM <= 3000) nearby.push({ station: station.name, time, mm: station.rain60mMm, distanceM });
   }
   return nearby.sort((a, b) => a.distanceM - b.distanceM || b.time - a.time);
@@ -181,18 +234,22 @@ export function withNearbyPrecipitation(hour: IcingHour, observations: NearbyPre
   return match ? { ...hour, nearbyPrecipitation: match } : hour;
 }
 
-export async function fetchNearbyPrecipitation(signal: AbortSignal) {
+export async function fetchNearbyPrecipitation(signal: AbortSignal, area: IcingArea = 'gwanak') {
   const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(14_000)]);
   const response = await fetch('/api/kma/weather', { signal: requestSignal, cache: 'no-store' });
   if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return [];
   const data: unknown = await response.json();
   requestSignal.throwIfAborted();
-  return readNearbyPrecipitation(data, Date.now());
+  return readNearbyPrecipitation(data, Date.now(), area);
 }
 
-export async function fetchIcingHours(signal: AbortSignal) {
+export async function fetchIcingHours(signal: AbortSignal, area: IcingArea = 'gwanak') {
   const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(12_000)]);
-  const response = await fetch(icingForecastUrl, { signal: requestSignal, cache: 'no-cache', redirect: 'error' });
+  const url = new URL(icingForecastUrl);
+  const [lon, lat] = icingRegions[area].weatherCenter;
+  url.searchParams.set('latitude', String(lat));
+  url.searchParams.set('longitude', String(lon));
+  const response = await fetch(url, { signal: requestSignal, cache: 'no-cache', redirect: 'error' });
   if (!response.ok) throw new Error('공개 예보를 불러오지 못했습니다.');
   const data: unknown = await response.json();
   requestSignal.throwIfAborted();
@@ -207,7 +264,7 @@ export async function readIcingReplay(raw: ArrayBuffer, scene: IcingReplay = 'or
   const time = Date.parse(source.validAt);
   const hour = findIcingHours(JSON.parse(new TextDecoder().decode(raw)), time).find(item => item.time === time);
   if (!hour || !hasRefreezeConditions(hour)) throw new Error('시범 시각의 예보를 확인할 수 없습니다.');
-  return hour;
+  return scene === 'gangnam' ? withKmaGrid(hour, gangnamGridReplay.rows, hour.time) : hour;
 }
 
 export async function fetchIcingReplay(signal: AbortSignal, scene: IcingReplay) {

@@ -1,0 +1,39 @@
+{
+  "source": "OpenStreetMap contributors via Geofabrik",
+  "endpoint": "https://download.geofabrik.de/asia/south-korea-261117.osm.pbf",
+  "downloadedAt": "2026-11-18T10:34:27.973Z",
+  "osmTimestamp": "2026-11-17T21:24:30Z",
+  "license": "ODbL 1.0",
+  "licenseUrl": "https://www.openstreetmap.org/copyright",
+  "sha256": "2d2db210b1c2d6e6ea1a75ab0d0af1abc581f718a856f8ffde272be31d1e3aca",
+  "sha256Target": "app/public/data/gangnam/osm.json",
+  "sourceFileSha256": "0caa538fc7a39d1a48c9e0e6c28038a5cc6814015611ca035840debd93cd28a3",
+  "sourceFile": "south-korea-261117.osm.pbf",
+  "sourceFileBytes": 292084020,
+  "bbox": [
+    37.4805,
+    127.0305,
+    37.496,
+    127.061
+  ],
+  "bboxOrder": [
+    "south",
+    "west",
+    "north",
+    "east"
+  ],
+  "extractedAt": "2026-11-19T17:27:01.413718+00:00",
+  "transformation": "Native location cache, select highway or named-place ways with a vertex in bbox, retain all referenced nodes and named nodes in bbox. Keep numbered subway entrance nodes. All tags and coordinates come from the PBF; no generated nodes or risk values.",
+  "nodes": 10166,
+  "ways": 1335,
+  "namedNodes": 1508,
+  "highwayWays": 861,
+  "missingWayNodeReferences": 0,
+  "limitations": [
+    "OSM editing timestamp is not field-verification time",
+    "Missing tags remain unknown",
+    "No observed icing labels",
+    "Ways crossing bbox without a vertex inside are not included",
+    "Some complete way vertices extend outside bbox"
+  ]
+}

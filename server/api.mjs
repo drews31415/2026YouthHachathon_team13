@@ -1,5 +1,7 @@
 import { getKmaWeather } from './kma.mjs';
 import { getKmaForecast } from './kma-forecast.mjs';
+import { getKmaGrid } from './kma-grid.mjs';
+import icingRegions from '../icing-regions.json' with { type: 'json' };
 import { getSeoulWeather } from './seoul.mjs';
 import { searchTmapPlaces, getTmapRoute } from './tmap.mjs';
 
@@ -28,7 +30,15 @@ export async function handleApi(request, env) {
   try {
     if (url.pathname === '/api/kma/forecast') {
       if (request.method !== 'GET') return json({ error: '조회 요청만 지원합니다.' }, 405);
-      return json(await getKmaForecast(env));
+      const area = url.searchParams.get('area') ?? 'gwanak';
+      if (!Object.hasOwn(icingRegions, area)) return json({ error: '지원하지 않는 지역입니다.' }, 400);
+      return json(await getKmaForecast(env, area));
+    }
+    if (url.pathname === '/api/kma/grid') {
+      if (request.method !== 'GET') return json({ error: '조회 요청만 지원합니다.' }, 405);
+      const area = url.searchParams.get('area') ?? 'gwanak';
+      if (!Object.hasOwn(icingRegions, area)) return json({ error: '지원하지 않는 지역입니다.' }, 400);
+      return json(await getKmaGrid(env, area));
     }
     if (url.pathname === '/api/kma/weather' || url.pathname === '/api/seoul/weather') {
       if (request.method !== 'GET') return json({ error: '조회 요청만 지원합니다.' }, 405);

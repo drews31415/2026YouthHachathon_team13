@@ -1,0 +1,3766 @@
+{
+  "source": "서울시 교차로 및 횡단보도 시설·위치정보",
+  "url": "https://data.seoul.go.kr/dataList/OA-23081/F/1/datasetView.do",
+  "date": "2026-08-24",
+  "dateBasis": "공식 파일명 20260824의 기준일; 공개일은 2026-09-07",
+  "retrievedAt": "2026-11-19T10:14:14.2428534Z",
+  "license": "이용허락범위 제한 없음",
+  "filename": "서울시 교차로 및 횡단보도 시설·위치정보_20260824.xlsx",
+  "sourceSha256": "1a5db9ea7a1cd58e2d7f2b4246baf099a3e4d5278f2867a1b87f3d50d21541be",
+  "sourceBytes": 1735662,
+  "bbox": [
+    37.4805,
+    127.0305,
+    37.496,
+    127.061
+  ],
+  "points": [
+    {
+      "id": "06-0000007287",
+      "name": "한미은행양재",
+      "lat": 37.4872799,
+      "lon": 127.0324611,
+      "district": "강남구",
+      "intersectionId": "5282",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 2,
+      "sourceCoordinates": {
+        "x": 202870.870396992,
+        "y": 543092.856836164,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007538",
+      "name": "싸리고개공원(연등)1",
+      "lat": 37.4900081,
+      "lon": 127.0330742,
+      "district": "강남구",
+      "intersectionId": "1756",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 3,
+      "sourceCoordinates": {
+        "x": 202924.986926316,
+        "y": 543395.671242523,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007539",
+      "name": "싸리고개공원(연등)1",
+      "lat": 37.4902303,
+      "lon": 127.0333712,
+      "district": "강남구",
+      "intersectionId": "1756",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 4,
+      "sourceCoordinates": {
+        "x": 202951.244032704,
+        "y": 543420.333776115,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000009057",
+      "name": "강남세브란스",
+      "lat": 37.493944,
+      "lon": 127.0468377,
+      "district": "강남구",
+      "intersectionId": "290",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 6,
+      "sourceCoordinates": {
+        "x": 204141.977684412,
+        "y": 543833.013275125,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000005032",
+      "name": "역삼초교정문(경보)",
+      "lat": 37.492176,
+      "lon": 127.0324341,
+      "district": "강남구",
+      "intersectionId": "8284",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 10,
+      "sourceCoordinates": {
+        "x": 202868.297973711,
+        "y": 543636.256394856,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000034611",
+      "name": "도곡중학교(경보)",
+      "lat": 37.4928261,
+      "lon": 127.0443513,
+      "district": "강남구",
+      "intersectionId": "7882",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 34,
+      "sourceCoordinates": {
+        "x": 203922.157835329,
+        "y": 543708.841641994,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000035191",
+      "name": "도곡1동주민센타",
+      "lat": 37.4922172,
+      "lon": 127.0409876,
+      "district": "강남구",
+      "intersectionId": "1760",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 35,
+      "sourceCoordinates": {
+        "x": 203624.720719077,
+        "y": 543641.122108733,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000035192",
+      "name": "역삼삼익아파트",
+      "lat": 37.4895142,
+      "lon": 127.0415323,
+      "district": "강남구",
+      "intersectionId": "1801",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 36,
+      "sourceCoordinates": {
+        "x": 203673.029730445,
+        "y": 543341.14572427,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007349",
+      "name": "뱅뱅사거리",
+      "lat": 37.4896626,
+      "lon": 127.0319318,
+      "district": "강남구",
+      "intersectionId": "354",
+      "crossingType": "이단(화살표없음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 66,
+      "sourceCoordinates": {
+        "x": 202823.976141876,
+        "y": 543357.286748916,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007480",
+      "name": "역삼초교(연등)1",
+      "lat": 37.4934978,
+      "lon": 127.031805,
+      "district": "강남구",
+      "intersectionId": "1741",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 67,
+      "sourceCoordinates": {
+        "x": 202812.618792675,
+        "y": 543782.942272638,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007481",
+      "name": "역삼초교(연등)1",
+      "lat": 37.4936586,
+      "lon": 127.0317324,
+      "district": "강남구",
+      "intersectionId": "1741",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 68,
+      "sourceCoordinates": {
+        "x": 202806.185236854,
+        "y": 543800.785834517,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007482",
+      "name": "역삼초교(연등)1",
+      "lat": 37.4936073,
+      "lon": 127.031873,
+      "district": "강남구",
+      "intersectionId": "1741",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 69,
+      "sourceCoordinates": {
+        "x": 202818.620090507,
+        "y": 543795.092132934,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007368",
+      "name": "역삼초교정문(경보)",
+      "lat": 37.4920697,
+      "lon": 127.0323829,
+      "district": "강남구",
+      "intersectionId": "8284",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 72,
+      "sourceCoordinates": {
+        "x": 202863.775272938,
+        "y": 543624.450685132,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007493",
+      "name": "역삼우체국",
+      "lat": 37.4956498,
+      "lon": 127.0326668,
+      "district": "강남구",
+      "intersectionId": "1788",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 74,
+      "sourceCoordinates": {
+        "x": 202888.743021355,
+        "y": 544021.80393156,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007494",
+      "name": "역삼우체국",
+      "lat": 37.4957443,
+      "lon": 127.0327286,
+      "district": "강남구",
+      "intersectionId": "1788",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 75,
+      "sourceCoordinates": {
+        "x": 202894.200894517,
+        "y": 544032.296924824,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007497",
+      "name": "역삼카센터",
+      "lat": 37.4918031,
+      "lon": 127.0394068,
+      "district": "강남구",
+      "intersectionId": "1759",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 76,
+      "sourceCoordinates": {
+        "x": 203484.949056516,
+        "y": 543595.103954619,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007498",
+      "name": "역삼카센터",
+      "lat": 37.4918608,
+      "lon": 127.0391281,
+      "district": "강남구",
+      "intersectionId": "1759",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 77,
+      "sourceCoordinates": {
+        "x": 203460.299041325,
+        "y": 543601.495144566,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007499",
+      "name": "역삼중(연등)",
+      "lat": 37.4949369,
+      "lon": 127.0483661,
+      "district": "강남구",
+      "intersectionId": "1764",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 78,
+      "sourceCoordinates": {
+        "x": 204277.083871685,
+        "y": 543943.281697852,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007500",
+      "name": "역삼중(연등)",
+      "lat": 37.4948201,
+      "lon": 127.0485723,
+      "district": "강남구",
+      "intersectionId": "1764",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 79,
+      "sourceCoordinates": {
+        "x": 204295.323666678,
+        "y": 543930.325190144,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007501",
+      "name": "역삼중(연등)",
+      "lat": 37.4946437,
+      "lon": 127.0485165,
+      "district": "강남구",
+      "intersectionId": "1764",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 80,
+      "sourceCoordinates": {
+        "x": 204290.401328491,
+        "y": 543910.744447801,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007620",
+      "name": "국민은행역삼중앙",
+      "lat": 37.4955978,
+      "lon": 127.0381675,
+      "district": "강남구",
+      "intersectionId": "8629",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 83,
+      "sourceCoordinates": {
+        "x": 203375.179842193,
+        "y": 544016.216391806,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007509",
+      "name": "역삼초교",
+      "lat": 37.4940312,
+      "lon": 127.0332694,
+      "district": "강남구",
+      "intersectionId": "1742",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 88,
+      "sourceCoordinates": {
+        "x": 202942.095226296,
+        "y": 543842.182276094,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007510",
+      "name": "역삼초교",
+      "lat": 37.4939601,
+      "lon": 127.0334756,
+      "district": "강남구",
+      "intersectionId": "1742",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 89,
+      "sourceCoordinates": {
+        "x": 202960.330882334,
+        "y": 543834.301540962,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007779",
+      "name": "한티역(연등)",
+      "lat": 37.4950911,
+      "lon": 127.0536666,
+      "district": "강남구",
+      "intersectionId": "1829",
+      "crossingType": "일단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 99,
+      "sourceCoordinates": {
+        "x": 204745.807176109,
+        "y": 543960.651092663,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007780",
+      "name": "한티역(연등)",
+      "lat": 37.4951204,
+      "lon": 127.0534561,
+      "district": "강남구",
+      "intersectionId": "1829",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 100,
+      "sourceCoordinates": {
+        "x": 204727.186888397,
+        "y": 543963.895724014,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008949",
+      "name": "매봉역",
+      "lat": 37.4865262,
+      "lon": 127.0454158,
+      "district": "강남구",
+      "intersectionId": "323",
+      "crossingType": "이단(화살표없음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 113,
+      "sourceCoordinates": {
+        "x": 204016.63567888,
+        "y": 543009.673194102,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007133",
+      "name": "언주초교",
+      "lat": 37.4866713,
+      "lon": 127.0379062,
+      "district": "강남구",
+      "intersectionId": "4717",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 116,
+      "sourceCoordinates": {
+        "x": 203352.470650719,
+        "y": 543025.49181874,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007531",
+      "name": "역삼금호어울림",
+      "lat": 37.4925782,
+      "lon": 127.0340112,
+      "district": "강남구",
+      "intersectionId": "1789",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 122,
+      "sourceCoordinates": {
+        "x": 203007.750445449,
+        "y": 543680.946939304,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007532",
+      "name": "역삼금호어울림",
+      "lat": 37.4926989,
+      "lon": 127.034081,
+      "district": "강남구",
+      "intersectionId": "1789",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 123,
+      "sourceCoordinates": {
+        "x": 203013.924850152,
+        "y": 543694.345207888,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007962",
+      "name": "도곡1동주민센타(연등)",
+      "lat": 37.4929508,
+      "lon": 127.0426331,
+      "district": "강남구",
+      "intersectionId": "1761",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 127,
+      "sourceCoordinates": {
+        "x": 203770.206614695,
+        "y": 543722.604500887,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007963",
+      "name": "도곡1동주민센타(연등)",
+      "lat": 37.49302,
+      "lon": 127.0423788,
+      "district": "강남구",
+      "intersectionId": "1761",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 128,
+      "sourceCoordinates": {
+        "x": 203747.71469065,
+        "y": 543730.27316531,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007836",
+      "name": "구룡초교",
+      "lat": 37.4812518,
+      "lon": 127.0540229,
+      "district": "강남구",
+      "intersectionId": "1863",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 130,
+      "sourceCoordinates": {
+        "x": 204778.195102689,
+        "y": 542424.689561349,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007716",
+      "name": "싸리고개공원(연등)2",
+      "lat": 37.4910305,
+      "lon": 127.036838,
+      "district": "강남구",
+      "intersectionId": "1758",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 133,
+      "sourceCoordinates": {
+        "x": 203257.809496579,
+        "y": 543509.267876588,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007721",
+      "name": "역삼우성아파트(경보)",
+      "lat": 37.488458,
+      "lon": 127.0375083,
+      "district": "강남구",
+      "intersectionId": "4716",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 134,
+      "sourceCoordinates": {
+        "x": 203317.202138097,
+        "y": 543223.778584686,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007723",
+      "name": "영동3교북단(경보)",
+      "lat": 37.4861943,
+      "lon": 127.0513089,
+      "district": "강남구",
+      "intersectionId": "7877",
+      "crossingType": "일단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 135,
+      "sourceCoordinates": {
+        "x": 204537.844650356,
+        "y": 542973.111370448,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007981",
+      "name": "도곡대림5동(경보)",
+      "lat": 37.4862753,
+      "lon": 127.0411294,
+      "district": "강남구",
+      "intersectionId": "7865",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 136,
+      "sourceCoordinates": {
+        "x": 203637.554746446,
+        "y": 542981.656394038,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007727",
+      "name": "타워팰리스(경보)",
+      "lat": 37.487173,
+      "lon": 127.0521655,
+      "district": "강남구",
+      "intersectionId": "7863",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 141,
+      "sourceCoordinates": {
+        "x": 204613.55098916,
+        "y": 543081.768205568,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007728",
+      "name": "타워팰리스(경보)",
+      "lat": 37.4873069,
+      "lon": 127.0520646,
+      "district": "강남구",
+      "intersectionId": "7863",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 142,
+      "sourceCoordinates": {
+        "x": 204604.611473973,
+        "y": 543096.629025782,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007729",
+      "name": "타워팰리스",
+      "lat": 37.4876702,
+      "lon": 127.0518265,
+      "district": "강남구",
+      "intersectionId": "5258",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 143,
+      "sourceCoordinates": {
+        "x": 204583.538571339,
+        "y": 543136.93713305,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007734",
+      "name": "개포경남아파트",
+      "lat": 37.4833093,
+      "lon": 127.0527806,
+      "district": "강남구",
+      "intersectionId": "1864",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 144,
+      "sourceCoordinates": {
+        "x": 204668.190009843,
+        "y": 542652.978587149,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008274",
+      "name": "구룡초교입구",
+      "lat": 37.4805032,
+      "lon": 127.0526182,
+      "district": "강남구",
+      "intersectionId": "4810",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 168,
+      "sourceCoordinates": {
+        "x": 204653.993115973,
+        "y": 542341.535771449,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007299",
+      "name": "도곡1동사무소(경보)",
+      "lat": 37.4892169,
+      "lon": 127.0400392,
+      "district": "강남구",
+      "intersectionId": "4715",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 174,
+      "sourceCoordinates": {
+        "x": 203540.990217593,
+        "y": 543308.092265237,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007300",
+      "name": "도곡1동사무소(경보)",
+      "lat": 37.4893026,
+      "lon": 127.0401285,
+      "district": "강남구",
+      "intersectionId": "4715",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 175,
+      "sourceCoordinates": {
+        "x": 203548.883340414,
+        "y": 543317.60753085,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007302",
+      "name": "도곡삼익아파트(경보)",
+      "lat": 37.4917436,
+      "lon": 127.0413648,
+      "district": "강남구",
+      "intersectionId": "7883",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 179,
+      "sourceCoordinates": {
+        "x": 203658.102989931,
+        "y": 543588.577489065,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007305",
+      "name": "도곡1동주민센타(연등)",
+      "lat": 37.4927674,
+      "lon": 127.0425011,
+      "district": "강남구",
+      "intersectionId": "1761",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 180,
+      "sourceCoordinates": {
+        "x": 203758.53916938,
+        "y": 543702.250633963,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007715",
+      "name": "싸리고개공원(연등)2",
+      "lat": 37.4912627,
+      "lon": 127.0367577,
+      "district": "강남구",
+      "intersectionId": "1758",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 182,
+      "sourceCoordinates": {
+        "x": 203250.695704503,
+        "y": 543535.027617403,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007536",
+      "name": "싸리고개공원",
+      "lat": 37.4905576,
+      "lon": 127.0348519,
+      "district": "강남구",
+      "intersectionId": "1757",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 183,
+      "sourceCoordinates": {
+        "x": 203082.179634267,
+        "y": 543456.709138398,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008246",
+      "name": "타워팰리스3차(경보)",
+      "lat": 37.4876761,
+      "lon": 127.0533249,
+      "district": "강남구",
+      "intersectionId": "7867",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 236,
+      "sourceCoordinates": {
+        "x": 204716.050415494,
+        "y": 543137.672333182,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008247",
+      "name": "타워팰리스3차(경보)",
+      "lat": 37.4875822,
+      "lon": 127.0532601,
+      "district": "강남구",
+      "intersectionId": "7867",
+      "crossingType": "이단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 237,
+      "sourceCoordinates": {
+        "x": 204710.330500115,
+        "y": 543127.238247101,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008061",
+      "name": "역삼초교정문(경보)",
+      "lat": 37.4920291,
+      "lon": 127.0325238,
+      "district": "강남구",
+      "intersectionId": "8284",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 249,
+      "sourceCoordinates": {
+        "x": 202876.234530012,
+        "y": 543619.954500775,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008260",
+      "name": "개포우성3차아파트",
+      "lat": 37.4835998,
+      "lon": 127.0569524,
+      "district": "강남구",
+      "intersectionId": "1861",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 254,
+      "sourceCoordinates": {
+        "x": 205037.14313354,
+        "y": 542685.435913695,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007979",
+      "name": "양재전화국",
+      "lat": 37.485619,
+      "lon": 127.0417176,
+      "district": "강남구",
+      "intersectionId": "188",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 278,
+      "sourceCoordinates": {
+        "x": 203689.60810739,
+        "y": 542908.835750617,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000009049",
+      "name": "의생명연구센터",
+      "lat": 37.4936597,
+      "lon": 127.0449678,
+      "district": "강남구",
+      "intersectionId": "8708",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 287,
+      "sourceCoordinates": {
+        "x": 203976.63248396,
+        "y": 543801.380050511,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000009050",
+      "name": "의생명연구센터",
+      "lat": 37.493563,
+      "lon": 127.0452215,
+      "district": "강남구",
+      "intersectionId": "8708",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 288,
+      "sourceCoordinates": {
+        "x": 203999.078368871,
+        "y": 543790.660482072,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008946",
+      "name": "매봉역",
+      "lat": 37.486251,
+      "lon": 127.0452043,
+      "district": "강남구",
+      "intersectionId": "323",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 304,
+      "sourceCoordinates": {
+        "x": 203997.938985425,
+        "y": 542979.129796049,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008956",
+      "name": "독골근린공원",
+      "lat": 37.4847801,
+      "lon": 127.04621,
+      "district": "강남구",
+      "intersectionId": "1779",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 305,
+      "sourceCoordinates": {
+        "x": 204086.965618042,
+        "y": 542815.914601259,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008860",
+      "name": "타워팰리스(연등)",
+      "lat": 37.4881987,
+      "lon": 127.05295,
+      "district": "강남구",
+      "intersectionId": "7015",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 354,
+      "sourceCoordinates": {
+        "x": 204682.86253157,
+        "y": 543195.651826419,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008861",
+      "name": "타워팰리스(연등)",
+      "lat": 37.4884096,
+      "lon": 127.0530921,
+      "district": "강남구",
+      "intersectionId": "7015",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 355,
+      "sourceCoordinates": {
+        "x": 204695.416269215,
+        "y": 543219.064038904,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008866",
+      "name": "도곡역(연등)2",
+      "lat": 37.4894104,
+      "lon": 127.0560391,
+      "district": "강남구",
+      "intersectionId": "5532",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 356,
+      "sourceCoordinates": {
+        "x": 204955.980137902,
+        "y": 543330.292451715,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008869",
+      "name": "도곡역(연등)2",
+      "lat": 37.4899405,
+      "lon": 127.0558566,
+      "district": "강남구",
+      "intersectionId": "5532",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 357,
+      "sourceCoordinates": {
+        "x": 204939.809274496,
+        "y": 543389.11125338,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008870",
+      "name": "도곡역(연등)1",
+      "lat": 37.4901684,
+      "lon": 127.0533422,
+      "district": "강남구",
+      "intersectionId": "1772",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 358,
+      "sourceCoordinates": {
+        "x": 204717.427059411,
+        "y": 543414.2833736,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000024093",
+      "name": "도곡역(연등)2",
+      "lat": 37.4896366,
+      "lon": 127.0556084,
+      "district": "강남구",
+      "intersectionId": "5532",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 382,
+      "sourceCoordinates": {
+        "x": 204917.877028027,
+        "y": 543355.374578933,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000024849",
+      "name": "역삼초교정문(경보)",
+      "lat": 37.4921271,
+      "lon": 127.0325893,
+      "district": "강남구",
+      "intersectionId": "8284",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 386,
+      "sourceCoordinates": {
+        "x": 202882.028710372,
+        "y": 543630.829992386,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000022333",
+      "name": "타워팰리스(경보)",
+      "lat": 37.4872161,
+      "lon": 127.0519467,
+      "district": "강남구",
+      "intersectionId": "7863",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 387,
+      "sourceCoordinates": {
+        "x": 204594.196260304,
+        "y": 543086.54801335,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000023189",
+      "name": "역삼금호어울림",
+      "lat": 37.4926312,
+      "lon": 127.0342209,
+      "district": "강남구",
+      "intersectionId": "1789",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 390,
+      "sourceCoordinates": {
+        "x": 203026.295282694,
+        "y": 543686.838198378,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000023879",
+      "name": "역삼우성아파트(경보)",
+      "lat": 37.4886799,
+      "lon": 127.0374625,
+      "district": "강남구",
+      "intersectionId": "4716",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 393,
+      "sourceCoordinates": {
+        "x": 203313.138274365,
+        "y": 543248.394168296,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000023880",
+      "name": "역삼우성아파트(경보)",
+      "lat": 37.4885932,
+      "lon": 127.0376349,
+      "district": "강남구",
+      "intersectionId": "4716",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 394,
+      "sourceCoordinates": {
+        "x": 203328.388613485,
+        "y": 543238.778063311,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000019817",
+      "name": "싸리고개공원(연등)1",
+      "lat": 37.4898537,
+      "lon": 127.0330055,
+      "district": "강남구",
+      "intersectionId": "1756",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 396,
+      "sourceCoordinates": {
+        "x": 202918.924937132,
+        "y": 543378.529676692,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000019585",
+      "name": "타워팰리스(연등)",
+      "lat": 37.4884424,
+      "lon": 127.0529065,
+      "district": "강남구",
+      "intersectionId": "7015",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 404,
+      "sourceCoordinates": {
+        "x": 204679.001243889,
+        "y": 543222.696979254,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000051876",
+      "name": "신풍제약",
+      "lat": 37.4950923,
+      "lon": 127.0370289,
+      "district": "강남구",
+      "intersectionId": "1744",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 407,
+      "sourceCoordinates": {
+        "x": 203274.50957051,
+        "y": 543960.075270951,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000015459",
+      "name": "도곡1동사무소(경보)",
+      "lat": 37.4892405,
+      "lon": 127.0398669,
+      "district": "강남구",
+      "intersectionId": "4715",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 411,
+      "sourceCoordinates": {
+        "x": 203525.757830098,
+        "y": 543310.711012528,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000015463",
+      "name": "신한은행역삼",
+      "lat": 37.4916327,
+      "lon": 127.030906,
+      "district": "강남구",
+      "intersectionId": "5281",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 412,
+      "sourceCoordinates": {
+        "x": 202733.179166684,
+        "y": 543575.908326499,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000015471",
+      "name": "싸리고개공원",
+      "lat": 37.4905039,
+      "lon": 127.0351185,
+      "district": "강남구",
+      "intersectionId": "1757",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 414,
+      "sourceCoordinates": {
+        "x": 203105.766165112,
+        "y": 543450.760135562,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000015480",
+      "name": "대도초교",
+      "lat": 37.4933478,
+      "lon": 127.054298,
+      "district": "강남구",
+      "intersectionId": "2082",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 415,
+      "sourceCoordinates": {
+        "x": 204801.751097622,
+        "y": 543767.202926667,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008957",
+      "name": "독골근린공원",
+      "lat": 37.4847559,
+      "lon": 127.0465086,
+      "district": "강남구",
+      "intersectionId": "1779",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 435,
+      "sourceCoordinates": {
+        "x": 204113.383396452,
+        "y": 542813.240566006,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008960",
+      "name": "대치중(경보)",
+      "lat": 37.4840376,
+      "lon": 127.0470711,
+      "district": "강남구",
+      "intersectionId": "4729",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 436,
+      "sourceCoordinates": {
+        "x": 204163.168845604,
+        "y": 542733.549553286,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008961",
+      "name": "대치중(경보)",
+      "lat": 37.4839705,
+      "lon": 127.0471968,
+      "district": "강남구",
+      "intersectionId": "4729",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 437,
+      "sourceCoordinates": {
+        "x": 204174.286433988,
+        "y": 542726.103566634,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008962",
+      "name": "강남수도사업소",
+      "lat": 37.483432,
+      "lon": 127.04751,
+      "district": "강남구",
+      "intersectionId": "4728",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 438,
+      "sourceCoordinates": {
+        "x": 204202.01783756,
+        "y": 542666.353276509,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008967",
+      "name": "보석빌딩(연등)",
+      "lat": 37.4842825,
+      "lon": 127.0450386,
+      "district": "강남구",
+      "intersectionId": "7095",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 439,
+      "sourceCoordinates": {
+        "x": 203983.389054569,
+        "y": 542760.634736199,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008968",
+      "name": "보석빌딩(연등)",
+      "lat": 37.4841552,
+      "lon": 127.0450542,
+      "district": "강남구",
+      "intersectionId": "7095",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 440,
+      "sourceCoordinates": {
+        "x": 203984.781926467,
+        "y": 542746.514047699,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008970",
+      "name": "보석빌딩",
+      "lat": 37.483541,
+      "lon": 127.0444294,
+      "district": "강남구",
+      "intersectionId": "1778",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 441,
+      "sourceCoordinates": {
+        "x": 203929.552879802,
+        "y": 542678.322560226,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008971",
+      "name": "보석빌딩",
+      "lat": 37.4834132,
+      "lon": 127.0444671,
+      "district": "강남구",
+      "intersectionId": "1778",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 442,
+      "sourceCoordinates": {
+        "x": 203932.891308414,
+        "y": 542664.132999177,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000039147",
+      "name": "역삼중",
+      "lat": 37.4954605,
+      "lon": 127.0508826,
+      "district": "강남구",
+      "intersectionId": "1763",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 449,
+      "sourceCoordinates": {
+        "x": 204499.58821899,
+        "y": 544001.514844852,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000039148",
+      "name": "역삼중",
+      "lat": 37.4955375,
+      "lon": 127.0506902,
+      "district": "강남구",
+      "intersectionId": "1763",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 450,
+      "sourceCoordinates": {
+        "x": 204482.57174629,
+        "y": 544010.045914082,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000037113",
+      "name": "독골근린공원",
+      "lat": 37.4850582,
+      "lon": 127.0463184,
+      "district": "강남구",
+      "intersectionId": "1779",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 460,
+      "sourceCoordinates": {
+        "x": 204096.540196541,
+        "y": 542846.792302052,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000037413",
+      "name": "영동3교북단(경보)",
+      "lat": 37.4860394,
+      "lon": 127.0508304,
+      "district": "강남구",
+      "intersectionId": "7877",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 468,
+      "sourceCoordinates": {
+        "x": 204495.538234987,
+        "y": 542955.892728312,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000037420",
+      "name": "도곡역(연등)1",
+      "lat": 37.4898188,
+      "lon": 127.0533608,
+      "district": "강남구",
+      "intersectionId": "1772",
+      "crossingType": "일단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 474,
+      "sourceCoordinates": {
+        "x": 204719.091374275,
+        "y": 543375.481069265,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000028346",
+      "name": "타워팰리스(연등)",
+      "lat": 37.4882436,
+      "lon": 127.0527712,
+      "district": "강남구",
+      "intersectionId": "7015",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 483,
+      "sourceCoordinates": {
+        "x": 204667.04678054,
+        "y": 543200.620541927,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000035554",
+      "name": "역삼삼익아파트",
+      "lat": 37.4896713,
+      "lon": 127.0413919,
+      "district": "강남구",
+      "intersectionId": "1801",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 489,
+      "sourceCoordinates": {
+        "x": 203660.602083357,
+        "y": 543358.578123792,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000009064",
+      "name": "청운교회",
+      "lat": 37.4956884,
+      "lon": 127.0460326,
+      "district": "강남구",
+      "intersectionId": "8707",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 491,
+      "sourceCoordinates": {
+        "x": 204070.688452969,
+        "y": 544026.588639024,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000028153",
+      "name": "언주초교",
+      "lat": 37.486463,
+      "lon": 127.0378814,
+      "district": "강남구",
+      "intersectionId": "4717",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 492,
+      "sourceCoordinates": {
+        "x": 203350.288376798,
+        "y": 543002.370164542,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000027998",
+      "name": "단대부고(경보)",
+      "lat": 37.4957406,
+      "lon": 127.0551909,
+      "district": "강남구",
+      "intersectionId": "7870",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 501,
+      "sourceCoordinates": {
+        "x": 204880.558810646,
+        "y": 544032.810973283,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000026639",
+      "name": "타워팰리스",
+      "lat": 37.487848,
+      "lon": 127.0518726,
+      "district": "강남구",
+      "intersectionId": "5258",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 506,
+      "sourceCoordinates": {
+        "x": 204587.600074424,
+        "y": 543156.677373633,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000025153",
+      "name": "한티역(연등)",
+      "lat": 37.4951689,
+      "lon": 127.0532145,
+      "district": "강남구",
+      "intersectionId": "1829",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 507,
+      "sourceCoordinates": {
+        "x": 204705.817239204,
+        "y": 543969.269423066,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007726",
+      "name": "우성캐릭터199(경보)",
+      "lat": 37.4864059,
+      "lon": 127.0527125,
+      "district": "강남구",
+      "intersectionId": "4726",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 550,
+      "sourceCoordinates": {
+        "x": 204661.96951181,
+        "y": 542996.656445661,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007725",
+      "name": "우성캐릭터199(경보)",
+      "lat": 37.4862168,
+      "lon": 127.0526238,
+      "district": "강남구",
+      "intersectionId": "4726",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 551,
+      "sourceCoordinates": {
+        "x": 204654.137051735,
+        "y": 542975.669707737,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000048859",
+      "name": "한미은행양재",
+      "lat": 37.4874914,
+      "lon": 127.0327414,
+      "district": "강남구",
+      "intersectionId": "5282",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 562,
+      "sourceCoordinates": {
+        "x": 202895.65778752,
+        "y": 543116.334409706,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000009043",
+      "name": "청운교회",
+      "lat": 37.4955084,
+      "lon": 127.0459064,
+      "district": "강남구",
+      "intersectionId": "8707",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 578,
+      "sourceCoordinates": {
+        "x": 204059.536505845,
+        "y": 544006.599281397,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000055290",
+      "name": "개원초교앞",
+      "lat": 37.4813161,
+      "lon": 127.0604362,
+      "district": "강남구",
+      "intersectionId": "8895",
+      "crossingType": "대각선횡단보도",
+      "pedestrianSignal": "유",
+      "sourceRow": 590,
+      "sourceCoordinates": {
+        "x": 205345.432220529,
+        "y": 542432.173716266,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000043807",
+      "name": "서광셀프주유소",
+      "lat": 37.4946296,
+      "lon": 127.0352431,
+      "district": "강남구",
+      "intersectionId": "8630",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 593,
+      "sourceCoordinates": {
+        "x": 203116.607375177,
+        "y": 543908.667069837,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007511",
+      "name": "역삼초교",
+      "lat": 37.4941281,
+      "lon": 127.0335869,
+      "district": "강남구",
+      "intersectionId": "1742",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 594,
+      "sourceCoordinates": {
+        "x": 202970.173296132,
+        "y": 543852.950046424,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000041924",
+      "name": "국민은행역삼중앙",
+      "lat": 37.495504,
+      "lon": 127.0381278,
+      "district": "강남구",
+      "intersectionId": "8629",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 598,
+      "sourceCoordinates": {
+        "x": 203371.666518575,
+        "y": 544005.805652292,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007754",
+      "name": "뱅뱅사거리",
+      "lat": 37.489478,
+      "lon": 127.0313693,
+      "district": "강남구",
+      "intersectionId": "354",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 607,
+      "sourceCoordinates": {
+        "x": 202774.236757971,
+        "y": 543336.77787086,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000032237",
+      "name": "도곡역(연등)1",
+      "lat": 37.4898594,
+      "lon": 127.0530572,
+      "district": "강남구",
+      "intersectionId": "1772",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 639,
+      "sourceCoordinates": {
+        "x": 204692.240104889,
+        "y": 543379.96889079,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007611",
+      "name": "우리은행역삼",
+      "lat": 37.4935426,
+      "lon": 127.0405133,
+      "district": "강남구",
+      "intersectionId": "1800",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 646,
+      "sourceCoordinates": {
+        "x": 203582.718689481,
+        "y": 543788.20633103,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007949",
+      "name": "강남창업센터",
+      "lat": 37.495728,
+      "lon": 127.0393384,
+      "district": "강남구",
+      "intersectionId": "1745",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 647,
+      "sourceCoordinates": {
+        "x": 203478.709949096,
+        "y": 544030.70842614,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008255",
+      "name": "구룡중",
+      "lat": 37.4863811,
+      "lon": 127.0569556,
+      "district": "강남구",
+      "intersectionId": "1860",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 650,
+      "sourceCoordinates": {
+        "x": 205037.243324208,
+        "y": 542994.123000933,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000009048",
+      "name": "의생명연구센터",
+      "lat": 37.4938468,
+      "lon": 127.0450931,
+      "district": "강남구",
+      "intersectionId": "8708",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 658,
+      "sourceCoordinates": {
+        "x": 203987.706301079,
+        "y": 543822.149847056,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000051528",
+      "name": "역삼초교(연등)2",
+      "lat": 37.4932831,
+      "lon": 127.0337981,
+      "district": "강남구",
+      "intersectionId": "8591",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 665,
+      "sourceCoordinates": {
+        "x": 202988.880566862,
+        "y": 543759.172006674,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008951",
+      "name": "매봉역",
+      "lat": 37.4861572,
+      "lon": 127.0455289,
+      "district": "강남구",
+      "intersectionId": "323",
+      "crossingType": "이단(화살표없음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 675,
+      "sourceCoordinates": {
+        "x": 204026.654504572,
+        "y": 542968.7264671,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007978",
+      "name": "양재전화국",
+      "lat": 37.4858539,
+      "lon": 127.0413257,
+      "district": "강남구",
+      "intersectionId": "188",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 693,
+      "sourceCoordinates": {
+        "x": 203654.934936361,
+        "y": 542934.894750419,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007537",
+      "name": "싸리고개공원",
+      "lat": 37.490685,
+      "lon": 127.0352812,
+      "district": "강남구",
+      "intersectionId": "1757",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 719,
+      "sourceCoordinates": {
+        "x": 203120.147159332,
+        "y": 543470.868225766,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000009004",
+      "name": "청실종합",
+      "lat": 37.4928088,
+      "lon": 127.0599156,
+      "district": "강남구",
+      "intersectionId": "1774",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 727,
+      "sourceCoordinates": {
+        "x": 205298.573391392,
+        "y": 543707.679417329,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007616",
+      "name": "강남창업센터(연등)2",
+      "lat": 37.4944936,
+      "lon": 127.0399214,
+      "district": "강남구",
+      "intersectionId": "1799",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 729,
+      "sourceCoordinates": {
+        "x": 203530.324698544,
+        "y": 543893.731619819,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000034360",
+      "name": "신한은행역삼",
+      "lat": 37.4914922,
+      "lon": 127.0308701,
+      "district": "강남구",
+      "intersectionId": "5281",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 737,
+      "sourceCoordinates": {
+        "x": 202730.015040385,
+        "y": 543560.320687491,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007948",
+      "name": "강남창업센터",
+      "lat": 37.4957941,
+      "lon": 127.0390694,
+      "district": "강남구",
+      "intersectionId": "1745",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 743,
+      "sourceCoordinates": {
+        "x": 203454.92527918,
+        "y": 544038.04164016,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007613",
+      "name": "우리은행역삼",
+      "lat": 37.4936167,
+      "lon": 127.0403283,
+      "district": "강남구",
+      "intersectionId": "1800",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 752,
+      "sourceCoordinates": {
+        "x": 203566.354406563,
+        "y": 543796.425880284,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007512",
+      "name": "신풍제약",
+      "lat": 37.4951181,
+      "lon": 127.0368517,
+      "district": "강남구",
+      "intersectionId": "1744",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 755,
+      "sourceCoordinates": {
+        "x": 203258.835931604,
+        "y": 543962.93848585,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000022322",
+      "name": "한미은행양재",
+      "lat": 37.4874264,
+      "lon": 127.0325232,
+      "district": "강남구",
+      "intersectionId": "5282",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 759,
+      "sourceCoordinates": {
+        "x": 202876.360118472,
+        "y": 543109.117714031,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000015462",
+      "name": "뱅뱅사거리",
+      "lat": 37.4893587,
+      "lon": 127.0317206,
+      "district": "강남구",
+      "intersectionId": "354",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 760,
+      "sourceCoordinates": {
+        "x": 202805.310313015,
+        "y": 543323.555660646,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007348",
+      "name": "뱅뱅사거리",
+      "lat": 37.4897275,
+      "lon": 127.0315563,
+      "district": "강남구",
+      "intersectionId": "354",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 761,
+      "sourceCoordinates": {
+        "x": 202790.75856341,
+        "y": 543364.476194586,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000023969",
+      "name": "도곡역",
+      "lat": 37.4911906,
+      "lon": 127.0553114,
+      "district": "강남구",
+      "intersectionId": "628",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 764,
+      "sourceCoordinates": {
+        "x": 204891.505710747,
+        "y": 543527.832412228,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000009056",
+      "name": "강남세브란스",
+      "lat": 37.4940799,
+      "lon": 127.0463327,
+      "district": "강남구",
+      "intersectionId": "290",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 765,
+      "sourceCoordinates": {
+        "x": 204097.309702945,
+        "y": 543848.082075272,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000032238",
+      "name": "도곡역",
+      "lat": 37.4907856,
+      "lon": 127.0550979,
+      "district": "강남구",
+      "intersectionId": "628",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 769,
+      "sourceCoordinates": {
+        "x": 204872.651083512,
+        "y": 543482.876567854,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000009059",
+      "name": "강남세브란스",
+      "lat": 37.4943119,
+      "lon": 127.0470708,
+      "district": "강남구",
+      "intersectionId": "290",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 795,
+      "sourceCoordinates": {
+        "x": 204162.576074452,
+        "y": 543873.854353051,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000009061",
+      "name": "강남세브란스",
+      "lat": 37.4943767,
+      "lon": 127.0466478,
+      "district": "강남구",
+      "intersectionId": "290",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 799,
+      "sourceCoordinates": {
+        "x": 204125.162516068,
+        "y": 543881.032487102,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007535",
+      "name": "싸리고개공원",
+      "lat": 37.4908326,
+      "lon": 127.034971,
+      "district": "강남구",
+      "intersectionId": "1757",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 817,
+      "sourceCoordinates": {
+        "x": 203092.708327945,
+        "y": 543487.23914745,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007950",
+      "name": "강남창업센터",
+      "lat": 37.4959524,
+      "lon": 127.0394707,
+      "district": "강남구",
+      "intersectionId": "1745",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 825,
+      "sourceCoordinates": {
+        "x": 203490.402516891,
+        "y": 544055.62740297,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000034980",
+      "name": "도곡역",
+      "lat": 37.4910412,
+      "lon": 127.0556534,
+      "district": "강남구",
+      "intersectionId": "628",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 826,
+      "sourceCoordinates": {
+        "x": 204921.762270319,
+        "y": 543511.268159818,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000046477",
+      "name": "양재역",
+      "lat": 37.484716,
+      "lon": 127.0339708,
+      "district": "강남구",
+      "intersectionId": "163",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 831,
+      "sourceCoordinates": {
+        "x": 203004.494835356,
+        "y": 542808.342029734,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000046478",
+      "name": "양재역",
+      "lat": 37.4844148,
+      "lon": 127.0341826,
+      "district": "강남구",
+      "intersectionId": "163",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 832,
+      "sourceCoordinates": {
+        "x": 203023.241930263,
+        "y": 542774.917566431,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000019766",
+      "name": "양재역",
+      "lat": 37.4843127,
+      "lon": 127.033855,
+      "district": "강남구",
+      "intersectionId": "163",
+      "crossingType": "이단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 833,
+      "sourceCoordinates": {
+        "x": 202994.265479194,
+        "y": 542763.578317903,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000019764",
+      "name": "양재역",
+      "lat": 37.4845302,
+      "lon": 127.0337663,
+      "district": "강남구",
+      "intersectionId": "163",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 834,
+      "sourceCoordinates": {
+        "x": 202986.419213237,
+        "y": 542787.717310416,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000037956",
+      "name": "양재역",
+      "lat": 37.4845933,
+      "lon": 127.0343865,
+      "district": "강남구",
+      "intersectionId": "163",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 835,
+      "sourceCoordinates": {
+        "x": 203041.266740215,
+        "y": 542794.737929622,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000019765",
+      "name": "양재역",
+      "lat": 37.4847061,
+      "lon": 127.0335487,
+      "district": "강남구",
+      "intersectionId": "163",
+      "crossingType": "이단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 836,
+      "sourceCoordinates": {
+        "x": 202967.159976551,
+        "y": 542807.232879919,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000038668",
+      "name": "명빌딩앞",
+      "lat": 37.4839187,
+      "lon": 127.0592751,
+      "district": "강남구",
+      "intersectionId": "6221",
+      "crossingType": "일단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 843,
+      "sourceCoordinates": {
+        "x": 205242.548584984,
+        "y": 542720.95882217,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008148",
+      "name": "명빌딩앞",
+      "lat": 37.4835085,
+      "lon": 127.059602,
+      "district": "강남구",
+      "intersectionId": "6221",
+      "crossingType": "이단(화살표없음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 844,
+      "sourceCoordinates": {
+        "x": 205271.491669526,
+        "y": 542675.4470525,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000037957",
+      "name": "양재역",
+      "lat": 37.484759,
+      "lon": 127.0343299,
+      "district": "강남구",
+      "intersectionId": "163",
+      "crossingType": "이단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 870,
+      "sourceCoordinates": {
+        "x": 203036.252671182,
+        "y": 542813.127849354,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007719",
+      "name": "싸리고개공원(연등)2",
+      "lat": 37.4911829,
+      "lon": 127.0369036,
+      "district": "강남구",
+      "intersectionId": "1758",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 891,
+      "sourceCoordinates": {
+        "x": 203263.602698494,
+        "y": 543526.175694483,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000054077",
+      "name": "개포1동우체국",
+      "lat": 37.4828247,
+      "lon": 127.0602324,
+      "district": "강남구",
+      "intersectionId": "8874",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 893,
+      "sourceCoordinates": {
+        "x": 205327.300009597,
+        "y": 542599.589254106,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000054090",
+      "name": "개원초교앞",
+      "lat": 37.4813927,
+      "lon": 127.0605414,
+      "district": "강남구",
+      "intersectionId": "8895",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 894,
+      "sourceCoordinates": {
+        "x": 205354.730247073,
+        "y": 542440.68030285,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000054088",
+      "name": "개원초교앞",
+      "lat": 37.4812394,
+      "lon": 127.0603264,
+      "district": "강남구",
+      "intersectionId": "8895",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 896,
+      "sourceCoordinates": {
+        "x": 205335.724635896,
+        "y": 542423.654909043,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000054089",
+      "name": "개원초교앞",
+      "lat": 37.4812612,
+      "lon": 127.0605219,
+      "district": "강남구",
+      "intersectionId": "8895",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 897,
+      "sourceCoordinates": {
+        "x": 205353.009861405,
+        "y": 542426.087136379,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000054087",
+      "name": "개원초교앞",
+      "lat": 37.4813769,
+      "lon": 127.0603423,
+      "district": "강남구",
+      "intersectionId": "8895",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 898,
+      "sourceCoordinates": {
+        "x": 205337.120633033,
+        "y": 542438.917987755,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000048943",
+      "name": "서광셀프주유소",
+      "lat": 37.4945304,
+      "lon": 127.0351918,
+      "district": "강남구",
+      "intersectionId": "8630",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 911,
+      "sourceCoordinates": {
+        "x": 203112.07474842,
+        "y": 543897.650116203,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000048946",
+      "name": "역삼초교",
+      "lat": 37.4942759,
+      "lon": 127.0337888,
+      "district": "강남구",
+      "intersectionId": "1742",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 912,
+      "sourceCoordinates": {
+        "x": 202988.018109584,
+        "y": 543869.359217491,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008873",
+      "name": "청실종합(연등)2",
+      "lat": 37.4922084,
+      "lon": 127.0578001,
+      "district": "강남구",
+      "intersectionId": "1773",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 942,
+      "sourceCoordinates": {
+        "x": 205111.534896905,
+        "y": 543640.927941993,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000052276",
+      "name": "신한은행역삼",
+      "lat": 37.4914519,
+      "lon": 127.0307365,
+      "district": "강남구",
+      "intersectionId": "5281",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 956,
+      "sourceCoordinates": {
+        "x": 202718.196195626,
+        "y": 543555.834854784,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007732",
+      "name": "개포경남아파트",
+      "lat": 37.4830211,
+      "lon": 127.0527227,
+      "district": "강남구",
+      "intersectionId": "1864",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 966,
+      "sourceCoordinates": {
+        "x": 204663.086530839,
+        "y": 542620.993111249,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007733",
+      "name": "개포경남아파트",
+      "lat": 37.4830678,
+      "lon": 127.0524932,
+      "district": "강남구",
+      "intersectionId": "1864",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 967,
+      "sourceCoordinates": {
+        "x": 204642.783069609,
+        "y": 542626.162208329,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000009063",
+      "name": "청운교회",
+      "lat": 37.4956,
+      "lon": 127.0462889,
+      "district": "강남구",
+      "intersectionId": "8707",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 974,
+      "sourceCoordinates": {
+        "x": 204093.353096407,
+        "y": 544016.790366026,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007005",
+      "name": "바디프랜드(경보)",
+      "lat": 37.4810122,
+      "lon": 127.0441142,
+      "district": "강남구",
+      "intersectionId": "7838",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 979,
+      "sourceCoordinates": {
+        "x": 203901.802554149,
+        "y": 542397.641397703,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000001589",
+      "name": "바디프랜드(경보)",
+      "lat": 37.4810936,
+      "lon": 127.0440289,
+      "district": "강남구",
+      "intersectionId": "7838",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 980,
+      "sourceCoordinates": {
+        "x": 203894.255206653,
+        "y": 542406.673311582,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007508",
+      "name": "역삼초교",
+      "lat": 37.494211,
+      "lon": 127.0333526,
+      "district": "강남구",
+      "intersectionId": "1742",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 983,
+      "sourceCoordinates": {
+        "x": 202949.445891654,
+        "y": 543862.144581918,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000052230",
+      "name": "래미안대치팰리스113동(경보)",
+      "lat": 37.4956494,
+      "lon": 127.0591755,
+      "district": "강남구",
+      "intersectionId": "7880",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 988,
+      "sourceCoordinates": {
+        "x": 205232.922907181,
+        "y": 544022.905393125,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008863",
+      "name": "도곡역(연등)2",
+      "lat": 37.4893843,
+      "lon": 127.0557183,
+      "district": "강남구",
+      "intersectionId": "5532",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 991,
+      "sourceCoordinates": {
+        "x": 204927.612717205,
+        "y": 543327.373532405,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000024094",
+      "name": "도곡역(연등)2",
+      "lat": 37.4895049,
+      "lon": 127.0556534,
+      "district": "강남구",
+      "intersectionId": "5532",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 992,
+      "sourceCoordinates": {
+        "x": 204921.868225707,
+        "y": 543340.760593512,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000052220",
+      "name": "래미안대치팰리스202동(경보)",
+      "lat": 37.4941027,
+      "lon": 127.0604738,
+      "district": "강남구",
+      "intersectionId": "7881",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 993,
+      "sourceCoordinates": {
+        "x": 205347.839921745,
+        "y": 543851.318207898,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000052222",
+      "name": "래미안대치팰리스202동(경보)",
+      "lat": 37.4942284,
+      "lon": 127.0603809,
+      "district": "강남구",
+      "intersectionId": "7881",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 994,
+      "sourceCoordinates": {
+        "x": 205339.615497114,
+        "y": 543865.265821498,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007730",
+      "name": "강남수도사업소",
+      "lat": 37.4833733,
+      "lon": 127.0478806,
+      "district": "강남구",
+      "intersectionId": "4728",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1007,
+      "sourceCoordinates": {
+        "x": 204234.800253148,
+        "y": 542659.858929487,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000037958",
+      "name": "양재역",
+      "lat": 37.4844003,
+      "lon": 127.0346607,
+      "district": "강남구",
+      "intersectionId": "163",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1008,
+      "sourceCoordinates": {
+        "x": 203065.52654311,
+        "y": 542773.327628154,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000052221",
+      "name": "래미안대치팰리스202동(경보)",
+      "lat": 37.4941295,
+      "lon": 127.0603547,
+      "district": "강남구",
+      "intersectionId": "7881",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1019,
+      "sourceCoordinates": {
+        "x": 205337.311339643,
+        "y": 543854.282090251,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000024068",
+      "name": "타워팰리스입구",
+      "lat": 37.4870526,
+      "lon": 127.0539996,
+      "district": "강남구",
+      "intersectionId": "5432",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1034,
+      "sourceCoordinates": {
+        "x": 204775.762820138,
+        "y": 543068.501319078,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008248",
+      "name": "타워팰리스입구",
+      "lat": 37.4870674,
+      "lon": 127.0537671,
+      "district": "강남구",
+      "intersectionId": "5432",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1035,
+      "sourceCoordinates": {
+        "x": 204755.202279832,
+        "y": 543070.135045937,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000054093",
+      "name": "개원초교앞",
+      "lat": 37.4817543,
+      "lon": 127.060802,
+      "district": "강남구",
+      "intersectionId": "8895",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1043,
+      "sourceCoordinates": {
+        "x": 205377.753708008,
+        "y": 542480.828640417,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000054092",
+      "name": "개원초교앞",
+      "lat": 37.4815556,
+      "lon": 127.0609257,
+      "district": "강남구",
+      "intersectionId": "8895",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1045,
+      "sourceCoordinates": {
+        "x": 205388.707865159,
+        "y": 542458.778310598,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000052223",
+      "name": "래미안대치팰리스202동(경보)",
+      "lat": 37.4942032,
+      "lon": 127.0605226,
+      "district": "강남구",
+      "intersectionId": "7881",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1047,
+      "sourceCoordinates": {
+        "x": 205352.155853346,
+        "y": 543862.477222017,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000052226",
+      "name": "래미안대치팰리스113동(경보)",
+      "lat": 37.4956387,
+      "lon": 127.0593664,
+      "district": "강남구",
+      "intersectionId": "7880",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1048,
+      "sourceCoordinates": {
+        "x": 205249.801650995,
+        "y": 544021.730786016,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000034609",
+      "name": "개포현대1차아파트(연등)",
+      "lat": 37.4824302,
+      "lon": 127.0554277,
+      "district": "강남구",
+      "intersectionId": "1862",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1049,
+      "sourceCoordinates": {
+        "x": 204902.369255698,
+        "y": 542555.548815612,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007834",
+      "name": "구룡초교",
+      "lat": 37.4809145,
+      "lon": 127.0539173,
+      "district": "강남구",
+      "intersectionId": "1863",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1057,
+      "sourceCoordinates": {
+        "x": 204768.876593694,
+        "y": 542387.247618995,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000032232",
+      "name": "매봉터널",
+      "lat": 37.4883099,
+      "lon": 127.0496518,
+      "district": "강남구",
+      "intersectionId": "1771",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1066,
+      "sourceCoordinates": {
+        "x": 204391.162840652,
+        "y": 543207.833188692,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000051056",
+      "name": "역삼금호어울림(연등)",
+      "lat": 37.4920314,
+      "lon": 127.0343962,
+      "district": "강남구",
+      "intersectionId": "8931",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1075,
+      "sourceCoordinates": {
+        "x": 203041.826700055,
+        "y": 543620.270816685,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000052275",
+      "name": "신한은행역삼",
+      "lat": 37.4914099,
+      "lon": 127.0306028,
+      "district": "강남구",
+      "intersectionId": "5281",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1083,
+      "sourceCoordinates": {
+        "x": 202706.3729123,
+        "y": 543551.175123452,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000009001",
+      "name": "청실종합(연등)2",
+      "lat": 37.4921973,
+      "lon": 127.0581754,
+      "district": "강남구",
+      "intersectionId": "1773",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1093,
+      "sourceCoordinates": {
+        "x": 205144.718649339,
+        "y": 543639.719259739,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000053559",
+      "name": "역삼우체국",
+      "lat": 37.4958178,
+      "lon": 127.0325866,
+      "district": "강남구",
+      "intersectionId": "1788",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1096,
+      "sourceCoordinates": {
+        "x": 202881.641975218,
+        "y": 544040.451590585,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007835",
+      "name": "구룡초교입구",
+      "lat": 37.4806972,
+      "lon": 127.0529604,
+      "district": "강남구",
+      "intersectionId": "4810",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1103,
+      "sourceCoordinates": {
+        "x": 204684.247952328,
+        "y": 542363.087734212,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007315",
+      "name": "청실종합",
+      "lat": 37.4930337,
+      "lon": 127.0596081,
+      "district": "강남구",
+      "intersectionId": "1774",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1106,
+      "sourceCoordinates": {
+        "x": 205271.362545278,
+        "y": 543732.628146862,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007316",
+      "name": "청실종합",
+      "lat": 37.4928167,
+      "lon": 127.0595273,
+      "district": "강남구",
+      "intersectionId": "1774",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1107,
+      "sourceCoordinates": {
+        "x": 205264.236563835,
+        "y": 543708.5388558,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000024069",
+      "name": "타워팰리스입구",
+      "lat": 37.4868686,
+      "lon": 127.0537217,
+      "district": "강남구",
+      "intersectionId": "5432",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1136,
+      "sourceCoordinates": {
+        "x": 204751.198838446,
+        "y": 543048.061149405,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008249",
+      "name": "우성캐릭터199(경보)",
+      "lat": 37.4864156,
+      "lon": 127.0529605,
+      "district": "강남구",
+      "intersectionId": "4726",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1137,
+      "sourceCoordinates": {
+        "x": 204683.90684431,
+        "y": 542997.752690434,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008963",
+      "name": "강남수도사업소",
+      "lat": 37.4831081,
+      "lon": 127.0474464,
+      "district": "강남구",
+      "intersectionId": "4728",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1138,
+      "sourceCoordinates": {
+        "x": 204196.417931305,
+        "y": 542630.405883532,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000024092",
+      "name": "도곡역(연등)2",
+      "lat": 37.4896403,
+      "lon": 127.0558083,
+      "district": "강남구",
+      "intersectionId": "5532",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1140,
+      "sourceCoordinates": {
+        "x": 204935.552454506,
+        "y": 543355.799280159,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000052231",
+      "name": "래미안대치팰리스113동(경보)",
+      "lat": 37.4958345,
+      "lon": 127.0593438,
+      "district": "강남구",
+      "intersectionId": "7880",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1141,
+      "sourceCoordinates": {
+        "x": 205247.792405265,
+        "y": 544043.456539548,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007612",
+      "name": "우리은행역삼",
+      "lat": 37.4934417,
+      "lon": 127.0402271,
+      "district": "강남구",
+      "intersectionId": "1800",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1142,
+      "sourceCoordinates": {
+        "x": 203557.407806158,
+        "y": 543777.002669198,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007837",
+      "name": "개포현대1차아파트",
+      "lat": 37.4819692,
+      "lon": 127.0548058,
+      "district": "강남구",
+      "intersectionId": "4814",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1143,
+      "sourceCoordinates": {
+        "x": 204847.389134555,
+        "y": 542504.348799833,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000034983",
+      "name": "청실종합(연등)2",
+      "lat": 37.4921126,
+      "lon": 127.0584019,
+      "district": "강남구",
+      "intersectionId": "1773",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1151,
+      "sourceCoordinates": {
+        "x": 205164.754965407,
+        "y": 543630.332196705,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000009003",
+      "name": "청실종합(연등)2",
+      "lat": 37.4924578,
+      "lon": 127.0583349,
+      "district": "강남구",
+      "intersectionId": "1773",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1152,
+      "sourceCoordinates": {
+        "x": 205158.806496082,
+        "y": 543668.640161224,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000024047",
+      "name": "청실종합",
+      "lat": 37.4928199,
+      "lon": 127.0591473,
+      "district": "강남구",
+      "intersectionId": "1774",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1198,
+      "sourceCoordinates": {
+        "x": 205230.630827883,
+        "y": 543708.873771115,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007313",
+      "name": "청실종합(연등)1",
+      "lat": 37.4936054,
+      "lon": 127.0608498,
+      "district": "강남구",
+      "intersectionId": "1775",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1204,
+      "sourceCoordinates": {
+        "x": 205381.129799969,
+        "y": 543796.141887167,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007832",
+      "name": "구룡초교",
+      "lat": 37.4812507,
+      "lon": 127.0536634,
+      "district": "강남구",
+      "intersectionId": "1863",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1212,
+      "sourceCoordinates": {
+        "x": 204746.397104144,
+        "y": 542424.553532184,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007838",
+      "name": "개포현대1차아파트(연등)",
+      "lat": 37.4818993,
+      "lon": 127.0551027,
+      "district": "강남구",
+      "intersectionId": "1862",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1213,
+      "sourceCoordinates": {
+        "x": 204873.652974432,
+        "y": 542496.613015746,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007839",
+      "name": "개포현대1차아파트(연등)",
+      "lat": 37.4820706,
+      "lon": 127.0551157,
+      "district": "강남구",
+      "intersectionId": "1862",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1214,
+      "sourceCoordinates": {
+        "x": 204874.7973734,
+        "y": 542515.620687336,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000054075",
+      "name": "개포우성3차아파트",
+      "lat": 37.4833178,
+      "lon": 127.0568078,
+      "district": "강남구",
+      "intersectionId": "1861",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1215,
+      "sourceCoordinates": {
+        "x": 205024.372548727,
+        "y": 542654.135355361,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007977",
+      "name": "양재전화국",
+      "lat": 37.4855247,
+      "lon": 127.0410988,
+      "district": "강남구",
+      "intersectionId": "188",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1236,
+      "sourceCoordinates": {
+        "x": 203634.883716114,
+        "y": 542898.352601411,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000019257",
+      "name": "도곡1동주민센타",
+      "lat": 37.4924788,
+      "lon": 127.0411423,
+      "district": "강남구",
+      "intersectionId": "1760",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1237,
+      "sourceCoordinates": {
+        "x": 203638.387772161,
+        "y": 543670.16696115,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000019258",
+      "name": "도곡1동주민센타",
+      "lat": 37.4923316,
+      "lon": 127.0406582,
+      "district": "강남구",
+      "intersectionId": "1760",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1238,
+      "sourceCoordinates": {
+        "x": 203595.5880789,
+        "y": 543653.805710992,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007304",
+      "name": "도곡1동주민센타",
+      "lat": 37.4925913,
+      "lon": 127.0408073,
+      "district": "강남구",
+      "intersectionId": "1760",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1239,
+      "sourceCoordinates": {
+        "x": 203608.75637453,
+        "y": 543682.640025026,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008259",
+      "name": "개포우성3차아파트",
+      "lat": 37.4833712,
+      "lon": 127.0570759,
+      "district": "강남구",
+      "intersectionId": "1861",
+      "crossingType": "일단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1243,
+      "sourceCoordinates": {
+        "x": 205048.082524573,
+        "y": 542660.070311909,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008258",
+      "name": "개포우성3차아파트",
+      "lat": 37.4839317,
+      "lon": 127.0573462,
+      "district": "강남구",
+      "intersectionId": "1861",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1244,
+      "sourceCoordinates": {
+        "x": 205071.950635572,
+        "y": 542722.294193476,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008257",
+      "name": "개포우성3차아파트(연등)",
+      "lat": 37.4841217,
+      "lon": 127.05735,
+      "district": "강남구",
+      "intersectionId": "4815",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1245,
+      "sourceCoordinates": {
+        "x": 205072.276955811,
+        "y": 542743.384550805,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008256",
+      "name": "개포고교",
+      "lat": 37.4850792,
+      "lon": 127.0578112,
+      "district": "강남구",
+      "intersectionId": "1859",
+      "crossingType": "이단(화살표없음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1246,
+      "sourceCoordinates": {
+        "x": 205112.994763754,
+        "y": 542849.678616187,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008146",
+      "name": "개포고교",
+      "lat": 37.4851231,
+      "lon": 127.058274,
+      "district": "강남구",
+      "intersectionId": "1859",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1247,
+      "sourceCoordinates": {
+        "x": 205153.927561265,
+        "y": 542854.577043091,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000019509",
+      "name": "개포고교",
+      "lat": 37.4846616,
+      "lon": 127.057919,
+      "district": "강남구",
+      "intersectionId": "1859",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1248,
+      "sourceCoordinates": {
+        "x": 205122.558190231,
+        "y": 542803.337355903,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000008147",
+      "name": "개포고교",
+      "lat": 37.4846927,
+      "lon": 127.0581626,
+      "district": "강남구",
+      "intersectionId": "1859",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1249,
+      "sourceCoordinates": {
+        "x": 205144.101519962,
+        "y": 542806.798217624,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000023972",
+      "name": "도곡역",
+      "lat": 37.490704,
+      "lon": 127.0554467,
+      "district": "강남구",
+      "intersectionId": "628",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1325,
+      "sourceCoordinates": {
+        "x": 204903.508153151,
+        "y": 543473.831256175,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000032231",
+      "name": "매봉터널",
+      "lat": 37.4880909,
+      "lon": 127.0497211,
+      "district": "강남구",
+      "intersectionId": "1771",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1326,
+      "sourceCoordinates": {
+        "x": 204397.305010598,
+        "y": 543183.527853406,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000032230",
+      "name": "매봉터널",
+      "lat": 37.4882194,
+      "lon": 127.0499447,
+      "district": "강남구",
+      "intersectionId": "1771",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1327,
+      "sourceCoordinates": {
+        "x": 204417.076514341,
+        "y": 543197.80522915,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000032229",
+      "name": "매봉터널",
+      "lat": 37.4883315,
+      "lon": 127.0501619,
+      "district": "강남구",
+      "intersectionId": "1771",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1328,
+      "sourceCoordinates": {
+        "x": 204436.274149021,
+        "y": 543210.250231891,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000032236",
+      "name": "매봉터널",
+      "lat": 37.4884844,
+      "lon": 127.0500333,
+      "district": "강남구",
+      "intersectionId": "1771",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1329,
+      "sourceCoordinates": {
+        "x": 204424.900053702,
+        "y": 543227.221234217,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000032235",
+      "name": "매봉터널",
+      "lat": 37.4887298,
+      "lon": 127.0499315,
+      "district": "강남구",
+      "intersectionId": "1771",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1330,
+      "sourceCoordinates": {
+        "x": 204415.880283344,
+        "y": 543254.447291117,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000032234",
+      "name": "매봉터널",
+      "lat": 37.488588,
+      "lon": 127.0497543,
+      "district": "강남구",
+      "intersectionId": "1771",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1331,
+      "sourceCoordinates": {
+        "x": 204400.217933777,
+        "y": 543238.702756939,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000032233",
+      "name": "매봉터널",
+      "lat": 37.4884826,
+      "lon": 127.0495314,
+      "district": "강남구",
+      "intersectionId": "1771",
+      "crossingType": "이단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 1332,
+      "sourceCoordinates": {
+        "x": 204380.5078125,
+        "y": 543226.999998886,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007980",
+      "name": "양재전화국",
+      "lat": 37.4853274,
+      "lon": 127.0414172,
+      "district": "강남구",
+      "intersectionId": "188",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1333,
+      "sourceCoordinates": {
+        "x": 203663.049185418,
+        "y": 542876.467647034,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007833",
+      "name": "구룡초교",
+      "lat": 37.4809266,
+      "lon": 127.0535815,
+      "district": "강남구",
+      "intersectionId": "1863",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 1339,
+      "sourceCoordinates": {
+        "x": 204739.171083877,
+        "y": 542388.57383261,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000003942",
+      "name": "영동2교북단",
+      "lat": 37.4820917,
+      "lon": 127.043102,
+      "district": "서초구",
+      "intersectionId": "1777",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 11762,
+      "sourceCoordinates": {
+        "x": 203812.219535466,
+        "y": 542517.405742337,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007000",
+      "name": "영동2교북단",
+      "lat": 37.4822825,
+      "lon": 127.043033,
+      "district": "서초구",
+      "intersectionId": "1777",
+      "crossingType": "이단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 11867,
+      "sourceCoordinates": {
+        "x": 203806.112620413,
+        "y": 542538.587863787,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000006861",
+      "name": "영동2교북단(연등)",
+      "lat": 37.4807796,
+      "lon": 127.0417174,
+      "district": "서초구",
+      "intersectionId": "7927",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 11986,
+      "sourceCoordinates": {
+        "x": 203689.828627502,
+        "y": 542371.731029999,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000006862",
+      "name": "영동2교북단(연등)",
+      "lat": 37.4808153,
+      "lon": 127.0420855,
+      "district": "서초구",
+      "intersectionId": "7927",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 11987,
+      "sourceCoordinates": {
+        "x": 203722.378135841,
+        "y": 542375.705724372,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000006999",
+      "name": "영동2교북단",
+      "lat": 37.4821289,
+      "lon": 127.0428602,
+      "district": "서초구",
+      "intersectionId": "1777",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 11988,
+      "sourceCoordinates": {
+        "x": 203790.831624778,
+        "y": 542521.5300231,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000005627",
+      "name": "영동2교북단",
+      "lat": 37.4817775,
+      "lon": 127.0427973,
+      "district": "서초구",
+      "intersectionId": "1777",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 12017,
+      "sourceCoordinates": {
+        "x": 203785.29085568,
+        "y": 542482.521264762,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007990",
+      "name": "광성빌딩",
+      "lat": 37.4837958,
+      "lon": 127.0422447,
+      "district": "서초구",
+      "intersectionId": "1802",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 12019,
+      "sourceCoordinates": {
+        "x": 203736.310209024,
+        "y": 542706.503357175,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007991",
+      "name": "광성빌딩",
+      "lat": 37.4836866,
+      "lon": 127.0421483,
+      "district": "서초구",
+      "intersectionId": "1802",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 12020,
+      "sourceCoordinates": {
+        "x": 203727.790850438,
+        "y": 542694.38806274,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000046475",
+      "name": "한미은행양재(연등)",
+      "lat": 37.48678,
+      "lon": 127.0328808,
+      "district": "서초구",
+      "intersectionId": "7212",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 12207,
+      "sourceCoordinates": {
+        "x": 202908.01468233,
+        "y": 543037.387582089,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007002",
+      "name": "영동2교북단",
+      "lat": 37.4817686,
+      "lon": 127.0430231,
+      "district": "서초구",
+      "intersectionId": "1777",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 12316,
+      "sourceCoordinates": {
+        "x": 203805.261276184,
+        "y": 542481.548934066,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000022330",
+      "name": "서초구민회관(연등)",
+      "lat": 37.4825929,
+      "lon": 127.0361714,
+      "district": "서초구",
+      "intersectionId": "7173",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 12369,
+      "sourceCoordinates": {
+        "x": 203199.213905181,
+        "y": 542572.782263842,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000007263",
+      "name": "서초구민회관",
+      "lat": 37.4822695,
+      "lon": 127.0360722,
+      "district": "서초구",
+      "intersectionId": "1132",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 12371,
+      "sourceCoordinates": {
+        "x": 203190.455599434,
+        "y": 542536.876970362,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000022323",
+      "name": "한미은행양재(연등)",
+      "lat": 37.4868465,
+      "lon": 127.0331097,
+      "district": "서초구",
+      "intersectionId": "7212",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 12372,
+      "sourceCoordinates": {
+        "x": 202928.253633967,
+        "y": 543044.767042965,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000022327",
+      "name": "서초구민회관",
+      "lat": 37.4820768,
+      "lon": 127.0364537,
+      "district": "서초구",
+      "intersectionId": "1132",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 12375,
+      "sourceCoordinates": {
+        "x": 203224.203000983,
+        "y": 542515.503674321,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000006864",
+      "name": "영동2교북단",
+      "lat": 37.4816119,
+      "lon": 127.042895,
+      "district": "서초구",
+      "intersectionId": "1777",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 12447,
+      "sourceCoordinates": {
+        "x": 203793.938874707,
+        "y": 542464.147297933,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000050409",
+      "name": "서초구민회관",
+      "lat": 37.4822039,
+      "lon": 127.0366497,
+      "district": "서초구",
+      "intersectionId": "1132",
+      "crossingType": "일단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 12616,
+      "sourceCoordinates": {
+        "x": 203241.533955709,
+        "y": 542529.622886924,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000052447",
+      "name": "영동2교북단(연등)",
+      "lat": 37.4809694,
+      "lon": 127.0420675,
+      "district": "서초구",
+      "intersectionId": "7927",
+      "crossingType": "이단(화살표있음)",
+      "pedestrianSignal": "유",
+      "sourceRow": 12751,
+      "sourceCoordinates": {
+        "x": 203720.784150342,
+        "y": 542392.81045515,
+        "crs": "EPSG:5186"
+      }
+    },
+    {
+      "id": "06-0000055059",
+      "name": "서초구민회관(연등)",
+      "lat": 37.4824711,
+      "lon": 127.0359816,
+      "district": "서초구",
+      "intersectionId": "7173",
+      "crossingType": "일단(화살표없음)",
+      "pedestrianSignal": "무",
+      "sourceRow": 12841,
+      "sourceCoordinates": {
+        "x": 203182.43685033,
+        "y": 542559.249410628,
+        "crs": "EPSG:5186"
+      }
+    }
+  ],
+  "coordinateReference": {
+    "sourceCrs": "EPSG:5186",
+    "outputCrs": "EPSG:4326",
+    "axisMapping": "원본 H(X)=easting, I(Y)=northing; always_xy=True",
+    "basis": "OA-23081 파일 자체에는 좌표계 표기가 없다. EPSG:5186을 명시한 OA-15554에서 동일 횡단보도 관리번호와 X/Y가 일치하는 것을 직접 확인한 뒤 적용했다.",
+    "referenceUrl": "https://data.seoul.go.kr/dataList/OA-15554/S/1/datasetView.do",
+    "referenceEndpoint": "https://data.seoul.go.kr/dataList/dataView.do",
+    "anchor": {
+      "id": "06-0000041021",
+      "name": "서울대입구역사거리",
+      "x": 195827.665709564,
+      "y": 542445.787599042,
+      "lat": 37.48144482136103,
+      "lon": 126.95282690129902
+    },
+    "anchorResponseSha256": "beff7bbcc347eea2986f73e16abb8f3ae0e05efd4de9fb88b84c6608324b6103",
+    "library": "pyproj 3.8.0",
+    "projectionLibrary": "9.8.1",
+    "roundTripToleranceMeters": 0.01
+  },
+  "coverage": {
+    "sourceDataRows": 21776,
+    "candidateDistrictRows": 2616,
+    "bboxPoints": 232,
+    "invalidCoordinateRows": [],
+    "distinctOutputCoordinates": 232,
+    "coincidentCoordinateGroups": 0
+  },
+  "limitations": [
+    "2026-08-24 기준 공개 시설 목록이며 현재 운영·폐쇄·공사 상태를 확인한 자료가 아니다.",
+    "시설별 제공 위치점이다. 횡단보도의 양 끝점·폭·전체 선형으로 해석하거나 OSM 보행 연결을 자동 생성하지 않는다.",
+    "같은 교차로의 여러 횡단보도는 이름이 같을 수 있다. 관리번호를 별개로 보존한다.",
+    "원문에 보행등 유/무가 제공되어 그대로 보존한다. 현재 신호나 보행 허용을 뜻하지 않는다.",
+    "좌표계는 공식 동일시설 좌표 앵커로 대조했다. 변환 수치 정밀도는 원자료의 현장 위치 정확도를 보증하지 않는다."
+  ]
+}

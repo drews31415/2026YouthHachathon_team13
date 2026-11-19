@@ -24,6 +24,10 @@ export interface WalkSegment {
   direction: 'both' | 'forward' | 'backward';
 }
 export interface ShadingBuilding { osmId: number; heightM: number; footprint: Coordinate[]; }
+export interface ShadeSurface {
+  lon: number; lat: number; stepLon: number; stepLat: number;
+  width: number; height: number; elevation: number[];
+}
 export interface Network {
   nodes: WalkNode[]; segments: WalkSegment[]; places: Place[];
   bounds: [Coordinate, Coordinate]; source: string; provenance: SourceProvenance;
@@ -32,6 +36,8 @@ export interface Network {
   entranceConnections?: { sourceRecordCount: number; added: number; duplicateIds: number; outsideBounds: number; unconnected: { sourceId: string; reason: string }[] };
   subwayEntranceSource?: { source: string; endpoint: string; osmTimestamp: string; extractedAt: string; sourceSha256: string; sourceRecordsSha256: string; license: string; licenseUrl: string };
   shadingBuildings?: ShadingBuilding[];
+  expandedShadingBuildings?: ShadingBuilding[];
+  shadeSurface?: ShadeSurface;
 }
 
 export interface OsmEntranceDataset {

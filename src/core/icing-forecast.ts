@@ -1,4 +1,4 @@
-import type { Coordinate, Network, OsmElement, ShadingBuilding } from './types';
+import type { Coordinate, Network, OsmElement, ShadingBuilding, ShadeSurface } from './types';
 import additionalBuildings from '../icing-buildings.json';
 import surface from '../icing-surface.json';
 
@@ -52,10 +52,11 @@ function contains([x, y]: Coordinate, polygon: Coordinate[]) {
   return inside;
 }
 
-export interface ShadedSection { segmentId: string; coordinates: [Coordinate, Coordinate]; buildingId: number | null; }
+export interface ShadedSection { segmentId: string; coordinates: [Coordinate, Coordinate]; buildingId: number | null; bridge?: boolean; }
 export interface ShadeEstimate { sunTooLow: boolean; sections: ShadedSection[]; }
 
-export function liveShadingBuildings(network: Pick<Network, 'shadingBuildings' | 'provenance'>): ShadingBuilding[] {
+export function liveShadingBuildings(network: Pick<Network, 'shadingBuildings' | 'expandedShadingBuildings' | 'provenance'>): ShadingBuilding[] {
+  if (network.expandedShadingBuildings) return network.expandedShadingBuildings;
   if (network.provenance.sourceFileSha256 !== additionalBuildings.sourceSha256) return network.shadingBuildings ?? [];
   return additionalBuildings.buildings.map(building => ({
     osmId: building.osmId, heightM: building.heightM,
@@ -64,43 +65,45 @@ export function liveShadingBuildings(network: Pick<Network, 'shadingBuildings' |
 }
 
 export const surfaceShadeSource = { url: surface.licenseUrl, attribution: surface.attribution };
-const surfaceHeight = (column: number, row: number) =>
-  column >= 0 && column < surface.width && row >= 0 && row < surface.height
-    ? surface.elevation[row * surface.width + column] : undefined;
+const surfaceHeight = (grid: ShadeSurface, column: number, row: number) =>
+  column >= 0 && column < grid.width && row >= 0 && row < grid.height
+    ? grid.elevation[row * grid.width + column] : undefined;
 
 // The DSM includes vegetation and structures. Ignore the first 150 m of
 // cells so nearby buildings use their separately registered OSM profiles.
-function shadedBySurface([lon, lat]: Coordinate, sun: ReturnType<typeof sunPosition>, lonScale: number) {
-  const originX = (lon - surface.lon) / surface.stepLon, originY = (surface.lat - lat) / surface.stepLat;
+function shadedBySurface(grid: ShadeSurface, [lon, lat]: Coordinate, sun: ReturnType<typeof sunPosition>, lonScale: number) {
+  const originX = (lon - grid.lon) / grid.stepLon, originY = (grid.lat - lat) / grid.stepLat;
   const column = Math.round(originX), row = Math.round(originY);
-  const start = surfaceHeight(column, row);
+  const start = surfaceHeight(grid, column, row);
   if (start === undefined) return false;
   let base = start;
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-    base = Math.min(base, surfaceHeight(column + dx, row + dy) ?? base);
+    base = Math.min(base, surfaceHeight(grid, column + dx, row + dy) ?? base);
   }
   const horizontal = Math.hypot(sun.east, sun.north);
   if (horizontal < 1e-4) return false;
   const rise = sun.up / horizontal;
-  const eastPerM = sun.east / horizontal / (lonScale * surface.stepLon);
-  const northPerM = sun.north / horizontal / (metersPerDegree * surface.stepLat);
+  const eastPerM = sun.east / horizontal / (lonScale * grid.stepLon);
+  const northPerM = sun.north / horizontal / (metersPerDegree * grid.stepLat);
   for (let distance = 150; distance <= 2500; distance += 20) {
-    const elevation = surfaceHeight(Math.round(originX + distance * eastPerM), Math.round(originY - distance * northPerM));
+    const elevation = surfaceHeight(grid, Math.round(originX + distance * eastPerM), Math.round(originY - distance * northPerM));
     if (elevation !== undefined && elevation > base + distance * rise + 3) return true;
   }
   return false;
 }
 
 /** Project registered building profiles onto locally flat ground. */
-export function estimateBuildingShade(network: Pick<Network, 'bounds' | 'segments' | 'shadingBuildings' | 'provenance'>, timeMs: number, expanded = false): ShadeEstimate {
+export function estimateBuildingShade(network: Pick<Network, 'bounds' | 'segments' | 'shadingBuildings' | 'expandedShadingBuildings' | 'shadeSurface' | 'provenance'>, timeMs: number, expanded = false): ShadeEstimate {
   const [[west, south], [east, north]] = network.bounds;
   const center: Coordinate = [(west + east) / 2, (south + north) / 2];
   const sun = sunPosition(timeMs, center);
-  if (!(sun.up >= Math.sin(minSolarElevation))) return { sunTooLow: true, sections: [] };
+  const sunTooLow = !(sun.up >= Math.sin(minSolarElevation));
+  if (sunTooLow && !expanded) return { sunTooLow, sections: [] };
 
   const lonScale = metersPerDegree * Math.cos(radians(center[1]));
   const project = ([lon, lat]: Coordinate): Coordinate => [(lon - center[0]) * lonScale, (lat - center[1]) * metersPerDegree];
-  const buildings = expanded ? liveShadingBuildings(network) : network.shadingBuildings ?? [];
+  const buildings = sunTooLow ? [] : expanded ? liveShadingBuildings(network) : network.shadingBuildings ?? [];
+  const grid = network.shadeSurface ?? surface;
   const shadows = buildings.map(building => {
     const footprint = building.footprint.map(project);
     const moved = footprint.map(([x, y]): Coordinate => [x - building.heightM * sun.east / sun.up, y - building.heightM * sun.north / sun.up]);
@@ -119,8 +122,13 @@ export function estimateBuildingShade(network: Pick<Network, 'bounds' | 'segment
     const { highway, indoor, covered, tunnel, bridge, location } = segment.tags;
     if (!['footway', 'pedestrian', 'path', 'steps'].includes(highway) || covered === 'yes' ||
         (indoor && indoor !== 'no') || (tunnel && tunnel !== 'no') ||
-        (bridge && bridge !== 'no') || location === 'underground') continue;
+        location === 'underground') continue;
     const [start, end] = segment.coordinates;
+    if (bridge && bridge !== 'no') {
+      if (expanded) sections.push({ segmentId: segment.id, coordinates: [start, end], buildingId: null, bridge: true });
+      continue;
+    }
+    if (sunTooLow) continue;
     const [px, py] = project(start), [qx, qy] = project(end);
     const nearby = shadows.filter(s => s.minX <= Math.max(px, qx) && s.maxX >= Math.min(px, qx)
       && s.minY <= Math.max(py, qy) && s.maxY >= Math.min(py, qy));
@@ -137,7 +145,7 @@ export function estimateBuildingShade(network: Pick<Network, 'bounds' | 'segment
       const building = nearby.find(shadow => point[0] >= shadow.minX && point[0] <= shadow.maxX
         && point[1] >= shadow.minY && point[1] <= shadow.maxY
         && !contains(point, shadow.footprint) && shadow.sides.some(side => contains(point, side)));
-      if (!building && !(expanded && shadedBySurface(coordinate, sun, lonScale))) { previous = undefined; continue; }
+      if (!building && !(expanded && shadedBySurface(grid, coordinate, sun, lonScale))) { previous = undefined; continue; }
       const buildingId = building?.id ?? null;
       const finish = along((index + 1) / samples);
       if (previous && previous.buildingId === buildingId) previous.coordinates[1] = finish;
@@ -147,5 +155,5 @@ export function estimateBuildingShade(network: Pick<Network, 'bounds' | 'segment
       }
     }
   }
-  return { sunTooLow: false, sections };
+  return { sunTooLow, sections };
 }

@@ -187,7 +187,7 @@ export function buildNetwork(payload: OsmPayload, provenance: SourceProvenance):
       if (from === to || lengthM <= 0) continue;
       segments.push({
         id: `way/${element.id}:${index}`, wayId: String(element.id), from, to,
-        name: tags['name:ko'] || tags.name || '이름이 등록되지 않은 OSM 구간',
+        name: tags['name:ko'] || tags.name || tags['bridge:name'] || '이름이 등록되지 않은 OSM 구간',
         coordinates: [a.coordinate, b.coordinate], lengthM, slope, stairs, direction,
         source: `https://www.openstreetmap.org/way/${element.id}`, tags,
       });
