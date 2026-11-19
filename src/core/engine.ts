@@ -178,7 +178,7 @@ export function searchRoutes(network: Network, options: SearchOptions): SearchRe
   const path = shortestPath(network, options.origin.nodeId, options.destination.nodeId, options);
   if (!path?.length) return fail('no-route', options.avoidStairs || options.maxSlopePercent !== null
     ? '선택한 계단·경사 조건을 확인할 수 있는 연결 경로가 없습니다. 정보가 없는 구간도 제외됩니다.'
-    : '수집된 OSM 자료에서 두 연결점을 잇는 보행 경로를 찾지 못했습니다. 횡단시설·접근권한·자료 누락을 확인해야 합니다.');
+    : '공개 지도에서 두 위치를 잇는 보행로를 찾지 못했습니다. 보행로가 표시된 다른 출발지나 목적지를 선택해 주세요.');
   const normal = buildRoute(path, options.walkingSpeedMps, run);
   return fail('no-recommendation', '실제 OSM 도로망의 일반 경로입니다. 출발·도착 위치에서 도로 연결점까지의 접근 구간은 제외합니다.', normal);
 }

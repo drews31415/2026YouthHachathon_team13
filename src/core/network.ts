@@ -4,6 +4,7 @@ import { buildingsWithHeight } from './icing-forecast';
 // Tag semantics checked against the public OSM documentation:
 // https://wiki.openstreetmap.org/wiki/Key:access
 // https://wiki.openstreetmap.org/wiki/Key:oneway:foot
+// https://wiki.openstreetmap.org/wiki/Key:sidewalk
 // https://wiki.openstreetmap.org/wiki/Key:incline
 // The conservative exclusions below are routing policy, not additional observations.
 
@@ -11,7 +12,8 @@ const EARTH_RADIUS_M = 6_371_008.8;
 export const MAX_SNAP_DISTANCE_M = 80;
 const ALLOWED_FOOT = new Set(['yes', 'designated', 'permissive', 'official', 'public']);
 const RESTRICTED_ACCESS = new Set(['no', 'private', 'customers', 'delivery', 'destination', 'permit', 'agricultural', 'forestry', 'use_sidepath']);
-const PUBLIC_ROAD_CLASSES = new Set(['footway', 'pedestrian', 'path', 'steps', 'living_street', 'residential', 'service', 'unclassified', 'tertiary', 'tertiary_link', 'secondary', 'secondary_link', 'primary', 'primary_link', 'road', 'track']);
+const WALKWAY_CLASSES = new Set(['footway', 'pedestrian', 'path', 'steps']);
+const MOTOR_ACCESS_KEYS = ['vehicle', 'motor_vehicle', 'motorcar', 'motorcycle'];
 const radians = (degrees: number) => degrees * Math.PI / 180;
 
 /** Geodesic calculation only: no elevation, shade or moisture is fabricated. */
@@ -33,21 +35,21 @@ export function coordinateInside(coordinate: Coordinate, bounds: Network['bounds
   return coordinate[0] >= west && coordinate[0] <= east && coordinate[1] >= south && coordinate[1] <= north;
 }
 
-/** Explicit foot permissions override general access; unresolved conditional rules are excluded. */
+/** Map only pedestrian geometry. Foot permission or sidewalk tags on a roadway do not locate a sidewalk. */
 export function isFootAccessible(tags: Record<string, string>): boolean {
   const highway = tags.highway;
-  if (!highway || tags.area === 'yes' || ['construction', 'proposed', 'motorway', 'motorway_link'].includes(highway)) return false;
-  if (tags['foot:conditional'] || tags['access:conditional']) return false;
-  const foot = tags.foot?.toLowerCase();
-  const access = tags.access?.toLowerCase();
-  if (foot && RESTRICTED_ACCESS.has(foot)) return false;
-  if (foot && ALLOWED_FOOT.has(foot)) return true;
-  if (access && RESTRICTED_ACCESS.has(access)) return false;
-  if (access && !ALLOWED_FOOT.has(access)) return false;
-  // A bicycle-only route needs an explicit pedestrian permission.
-  if (highway === 'cycleway' || highway === 'trunk' || highway === 'trunk_link' || highway === 'bridleway') return false;
+  const foot = tags.foot?.trim().toLowerCase();
+  const sharedCycleway = highway === 'cycleway' && !!foot && ALLOWED_FOOT.has(foot);
+  if ((!WALKWAY_CLASSES.has(highway) && !sharedCycleway) || tags.area === 'yes') return false;
+  if (tags['foot:conditional'] || tags['access:conditional'] || MOTOR_ACCESS_KEYS.some(key => tags[key + ':conditional'])) return false;
+  // More specific vehicle tags override the broad vehicle access tag.
+  const motorcar = (tags.motorcar ?? tags.motor_vehicle ?? tags.vehicle)?.trim().toLowerCase();
+  const motorcycle = (tags.motorcycle ?? tags.motor_vehicle ?? tags.vehicle)?.trim().toLowerCase();
+  if ([motorcar, motorcycle].some(value => value && value !== 'no' && value !== 'use_sidepath')) return false;
+  if (tags.footway === 'crossing' && tags.crossing === 'no') return false;
   if (foot && !ALLOWED_FOOT.has(foot)) return false;
-  return PUBLIC_ROAD_CLASSES.has(highway);
+  const access = tags.access?.trim().toLowerCase();
+  return !!foot || !access || ALLOWED_FOOT.has(access);
 }
 
 /** An unconfirmed barrier is not silently assumed passable. */
@@ -81,7 +83,7 @@ function stairsStatus(tags: Record<string, string>): boolean | null {
 function footDirection(tags: Record<string, string>): WalkSegment['direction'] | null {
   const value = tags['oneway:foot']?.trim().toLowerCase();
   if (!value && !tags['foot:forward'] && !tags['foot:backward']
-    && ['footway', 'path', 'steps', 'pedestrian'].includes(tags.highway)
+    && WALKWAY_CLASSES.has(tags.highway)
     && tags.oneway && !['no', 'false', '0'].includes(tags.oneway)) return null;
   let direction: WalkSegment['direction'];
   if (!value || ['no', 'false', '0'].includes(value)) direction = 'both';
@@ -97,6 +99,14 @@ function footDirection(tags: Record<string, string>): WalkSegment['direction'] |
 
 function normalizedTags(tags?: Record<string, string>): Record<string, string> {
   return Object.fromEntries(Object.entries(tags ?? {}).filter(([, value]) => typeof value === 'string'));
+}
+
+function walkwayName(tags: Record<string, string>): string {
+  if (tags.footway === 'crossing') return '보행자 횡단 구간';
+  if (tags.highway === 'steps') return '계단';
+  if (tags.footway === 'sidewalk') return '보도';
+  if (tags.highway === 'cycleway') return '보행·자전거 겸용로';
+  return '보행로';
 }
 
 export function nearestNode(network: Pick<Network, 'nodes' | 'bounds'>, coordinate: Coordinate): { node: WalkNode; distanceM: number } | null {
@@ -187,7 +197,7 @@ export function buildNetwork(payload: OsmPayload, provenance: SourceProvenance):
       if (from === to || lengthM <= 0) continue;
       segments.push({
         id: `way/${element.id}:${index}`, wayId: String(element.id), from, to,
-        name: tags['name:ko'] || tags.name || tags['bridge:name'] || '이름이 등록되지 않은 OSM 구간',
+        name: tags['name:ko'] || tags.name || tags['bridge:name'] || walkwayName(tags),
         coordinates: [a.coordinate, b.coordinate], lengthM, slope, stairs, direction,
         source: `https://www.openstreetmap.org/way/${element.id}`, tags,
       });

@@ -3,7 +3,9 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import source from '../subway-entrances.json';
 import { addOsmSubwayEntrances, buildNetwork, coordinateInside, distanceBetween, geometryLength } from './network';
-import { findPlaces, searchRoutes } from './engine';
+import { findForecastDetour, findPlaces, searchRoutes } from './engine';
+import { estimateBuildingShade } from './icing-forecast';
+import { readIcingReplay } from '../services/icing-weather';
 import type { OsmPayload, SourceProvenance } from './types';
 
 const rawRoads = readFileSync(new URL('../../public/data/osm.json', import.meta.url), 'utf8');
@@ -24,8 +26,8 @@ describe('actual supplemental OSM subway entrance records', () => {
     expect(network.nodes).toBe(base.nodes);
     expect(network.segments).toBe(base.segments);
     expect(network.bounds).toEqual(base.bounds);
-    expect(base.places).toHaveLength(902);
-    expect(network.placeCounts).toEqual({ osmNamedPlaces: 902, osmSubwayEntrances: 8, officialSubwayEntrances: 0, total: 910 });
+    expect(base.places).toHaveLength(379);
+    expect(network.placeCounts).toEqual({ osmNamedPlaces: 379, osmSubwayEntrances: 8, officialSubwayEntrances: 0, total: 387 });
   });
 
   it('requires actual entrance tags, exit numbers and station relation membership', () => {
@@ -47,8 +49,8 @@ describe('actual supplemental OSM subway entrance records', () => {
 
   it('deduplicates original node IDs without claiming duplicate official facilities', () => {
     const repeated = addOsmSubwayEntrances(network, source);
-    expect(repeated.places).toHaveLength(910);
-    expect(new Set(repeated.places.map(place => place.id)).size).toBe(910);
+    expect(repeated.places).toHaveLength(network.places.length);
+    expect(new Set(repeated.places.map(place => place.id)).size).toBe(network.places.length);
     expect(repeated.entranceConnections!.duplicateIds).toBe(8);
     expect(repeated.placeCounts.officialSubwayEntrances).toBe(0);
     expect(() => addOsmSubwayEntrances(base, { ...source, sourceSha256: '' })).toThrow();
@@ -65,27 +67,39 @@ describe('actual supplemental OSM subway entrance records', () => {
   });
 
   it('discloses every real entrance gap and never appends an unverified access line to the route', () => {
-    const office = base.places.find(place => place.name === '관악구청' && place.category.includes('기관 · government'))!;
-    expect(office).toBeDefined();
-    const results = entrances.map(place => {
+    const destination = entrances.find(place => place.entrance!.exitNumber === '5')!;
+    for (const place of entrances) {
       const actualNode = base.nodes.find(node => node.id === place.nodeId)!;
       expect(place.routeCoordinate).toEqual(actualNode.coordinate);
       expect(place.snapDistanceM).toBeCloseTo(distanceBetween(place.coordinate, actualNode.coordinate), 8);
       expect(place.snapDistanceM).toBeLessThanOrEqual(80);
-      const result = searchRoutes(network, { origin: place, destination: office, walkingSpeedMps: 1, avoidStairs: false, maxSlopePercent: null });
+      if (place.nodeId === destination.nodeId) continue;
+      const result = searchRoutes(network, { origin: place, destination, walkingSpeedMps: 1, avoidStairs: false, maxSlopePercent: null });
       expect(['no-route', 'no-recommendation']).toContain(result.status);
       if (result.normal) {
         expect(result.normal.coordinates[0]).toEqual(place.routeCoordinate);
-        expect(result.normal.coordinates.at(-1)).toEqual(office.routeCoordinate);
+        expect(result.normal.coordinates.at(-1)).toEqual(destination.routeCoordinate);
         expect(result.normal.distanceM).toBeCloseTo(geometryLength(result.normal.coordinates), 7);
         expect(result.normal.durationSeconds).toBeCloseTo(result.normal.distanceM, 7);
         expect(result.normal.segmentIds.every(id => base.segments.some(segment => segment.id === id))).toBe(true);
       }
       expect(result.recommended).toBeNull();
-      return { exit: place.entrance!.exitNumber, sourceId: place.sourceId, gapM: place.snapDistanceM, nodeId: place.nodeId, status: result.status, roadDistanceToOfficeM: result.normal?.distanceM ?? null };
-    });
+    }
     expect(network.entranceConnections!.unconnected).toEqual([]);
-    expect(results.filter(result => result.roadDistanceToOfficeM !== null)).toHaveLength(8);
-    console.info('Actual OSM subway entrances', JSON.stringify({ counts: network.placeCounts, connections: network.entranceConnections, results }));
+  });
+
+  it('finds an actual forecast detour between separately mapped walkways and crossings', async () => {
+    const archived = readFileSync(new URL('../../public/data/icing-replay.json', import.meta.url));
+    const hour = await readIcingReplay(Uint8Array.from(archived).buffer, 'original');
+    const warnings = new Set(estimateBuildingShade(network, hour.time).sections.map(section => section.segmentId));
+    const origin = entrances.find(place => place.entrance!.exitNumber === '1')!;
+    const destination = entrances.find(place => place.entrance!.exitNumber === '5')!;
+    const options = { origin, destination, walkingSpeedMps: 1, avoidStairs: false, maxSlopePercent: null };
+    const result = searchRoutes(network, options);
+    const detour = findForecastDetour(network, options, result, warnings);
+    expect(result.normal?.distanceM).toBeCloseTo(145.784, 2);
+    expect(detour.route?.distanceM).toBeCloseTo(151.948, 2);
+    expect(detour.route?.segmentIds.every(id => !warnings.has(id))).toBe(true);
+    expect(detour.route?.segmentIds.some(id => network.segments.find(segment => segment.id === id)?.tags.footway === 'crossing')).toBe(true);
   });
 });

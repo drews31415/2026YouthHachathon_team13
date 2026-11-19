@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { analyzeRisk, findForecastDetour, findPlaces, nearestPlace, searchRoutes } from './engine';
 import { estimateBuildingShade } from './icing-forecast';
-import { buildNetwork, coordinateInside, distanceBetween, geometryLength } from './network';
+import { buildNetwork, coordinateInside, distanceBetween, geometryLength, isFootAccessible } from './network';
 import { expireResult } from './resultLifecycle';
 import type { OsmElement, OsmPayload, Place, SearchOptions, ShadeSurface, ShadingBuilding, SourceProvenance } from './types';
 import { gangnamDemoPlaces, maljukgeoriFootbridge, maljukgeoriHeatedWarnings } from '../gangnam-pilot';
@@ -34,10 +34,11 @@ function optionsBetween(origin: Place, destination: Place): SearchOptions {
 const firstTwoWay = network.segments.find(segment => segment.direction === 'both')!;
 const sourceOptions = optionsBetween(actualEndpoint(firstTwoWay.from), actualEndpoint(firstTwoWay.to));
 
-it('applies the real Gangnam snowfall and installation records without removing the bridge warning', async () => {
+it('keeps the real Gangnam bridge warning without accepting the former roadway detour', async () => {
   const files = new URL('../../public/data/gangnam/', import.meta.url);
   const read = (name: string) => readFileSync(new URL(name, files), 'utf8');
-  const graph = buildNetwork(JSON.parse(read('osm.json')), JSON.parse(read('provenance.json')));
+  const raw = JSON.parse(read('osm.json')) as OsmPayload;
+  const graph = buildNetwork(raw, JSON.parse(read('provenance.json')));
   const buildings = JSON.parse(read('buildings.json')) as { buildings: ShadingBuilding[] };
   const surface = JSON.parse(read('surface.json')) as ShadeSurface;
   const gangnam = { ...graph, expandedShadingBuildings: buildings.buildings, shadeSurface: surface };
@@ -56,14 +57,18 @@ it('applies the real Gangnam snowfall and installation records without removing 
   const baseline = findForecastDetour(gangnam, options, result, warningIds);
   const compared = findForecastDetour(gangnam, options, result, warningIds, heated);
   expect(result.normal?.segmentIds).toContain(bridge.id);
-  expect(compared.crossings).toBe(5);
-  expect(compared.route?.segmentIds).toEqual(baseline.route?.segmentIds);
-  expect(compared.route?.segmentIds.every(id => !warningIds.has(id))).toBe(true);
+  expect(result.normal?.distanceM).toBeCloseTo(591.648, 2);
+  const formerRoadways = new Set([521770120, 494822058, 494822057, 218966989]);
+  expect(raw.elements.filter(item => item.type === 'way' && formerRoadways.has(item.id))).toHaveLength(formerRoadways.size);
+  expect(gangnam.segments.some(segment => formerRoadways.has(Number(segment.wayId)))).toBe(false);
+  expect(compared.crossings).toBeGreaterThan(0);
+  expect(baseline.route).toBeNull();
+  expect(compared.route).toBeNull();
   const normalWarningLength = gangnam.segments.filter(segment => warningIds.has(segment.id) && result.normal!.segmentIds.includes(segment.id))
     .reduce((total, segment) => total + segment.lengthM, 0);
   expect(compared.heatingComparison?.normal.beforeHeating).toBeCloseTo(normalWarningLength);
   expect(compared.heatingComparison?.normal.afterHeating).toBeCloseTo(normalWarningLength - 0.2 * bridge.lengthM);
-  expect(compared.heatingComparison?.alternate).toEqual({ beforeHeating: 0, afterHeating: 0 });
+  expect(compared.heatingComparison?.alternate).toBeNull();
 
   const dryHour = findIcingHours(JSON.parse(weather), hour.time).find(item => item.time === hour.time + 2 * 3_600_000)!;
   expect(dryHour.temperatureC).toBeLessThan(0);
@@ -159,6 +164,16 @@ describe('actual OSM source and topology', () => {
     }
   });
 
+  it('excludes the real car road centerline even when it records sidewalks on both sides', () => {
+    const road = rawWays.get(172606281)!;
+    expect(road.tags?.sidewalk).toBe('both');
+    expect(road.tags?.highway).toBe('residential');
+    expect(isFootAccessible(road.tags!)).toBe(false);
+    expect(network.segments.some(segment => segment.wayId === String(road.id))).toBe(false);
+    expect(network.segments.some(segment => segment.tags.footway === 'crossing')).toBe(true);
+    expect(network.segments.every(segment => ['footway', 'pedestrian', 'path', 'steps', 'cycleway'].includes(segment.tags.highway))).toBe(true);
+  });
+
   it('leaves unrecorded incline and stairs unknown instead of manufacturing accessible roads', () => {
     const withoutIncline = network.segments.filter(segment => !segment.tags.incline);
     expect(withoutIncline.length).toBeGreaterThan(0);
@@ -196,13 +211,13 @@ describe('real source place search and snapping', () => {
     expect(findPlaces(network, '').every(place => network.places.includes(place))).toBe(true);
   });
 
-  it('distinguishes the real station and government building from same-name shops, stops and junctions', () => {
+  it('ranks the real station and excludes the government building when it cannot be connected', () => {
     const actualStation = network.places.find(place => place.name === '서울대입구' && place.category === '철도 · station');
     const actualOffice = network.places.find(place => place.name === '관악구청' && place.category.startsWith('기관 · government'));
     expect(actualStation).toBeDefined();
-    expect(actualOffice).toBeDefined();
+    expect(actualOffice).toBeUndefined();
     expect(findPlaces(network, '서울대입구역')[0].id).toBe(actualStation!.id);
-    expect(findPlaces(network, '관악구청')[0].id).toBe(actualOffice!.id);
+    expect([...rawWays.values()].some(element => element.tags?.name === '관악구청' && element.tags?.office === 'government')).toBe(true);
   });
 
   it('refuses actual source nodes outside the collected service bounds', () => {
