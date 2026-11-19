@@ -137,7 +137,11 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
         ' · ' + escape(forecastTime(hour.time, forecast.replay)) + ' KST' + (forecast.replay ? ' · 과거 예보 시범' : '') +
         '</p><p>지역 기온 ' + escape(hour.temperatureC) +
         '°C · 직전 6시간 강수 ' + escape(hour.precedingPrecipMm.toFixed(1)) +
-        'mm · 건물 그늘 추정</p><a href="https://www.openstreetmap.org/way/' + section.buildingId +
+        'mm · 건물 그늘 추정</p>' +
+        (hour.nearbyPrecipitation ? '<p>기상청 ' + escape(hour.nearbyPrecipitation.station) + ' AWS · ' +
+          escape(forecastTime(hour.nearbyPrecipitation.time)) + ' · 최근 1시간 강수 ' + escape(hour.nearbyPrecipitation.mm) + 'mm</p>' : '') +
+        (segment.tags.surface ? '<p>OSM 노면 재질 ' + escape(segment.tags.surface) + '</p>' : '') +
+        '<a href="https://www.openstreetmap.org/way/' + section.buildingId +
         '" target="_blank" rel="noopener noreferrer">OSM 건물 높이 출처</a>' +
         '<small>공개 기상 예보와 건물 정보로 계산했습니다. 실제 노면은 미확인입니다.</small></div>',
         { maxWidth: 280 },

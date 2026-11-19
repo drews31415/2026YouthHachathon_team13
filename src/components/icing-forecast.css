@@ -39,6 +39,9 @@
 .icing-forecast-modes button[aria-pressed="true"] { color: #fff; background: #894009; border-color: #894009; }
 .icing-forecast-control strong { color: #893700; }
 .icing-forecast-control small { margin-top: 5px; font-size: 11px; }
+.icing-external-data { margin-top: 7px; padding-top: 6px; border-top: 1px solid #e1cdb8; }
+.icing-external-data summary { cursor: pointer; color: #694426; }
+.icing-area-alert { padding: 4px 6px; border-left: 2px solid #b45f29; }
 .real-data-map .risk-toggle.icing-forecast-toggle > span { display: inline; }
 .real-data-map .icing-forecast-toggle.on { border-color: #b45f29; }
 .icing-replay-route {

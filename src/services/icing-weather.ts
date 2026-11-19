@@ -1,18 +1,29 @@
 import replaySource from '../icing-replay-source.json';
+import { distanceBetween } from '../core/network';
 
-export const icingForecastUrl = 'https://api.open-meteo.com/v1/forecast?latitude=37.4784&longitude=126.9516&hourly=temperature_2m,precipitation&past_days=1&forecast_days=2&timeformat=unixtime&timezone=GMT';
+export const icingForecastUrl = 'https://api.open-meteo.com/v1/forecast?latitude=37.4784&longitude=126.9516&hourly=temperature_2m,precipitation,weather_code&past_days=1&forecast_days=2&timeformat=unixtime&timezone=GMT';
 const hourSeconds = 3600;
 export const icingWeatherMaxAgeMs = 30 * 60_000;
+const weatherCenter: [number, number] = [126.9516, 37.4784];
+
+export interface NearbyPrecipitation {
+  station: string;
+  time: number;
+  mm: number;
+  distanceM: number;
+}
 
 export interface IcingHour {
   time: number;
   temperatureC: number;
   precedingPrecipMm: number;
+  weatherCode?: number;
+  nearbyPrecipitation?: NearbyPrecipitation;
 }
 
 interface ForecastPayload {
-  hourly_units?: { time?: string; temperature_2m?: string; precipitation?: string };
-  hourly?: { time?: unknown[]; temperature_2m?: unknown[]; precipitation?: unknown[] };
+  hourly_units?: { time?: string; temperature_2m?: string; precipitation?: string; weather_code?: string };
+  hourly?: { time?: unknown[]; temperature_2m?: unknown[]; precipitation?: unknown[]; weather_code?: unknown[] };
 }
 
 export function findIcingHours(payload: unknown, nowMs: number): IcingHour[] {
@@ -42,14 +53,52 @@ export function findIcingHours(payload: unknown, nowMs: number): IcingHour[] {
       const amount = rainIndex === undefined ? undefined : hourly.precipitation[rainIndex];
       if (typeof amount === 'number' && Number.isFinite(amount) && amount >= 0) amounts.push(amount);
     }
-    if (amounts.length === 6) hours.push({ time: time * 1000, temperatureC, precedingPrecipMm: amounts.reduce((a, b) => a + b, 0) });
+    if (amounts.length !== 6) continue;
+    const code = units.weather_code === 'wmo code' && Array.isArray(hourly.weather_code) ? hourly.weather_code[index] : undefined;
+    hours.push({ time: time * 1000, temperatureC, precedingPrecipMm: amounts.reduce((a, b) => a + b, 0),
+      ...(typeof code === 'number' && Number.isInteger(code) ? { weatherCode: code } : {}) });
   }
   if (!hours.length) throw new Error('최근 강수를 포함한 시간별 예보를 확인할 수 없습니다.');
   return hours;
 }
 
 export function hasRefreezeConditions(hour: IcingHour) {
-  return hour.temperatureC <= 0 && hour.precedingPrecipMm > 0;
+  return hour.temperatureC <= 0 && (hour.precedingPrecipMm > 0 || (hour.nearbyPrecipitation?.mm ?? 0) > 0);
+}
+
+export function hasFreezingRain(hour: IcingHour) {
+  return hour.weatherCode !== undefined && [56, 57, 66, 67].includes(hour.weatherCode);
+}
+
+export function readNearbyPrecipitation(payload: unknown, now: number): NearbyPrecipitation[] {
+  const stations = (payload as { stations?: unknown } | null)?.stations;
+  if (!Array.isArray(stations)) return [];
+  const nearby: NearbyPrecipitation[] = [];
+  for (const station of stations) {
+    if (typeof station?.name !== 'string' || !station.name || !Number.isFinite(station.lat) || !Number.isFinite(station.lon) ||
+        !Number.isFinite(station.rain60mMm) || station.rain60mMm < 0) continue;
+    const time = Date.parse(station.observedAt);
+    if (!Number.isFinite(time) || time > now || now - time >= icingWeatherMaxAgeMs) continue;
+    const distanceM = distanceBetween(weatherCenter, [station.lon, station.lat]);
+    if (distanceM <= 3000) nearby.push({ station: station.name, time, mm: station.rain60mMm, distanceM });
+  }
+  return nearby.sort((a, b) => a.distanceM - b.distanceM || b.time - a.time);
+}
+
+export function withNearbyPrecipitation(hour: IcingHour, observations: NearbyPrecipitation[], now: number): IcingHour {
+  // The full observed one-hour total must fall inside the selected hour's six-hour lookback.
+  const match = observations.find(record => record.mm > 0 && record.time <= now && now - record.time < icingWeatherMaxAgeMs
+    && record.time <= hour.time && record.time >= hour.time - 5 * hourSeconds * 1000);
+  return match ? { ...hour, nearbyPrecipitation: match } : hour;
+}
+
+export async function fetchNearbyPrecipitation(signal: AbortSignal) {
+  const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(14_000)]);
+  const response = await fetch('/api/kma/weather', { signal: requestSignal, cache: 'no-store' });
+  if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return [];
+  const data: unknown = await response.json();
+  requestSignal.throwIfAborted();
+  return readNearbyPrecipitation(data, Date.now());
 }
 
 export async function fetchIcingHours(signal: AbortSignal) {
