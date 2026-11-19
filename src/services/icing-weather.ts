@@ -249,7 +249,7 @@ export function withNearbyPrecipitation(hour: IcingHour, observations: NearbyPre
 }
 
 export async function fetchPrecipitationObservations(signal: AbortSignal) {
-  const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(14_000)]);
+  const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(20_000)]);
   const response = await fetch('/api/kma/weather', { signal: requestSignal, cache: 'no-store' });
   if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return null;
   const data: unknown = await response.json();

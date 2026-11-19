@@ -78,6 +78,9 @@ export async function handleApi(request, env) {
     if (provider === 'tmap' && /^TMAP_[A-Z_]+$/.test(error?.code) && Number.isInteger(error.status)) {
       return json({ code: error.code, error: error.message }, error.status);
     }
+    if (url.pathname === '/api/kma/weather' && error?.name === 'KmaDataError' && /^[a-z;-]+$/.test(error.code)) {
+      return json({ error: publicMessages.kma, code: error.code }, 503);
+    }
     const message = url.pathname === '/api/kma/forecast' ? '기상청 예보를 조회하지 못했습니다.' : publicMessages[provider];
     return json({ error: message ?? '자료 조회에 실패했습니다.' }, 503);
   }

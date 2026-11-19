@@ -31,6 +31,7 @@ export function useIcingForecast(network: Network | null, enabled: boolean, area
   const city = !!zones;
   const replay = !city && replayEnabled;
   const [cityData, setCityData] = useState<{ zones: NonNullable<Network['forecastZones']>; hours: IcingHour[][]; retrievedAt: number }>();
+  const [cityObservations, setCityObservations] = useState<{ zones: NonNullable<Network['forecastZones']>; payload: unknown }>();
   const [cityFailed, setCityFailed] = useState(false);
 
   useEffect(() => {
@@ -41,7 +42,9 @@ export function useIcingForecast(network: Network | null, enabled: boolean, area
     const refresh = async () => {
       try {
         const points = zones.map(zone => zone.center);
-        const observations = fetchPrecipitationObservations(signal).catch(() => null);
+        void fetchPrecipitationObservations(signal).then(payload => {
+          if (!signal.aborted) setCityObservations({ zones, payload });
+        }).catch(() => { /* City forecasts remain available during AWS delays. */ });
         const batches: Coordinate[][] = [];
         for (let i = 0; i < points.length; i += 20) batches.push(points.slice(i, i + 20));
         const responses = await Promise.allSettled(batches.map(batch => fetchSeoulHours(batch, signal)));
@@ -55,10 +58,7 @@ export function useIcingForecast(network: Network | null, enabled: boolean, area
           await Promise.all(points.slice(i, i + 6).map(async (point, offset) => {
             const index = i + offset;
             const official = await fetchKmaForecast(signal, point).catch(() => undefined);
-            const now = Date.now();
-            const forecast = combineLiveForecast(hours[index], official, now);
-            const rain = readNearbyPrecipitation(await observations, now, point);
-            enhanced[index] = forecast.map(hour => withNearbyPrecipitation(hour, rain, now));
+            enhanced[index] = combineLiveForecast(hours[index], official, Date.now());
           }));
           signal.throwIfAborted();
           setCityData(previous => previous?.retrievedAt === retrievedAt ? { ...previous, hours: [...enhanced] } : previous);
@@ -128,11 +128,14 @@ export function useIcingForecast(network: Network | null, enabled: boolean, area
 
   const cityHours = useMemo(() => {
     if (!cityData || cityData.zones !== zones || clock - cityData.retrievedAt >= icingWeatherMaxAgeMs) return [];
-    return cityData.hours.map(hours => new Map(hours.filter(hour => hour.time + 3_600_000 > clock).map(hour => [
-      hour.time, hour.nearbyPrecipitation && clock - hour.nearbyPrecipitation.time >= icingWeatherMaxAgeMs
-        ? { ...hour, nearbyPrecipitation: undefined } : hour,
-    ])));
-  }, [cityData, zones, clock]);
+    return cityData.hours.map((hours, index) => {
+      const rain = cityObservations?.zones === cityData.zones
+        ? readNearbyPrecipitation(cityObservations.payload, clock, cityData.zones[index].center) : [];
+      return new Map(hours.filter(hour => hour.time + 3_600_000 > clock).map(hour => [
+        hour.time, withNearbyPrecipitation(hour, rain, clock),
+      ]));
+    });
+  }, [cityData, cityObservations, zones, clock]);
   const hours = useMemo(() => {
     if (!enabled || replay) return [];
     if (city) {

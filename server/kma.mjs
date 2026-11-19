@@ -13,9 +13,9 @@ async function acquire(env) {
   if (key) {
     try {
       const url = new URL(KMA_PUBLIC_REQUEST);
-      url.searchParams.set('tm', kmaAwsQueryMinute());
+      url.searchParams.set('tm2', kmaAwsQueryMinute());
       url.searchParams.set('authKey', key);
-      const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(12000), headers: { Accept: 'text/plain' } });
+      const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(18000), headers: { Accept: 'text/plain' } });
       if (response.status >= 300 && response.status < 400) throw new KmaDataError('unexpected-redirect');
       if (!response.ok) throw new KmaDataError(response.status === 401 || response.status === 403 ? 'service-authorization' : 'upstream-http-error');
       if (Number(response.headers.get('content-length')) > 2000000) throw new KmaDataError('response-too-large');
@@ -27,7 +27,7 @@ async function acquire(env) {
       return parsed;
     } catch (error) {
       // Fetch errors may contain credential-bearing URLs in their cause; never expose them.
-      failureCode = error instanceof KmaDataError ? error.code : 'upstream-unavailable';
+      failureCode = error instanceof KmaDataError ? error.code : error?.name === 'TimeoutError' ? 'upstream-timeout' : 'upstream-unavailable';
     }
   }
   try {
