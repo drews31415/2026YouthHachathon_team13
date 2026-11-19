@@ -16,10 +16,22 @@ export interface NearbyPrecipitation {
 export interface IcingHour {
   time: number;
   temperatureC: number;
-  precedingPrecipMm: number;
+  precedingPrecipMm: number | null;
   weatherCode?: number;
   nearbyPrecipitation?: NearbyPrecipitation;
+  kma?: KmaForecastHour;
 }
+
+interface KmaForecastHour {
+  time: number;
+  issuedAt: number;
+  kind: 'ultra' | 'short';
+  temperatureC: number;
+  precipitation: string | null;
+  wet: boolean;
+  humidity: number | null;
+}
+interface KmaForecast { retrievedAt: number; ultra: KmaForecastHour[]; short: KmaForecastHour[] }
 
 interface ForecastPayload {
   hourly_units?: { time?: string; temperature_2m?: string; precipitation?: string; weather_code?: string };
@@ -63,7 +75,38 @@ export function findIcingHours(payload: unknown, nowMs: number): IcingHour[] {
 }
 
 export function hasRefreezeConditions(hour: IcingHour) {
-  return hour.temperatureC <= 0 && (hour.precedingPrecipMm > 0 || (hour.nearbyPrecipitation?.mm ?? 0) > 0);
+  return forecastTemperature(hour) <= 0 &&
+    ((hour.precedingPrecipMm ?? 0) > 0 || hour.kma?.wet === true || (hour.nearbyPrecipitation?.mm ?? 0) > 0);
+}
+
+export function forecastTemperature(hour: IcingHour) { return hour.kma?.temperatureC ?? hour.temperatureC; }
+
+export function combineLiveForecast(hours: IcingHour[], kma: KmaForecast | undefined, now: number): IcingHour[] {
+  const hourMs = hourSeconds * 1000;
+  const first = Math.floor(now / hourMs) * hourMs;
+  const inRange = (time: number) => time >= first && time <= first + 24 * hourMs;
+  const combined = new Map(hours.filter(hour => inRange(hour.time)).map(hour => [hour.time, hour]));
+  if (kma && now - kma.retrievedAt < icingWeatherMaxAgeMs) {
+    // Short-range fills gaps, with the more recent ultra-short product taking precedence.
+    for (const row of [...kma.short, ...kma.ultra]) {
+      if (!inRange(row.time) || row.issuedAt > now || now - row.issuedAt > (row.kind === 'ultra' ? 3 : 7) * hourMs) continue;
+      const prior = combined.get(row.time);
+      combined.set(row.time, prior ? { ...prior, kma: row } : {
+        time: row.time, temperatureC: row.temperatureC, precedingPrecipMm: null, kma: row,
+      });
+    }
+  }
+  return [...combined.values()].sort((a, b) => a.time - b.time);
+}
+
+export async function fetchKmaForecast(signal: AbortSignal): Promise<KmaForecast | undefined> {
+  const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(12_000)]);
+  const response = await fetch('/api/kma/forecast', { signal: requestSignal, cache: 'no-store' });
+  if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return undefined;
+  const data: KmaForecast = await response.json();
+  requestSignal.throwIfAborted();
+  if (!Number.isFinite(data?.retrievedAt) || !Array.isArray(data.ultra) || !Array.isArray(data.short)) return undefined;
+  return data;
 }
 
 export function hasFreezingRain(hour: IcingHour) {

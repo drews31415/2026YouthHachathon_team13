@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { estimateBuildingShade, sunPosition } from '../core/icing-forecast';
 import type { Coordinate, Network } from '../core/types';
 import {
-  fetchIcingHours, fetchIcingReplay, fetchNearbyPrecipitation, hasFreezingRain,
+  combineLiveForecast, fetchIcingHours, fetchIcingReplay, fetchKmaForecast, fetchNearbyPrecipitation, forecastTemperature, hasFreezingRain,
   hasRefreezeConditions, icingWeatherMaxAgeMs, withNearbyPrecipitation, type IcingHour, type NearbyPrecipitation,
 } from '../services/icing-weather';
 import replaySource from '../icing-replay-source.json';
@@ -21,6 +21,7 @@ export function useIcingForecast(network: Network | null, enabled: boolean) {
   const [replay, setReplay] = useState(false);
   const [replayHour, setReplayHour] = useState<IcingHour>();
   const [rain, setRain] = useState<NearbyPrecipitation[]>([]);
+  const [kma, setKma] = useState<Awaited<ReturnType<typeof fetchKmaForecast>>>();
 
   useEffect(() => {
     if (!enabled) return;
@@ -43,6 +44,9 @@ export function useIcingForecast(network: Network | null, enabled: boolean) {
     };
     const refresh = () => {
       void refreshForecast();
+      void fetchKmaForecast(controller.signal).then(next => {
+        if (!controller.signal.aborted) { setKma(next); setClock(Date.now()); }
+      }).catch(() => { /* Open-Meteo remains available if KMA is delayed. */ });
       void fetchNearbyPrecipitation(controller.signal).then(records => {
         if (!controller.signal.aborted) { setRain(records); setClock(Date.now()); }
       }).catch(() => { /* Regional forecast can still be used while the AWS is unavailable. */ });
@@ -54,9 +58,11 @@ export function useIcingForecast(network: Network | null, enabled: boolean) {
     return () => { controller.abort(); window.clearInterval(timer); window.clearInterval(tick); };
   }, [enabled, replay]);
 
-  const hours = useMemo(() => enabled && !replay && data && clock - data.retrievedAt < icingWeatherMaxAgeMs
-    ? data.hours.filter(hour => hour.time + 3600_000 > clock).map(hour => withNearbyPrecipitation(hour, rain, clock))
-    : [], [enabled, replay, data, rain, clock]);
+  const hours = useMemo(() => {
+    if (!enabled || replay) return [];
+    const regional = data && clock - data.retrievedAt < icingWeatherMaxAgeMs ? data.hours : [];
+    return combineLiveForecast(regional, kma, clock).map(hour => withNearbyPrecipitation(hour, rain, clock));
+  }, [enabled, replay, data, kma, rain, clock]);
   const active = useMemo(() => {
     if (!enabled || !network) return undefined;
     if (replay) return replayHour;
@@ -91,7 +97,11 @@ export function IcingForecastControl({ forecast, onReplayRoute }: { forecast: Re
           {hours.map(hour => <option key={hour.time} value={hour.time}>{forecastTime(hour.time)}{hasFreezingRain(hour) ? ' · 어는 비' : hasRefreezeConditions(hour) ? ' · 재결빙 주의' : ''}</option>)}
         </select>
       </>}
-      <p role="status">지역 기온 {active.temperatureC}°C · 직전 6시간 강수 {active.precedingPrecipMm.toFixed(1)}mm</p>
+      <p role="status">{active.kma ? '기상청 ' + (active.kma.kind === 'ultra' ? '초단기예보' : '단기예보') : 'Open-Meteo'} 기온 {forecastTemperature(active)}°C
+        {active.precedingPrecipMm !== null && <> · 직전 6시간 강수 {active.precedingPrecipMm.toFixed(1)}mm</>}</p>
+      {active.kma && <small><a href="https://apihub.kma.go.kr/apiList.do?seqApi=10" target="_blank" rel="noreferrer">기상청 예보</a> {forecastTime(active.kma.issuedAt)} 발표
+        {active.kma.precipitation !== null && <> · 1시간 강수 {active.kma.precipitation}{/^\d+(?:\.\d+)?$/.test(active.kma.precipitation) ? 'mm' : ''}</>}
+        {active.kma.humidity !== null && <> · 습도 {active.kma.humidity}%</>}</small>}
       {shownRain && <p>기상청 {shownRain.station} AWS {forecastTime(shownRain.time)} · 최근 1시간 강수 {shownRain.mm}mm
         {active.nearbyPrecipitation ? ' · 지역 강수 근거' : ''}</p>}
       {hasFreezingRain(active) && <p className="icing-area-alert"><strong>지역 예보에 어는 비·이슬비가 있습니다.</strong></p>}

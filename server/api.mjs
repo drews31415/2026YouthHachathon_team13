@@ -1,4 +1,5 @@
 import { getKmaWeather } from './kma.mjs';
+import { getKmaForecast } from './kma-forecast.mjs';
 import { getSeoulWeather } from './seoul.mjs';
 import { searchTmapPlaces, getTmapRoute } from './tmap.mjs';
 
@@ -25,6 +26,10 @@ export async function handleApi(request, env) {
   const url = new URL(request.url);
   const provider = url.pathname.split('/')[2];
   try {
+    if (url.pathname === '/api/kma/forecast') {
+      if (request.method !== 'GET') return json({ error: '조회 요청만 지원합니다.' }, 405);
+      return json(await getKmaForecast(env));
+    }
     if (url.pathname === '/api/kma/weather' || url.pathname === '/api/seoul/weather') {
       if (request.method !== 'GET') return json({ error: '조회 요청만 지원합니다.' }, 405);
       return json(await weather(provider, env));
@@ -57,6 +62,7 @@ export async function handleApi(request, env) {
     if (provider === 'tmap' && /^TMAP_[A-Z_]+$/.test(error?.code) && Number.isInteger(error.status)) {
       return json({ code: error.code, error: error.message }, error.status);
     }
-    return json({ error: publicMessages[provider] ?? '자료 조회에 실패했습니다.' }, 503);
+    const message = url.pathname === '/api/kma/forecast' ? '기상청 예보를 조회하지 못했습니다.' : publicMessages[provider];
+    return json({ error: message ?? '자료 조회에 실패했습니다.' }, 503);
   }
 }

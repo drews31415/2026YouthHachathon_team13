@@ -3,6 +3,7 @@ import * as L from 'leaflet';
 import { Layers3, LocateFixed, Minus, Plus, MapPin, Maximize2, MousePointer2, Info, Snowflake } from 'lucide-react';
 import type { Coordinate, ModelRun, Network, Place, Route, RouteStep, WalkSegment } from '../core/types';
 import { forecastTime, IcingForecastControl, type useIcingForecast } from './IcingForecastControl';
+import { forecastTemperature } from '../services/icing-weather';
 import designated from '../designated-roads.json';
 import crossings from '../crossings.json';
 import './public-map-layers.css';
@@ -135,9 +136,9 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
       if (!selectionMode) line.bindPopup(
         '<div class="risk-popup"><strong>재결빙 예상 주의구간</strong><p>' + escape(segment.name) +
         ' · ' + escape(forecastTime(hour.time, forecast.replay)) + ' KST' + (forecast.replay ? ' · 과거 예보 시범' : '') +
-        '</p><p>지역 기온 ' + escape(hour.temperatureC) +
-        '°C · 직전 6시간 강수 ' + escape(hour.precedingPrecipMm.toFixed(1)) +
-        'mm · 건물 그늘 추정</p>' +
+        '</p><p>' + (hour.kma ? '기상청' : 'Open-Meteo') + ' 기온 ' + escape(forecastTemperature(hour)) + '°C · 건물 그늘 추정</p>' +
+        (hour.precedingPrecipMm !== null ? '<p>Open-Meteo 직전 6시간 강수 ' + escape(hour.precedingPrecipMm.toFixed(1)) + 'mm</p>' : '') +
+        (hour.kma?.wet ? '<p>기상청 1시간 강수 예보 ' + escape(hour.kma.precipitation ?? '강수 형태 확인') + '</p>' : '') +
         (hour.nearbyPrecipitation ? '<p>기상청 ' + escape(hour.nearbyPrecipitation.station) + ' AWS · ' +
           escape(forecastTime(hour.nearbyPrecipitation.time)) + ' · 최근 1시간 강수 ' + escape(hour.nearbyPrecipitation.mm) + 'mm</p>' : '') +
         (segment.tags.surface ? '<p>OSM 노면 재질 ' + escape(segment.tags.surface) + '</p>' : '') +
