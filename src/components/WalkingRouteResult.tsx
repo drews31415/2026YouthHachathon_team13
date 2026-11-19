@@ -9,6 +9,8 @@ interface Props {
   detour: ForecastDetour | null;
   forecast: ReturnType<typeof useIcingForecast>;
   forecastEnabled: boolean;
+  analysisAvailable: boolean;
+  analysisError: boolean;
   selected: Route['type'];
   onSelect: (type: Route['type']) => void;
   onNavigate: () => void;
@@ -23,7 +25,7 @@ function time(seconds: number) {
   return (mins ? mins + '분' : '') + (rest || !mins ? (mins ? ' ' : '') + rest + '초' : '');
 }
 
-export function WalkingRouteResult({ normal, detour, forecast, forecastEnabled, selected, onSelect, onNavigate }: Props) {
+export function WalkingRouteResult({ normal, detour, forecast, forecastEnabled, analysisAvailable, analysisError, selected, onSelect, onNavigate }: Props) {
   const alternate = detour?.route;
   const routes = alternate ? [alternate, normal] : [normal];
   const extra = alternate ? alternate.durationSeconds - normal.durationSeconds : 0;
@@ -33,8 +35,10 @@ export function WalkingRouteResult({ normal, detour, forecast, forecastEnabled, 
   const status = alternate ? detour?.partial ? '예상 주의구간을 일부 피해가요' : '예상 주의구간을 피해가요'
     : unavailable ? '결빙 예보를 불러오지 못했어요'
     : finding ? '결빙 예보를 확인하는 중…'
+    : forecastEnabled && forecast.incomplete ? '일부 구간의 예보가 없어 우회 경로를 계산하지 못했어요'
     : forecastEnabled && (detour?.crossings ?? 0) > 0 ? '주의구간을 피하는 경로를 찾지 못했어요'
     : forecastEnabled && forecast.shade?.sunTooLow ? '이 시각의 그늘은 평가되지 않았어요'
+    : forecastEnabled && normal.provider !== 'tmap' && forecast.active ? '이 경로에서 예상 주의구간이 확인되지 않았어요'
     : '';
 
   return <div className="flow-comparison">
@@ -54,7 +58,11 @@ export function WalkingRouteResult({ normal, detour, forecast, forecastEnabled, 
     {extra > 0 && <div className="flow-extra">{time(extra)} 더 걸려요</div>}
     {status && <p className="flow-route-status" role="status">{status}</p>}
     {forecastEnabled && forecast.active && hasFreezingRain(forecast.active) && <p className="flow-route-status" role="status">이 지역에 어는 비 예보가 있어요</p>}
-    <p className="flow-muted"><Info size={16} />{normal.provider === 'tmap' ? 'TMAP 보행 경로 · 이 경로의 결빙 예상 자료는 없어요' : '실제 노면 상태와 다를 수 있어요'}</p>
+    <p className="flow-muted"><Info size={16} />{normal.provider === 'tmap'
+      ? analysisError ? 'TMAP 보행 경로 · 결빙 분석 자료를 불러오지 못했어요'
+        : analysisAvailable ? 'TMAP 보행 경로 · 두 장소를 잇는 공개 보행망이 끊겨 우회 경로를 비교할 수 없어요'
+        : 'TMAP 보행 경로 · 서울 결빙 분석 범위 밖이에요'
+      : '실제 노면 상태와 다를 수 있어요'}</p>
     {normal.steps.length > 0 && <button className="flow-primary" type="button" onClick={onNavigate}><Navigation size={22} />이 길로 안내 보기</button>}
     {forecastEnabled && forecast.active && <details className="flow-result-details">
       <summary>경로 계산 상세</summary>

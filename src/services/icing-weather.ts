@@ -4,6 +4,7 @@ import gangnamReplaySource from '../icing-gangnam-replay-source.json';
 import gangnamGridReplay from '../icing-gangnam-grid-replay.json';
 import icingRegions from '../../icing-regions.json';
 import { distanceBetween } from '../core/network';
+import type { Coordinate } from '../core/types';
 
 export const icingForecastUrl = 'https://api.open-meteo.com/v1/forecast?latitude=37.4784&longitude=126.9516&hourly=temperature_2m,precipitation,weather_code,snow_depth,snowfall,dew_point_2m,wind_speed_10m,shortwave_radiation&past_days=1&forecast_days=2&timeformat=unixtime&timezone=GMT';
 const hourSeconds = 3600;
@@ -202,9 +203,10 @@ export async function fetchKmaForecast(signal: AbortSignal, area: IcingArea = 'g
   return data;
 }
 
-export async function fetchKmaGrid(signal: AbortSignal, area: IcingArea): Promise<GridWeather> {
+export async function fetchKmaGrid(signal: AbortSignal, area: IcingArea | Coordinate): Promise<GridWeather> {
   const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(12_000)]);
-  const response = await fetch('/api/kma/grid?area=' + area, { signal: requestSignal, cache: 'no-store' });
+  const query = typeof area === 'string' ? new URLSearchParams({ area }) : new URLSearchParams({ lon: String(area[0]), lat: String(area[1]) });
+  const response = await fetch('/api/kma/grid?' + query, { signal: requestSignal, cache: 'no-store' });
   if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return { status: 'unavailable' };
   const packet: GridWeather = await response.json();
   requestSignal.throwIfAborted();
@@ -264,6 +266,20 @@ export async function fetchIcingHours(signal: AbortSignal, area: IcingArea = 'gw
   requestSignal.throwIfAborted();
   const retrievedAt = Date.now();
   return { retrievedAt, hours: findIcingHours(data, retrievedAt) };
+}
+
+export async function fetchSeoulHours(points: Coordinate[], signal: AbortSignal) {
+  const request = AbortSignal.any([signal, AbortSignal.timeout(16_000)]);
+  const url = new URL(icingForecastUrl);
+  url.searchParams.set('latitude', points.map(([, lat]) => lat.toFixed(4)).join(','));
+  url.searchParams.set('longitude', points.map(([lon]) => lon.toFixed(4)).join(','));
+  const response = await fetch(url, { signal: request, cache: 'no-cache', redirect: 'error' });
+  if (!response.ok) throw new Error('서울 구간별 예보를 불러오지 못했어요.');
+  const data: unknown = await response.json();
+  const values = Array.isArray(data) ? data : [data];
+  if (values.length !== points.length) throw new Error('서울 구간별 예보의 수가 맞지 않아요.');
+  const retrievedAt = Date.now();
+  return { retrievedAt, hours: values.map(value => findIcingHours(value, retrievedAt)) };
 }
 export async function readIcingReplay(raw: ArrayBuffer, scene: IcingReplay = 'original') {
   const source = icingReplays[scene];

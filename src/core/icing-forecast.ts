@@ -71,7 +71,12 @@ const surfaceHeight = (grid: ShadeSurface, column: number, row: number) =>
 
 // The DSM includes vegetation and structures. Ignore the first 150 m of
 // cells so nearby buildings use their separately registered OSM profiles.
-function shadedBySurface(grid: ShadeSurface, [lon, lat]: Coordinate, sun: ReturnType<typeof sunPosition>, lonScale: number) {
+function shadedBySurface(grids: ShadeSurface[], [lon, lat]: Coordinate, sun: ReturnType<typeof sunPosition>, lonScale: number) {
+  const grid = grids.find(grid => {
+    const col = Math.round((lon - grid.lon) / grid.stepLon), row = Math.round((grid.lat - lat) / grid.stepLat);
+    return col >= 0 && col < grid.width && row >= 0 && row < grid.height;
+  });
+  if (!grid) return false;
   const originX = (lon - grid.lon) / grid.stepLon, originY = (grid.lat - lat) / grid.stepLat;
   const column = Math.round(originX), row = Math.round(originY);
   const start = surfaceHeight(grid, column, row);
@@ -86,14 +91,23 @@ function shadedBySurface(grid: ShadeSurface, [lon, lat]: Coordinate, sun: Return
   const eastPerM = sun.east / horizontal / (lonScale * grid.stepLon);
   const northPerM = sun.north / horizontal / (metersPerDegree * grid.stepLat);
   for (let distance = 150; distance <= 2500; distance += 20) {
-    const elevation = surfaceHeight(grid, Math.round(originX + distance * eastPerM), Math.round(originY - distance * northPerM));
+    const col = Math.round(originX + distance * eastPerM), r = Math.round(originY - distance * northPerM);
+    const pointLon = grid.lon + col * grid.stepLon, pointLat = grid.lat - r * grid.stepLat;
+    let elevation = surfaceHeight(grid, col, r);
+    if (elevation === undefined) {
+      for (const other of grids) {
+        if (other === grid) continue;
+        elevation = surfaceHeight(other, Math.round((pointLon - other.lon) / other.stepLon), Math.round((other.lat - pointLat) / other.stepLat));
+        if (elevation !== undefined) break;
+      }
+    }
     if (elevation !== undefined && elevation > base + distance * rise + 3) return true;
   }
   return false;
 }
 
 /** Project registered building profiles onto locally flat ground. */
-export function estimateBuildingShade(network: Pick<Network, 'bounds' | 'segments' | 'shadingBuildings' | 'expandedShadingBuildings' | 'shadeSurface' | 'provenance'>, timeMs: number, expanded = false): ShadeEstimate {
+export function estimateBuildingShade(network: Pick<Network, 'bounds' | 'segments' | 'shadingBuildings' | 'expandedShadingBuildings' | 'shadeSurface' | 'shadeSurfaces' | 'provenance'>, timeMs: number, expanded = false): ShadeEstimate {
   const [[west, south], [east, north]] = network.bounds;
   const center: Coordinate = [(west + east) / 2, (south + north) / 2];
   const sun = sunPosition(timeMs, center);
@@ -103,7 +117,7 @@ export function estimateBuildingShade(network: Pick<Network, 'bounds' | 'segment
   const lonScale = metersPerDegree * Math.cos(radians(center[1]));
   const project = ([lon, lat]: Coordinate): Coordinate => [(lon - center[0]) * lonScale, (lat - center[1]) * metersPerDegree];
   const buildings = sunTooLow ? [] : expanded ? liveShadingBuildings(network) : network.shadingBuildings ?? [];
-  const grid = network.shadeSurface ?? surface;
+  const grids = network.shadeSurfaces ?? [network.shadeSurface ?? surface];
   const shadows = buildings.map(building => {
     const footprint = building.footprint.map(project);
     const moved = footprint.map(([x, y]): Coordinate => [x - building.heightM * sun.east / sun.up, y - building.heightM * sun.north / sun.up]);
@@ -145,7 +159,7 @@ export function estimateBuildingShade(network: Pick<Network, 'bounds' | 'segment
       const building = nearby.find(shadow => point[0] >= shadow.minX && point[0] <= shadow.maxX
         && point[1] >= shadow.minY && point[1] <= shadow.maxY
         && !contains(point, shadow.footprint) && shadow.sides.some(side => contains(point, side)));
-      if (!building && !(expanded && shadedBySurface(grid, coordinate, sun, lonScale))) { previous = undefined; continue; }
+      if (!building && !(expanded && shadedBySurface(grids, coordinate, sun, lonScale))) { previous = undefined; continue; }
       const buildingId = building?.id ?? null;
       const finish = along((index + 1) / samples);
       if (previous && previous.buildingId === buildingId) previous.coordinates[1] = finish;

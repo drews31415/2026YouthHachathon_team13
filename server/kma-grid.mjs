@@ -56,23 +56,25 @@ export function parseKmaGrid(text, start, end) {
   return [...rows.values()].filter(row => !conflicts.has(row.time)).sort((a, b) => a.time - b.time);
 }
 
-export async function getKmaGrid(env, area = 'gwanak') {
+export async function getKmaGrid(env, area = 'gwanak', coordinate) {
+  const center = coordinate ?? regions[area].weatherCenter;
+  const id = coordinate ? center.join(',') : area;
   const now = Date.now();
-  const existing = cache.get(area);
+  const existing = cache.get(id);
   if (existing?.expires > now) return existing.result;
-  if (!pending.has(area)) {
-    pending.set(area, fetchGrid(env, area, now).then(result => {
-      cache.set(area, { expires: now + (result.status === 'ok' ? 180_000 : 60_000), result });
+  if (!pending.has(id)) {
+    pending.set(id, fetchGrid(env, center, now).then(result => {
+      if (cache.size >= 128) cache.delete(cache.keys().next().value);
+      cache.set(id, { expires: now + (result.status === 'ok' ? 180_000 : 60_000), result });
       return result;
-    }).finally(() => pending.delete(area)));
+    }).finally(() => pending.delete(id)));
   }
-  return pending.get(area);
+  return pending.get(id);
 }
 
-async function fetchGrid(env, area, now) {
+async function fetchGrid(env, [lon, lat], now) {
   const key = env?.KMA_GRID_API_KEY?.trim() || env?.KMA_API_KEY?.trim();
   if (!key) return { status: 'unavailable', reason: 'configuration' };
-  const [lon, lat] = regions[area].weatherCenter;
   const latest = Math.floor(now / intervalMs) * intervalMs;
   let reason = 'no-recent-analysis';
   for (const end of [latest, latest - intervalMs]) {

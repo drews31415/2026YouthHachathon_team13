@@ -4,6 +4,7 @@ import { analyzeRisk, findForecastDetour, nearestPlace, searchRoutes } from './c
 import { coordinateInside } from './core/network';
 import type { Coordinate, Network, Place, Route, SearchOptions, SearchResult } from './core/types';
 import { fetchNetwork } from './services/network';
+import { fetchSeoulNetwork } from './services/seoul-network';
 import { coordinatePlace, fetchTmapWalkingRoute } from './services/tmap';
 import { gangnamDemoPlaces } from './gangnam-pilot';
 import { PlaceInput } from './components/PlaceInput';
@@ -15,6 +16,7 @@ import './walking-flow.css';
 const defaults: SearchOptions = { origin: null, destination: null, walkingSpeedMps: 1, avoidStairs: false, maxSlopePercent: null };
 const distance = (m: number) => m >= 1000 ? `${(m / 1000).toFixed(2)}km` : `${Math.round(m)}m`;
 const area = 'gangnam';
+const gwanakDemoPlaces = { origin: 'node/3404830015', destination: 'node/3404830009' };
 
 function duration(seconds: number) {
   const rounded = Math.round(seconds);
@@ -24,6 +26,8 @@ function duration(seconds: number) {
 export default function App() {
   const [startDemo] = useState(() => new URLSearchParams(window.location.search).get('demo') === '1');
   const [network, setNetwork] = useState<Network | null>(null);
+  const [gwanak, setGwanak] = useState<Network | null>(null);
+  const [analysisNetwork, setAnalysisNetwork] = useState<Network | null>(null);
   const [dataError, setDataError] = useState('');
   const [reload, setReload] = useState(0);
   const [options, setOptions] = useState<SearchOptions>(defaults);
@@ -32,6 +36,7 @@ export default function App() {
   const [result, setResult] = useState<SearchResult | null>(null);
   const [routing, setRouting] = useState(false);
   const [message, setMessage] = useState('');
+  const [analysisError, setAnalysisError] = useState(false);
   const [locating, setLocating] = useState(false);
   const [selectionMode, setSelectionMode] = useState<'origin' | 'destination' | null>(null);
   const [navigation, setNavigation] = useState(false);
@@ -44,14 +49,20 @@ export default function App() {
   const pendingRoute = useRef<AbortController | null>(null);
   const demoPending = useRef(startDemo);
   const run = useMemo(() => network ? analyzeRisk(network) : null, [network]);
-  const hasOutsideEndpoint = network && [options.origin, options.destination].some(place => place && !coordinateInside(place.coordinate, network.bounds));
-  const allowForecast = !hasOutsideEndpoint && result?.normal?.provider !== 'tmap';
-  const forecast = useIcingForecast(network, !!network && showForecast && allowForecast, area, startDemo);
+  function within(candidate: Network | null, places = options) {
+    return !!candidate && [places.origin, places.destination].every(place => !place || coordinateInside(place.coordinate, candidate.bounds));
+  }
+  const focusedGwanak = !!(options.origin || options.destination) && within(gwanak);
+  const visibleNetwork = analysisNetwork ?? (focusedGwanak ? gwanak : network);
+  const modelArea = visibleNetwork && visibleNetwork === gwanak ? 'gwanak' : area;
+  const allowForecast = !!analysisNetwork || focusedGwanak || within(network);
+  const forecast = useIcingForecast(visibleNetwork, !!visibleNetwork && showForecast && allowForecast, modelArea, startDemo);
+  const searchNetwork = useMemo(() => network && gwanak ? { ...network, places: [...network.places, ...gwanak.places] } : network, [network, gwanak]);
   const detour = useMemo(() => {
     const sections = forecast.shade?.sections;
-    if (!network || !result?.normal || result.normal.provider || !sections?.length) return null;
-    return findForecastDetour(network, options, result, new Set(sections.map(section => section.segmentId)), forecast.heatedWarningSegments);
-  }, [network, options, result, forecast.shade, forecast.heatedWarningSegments]);
+    if (!visibleNetwork || !result?.normal || result.normal.provider || forecast.incomplete || !sections?.length) return null;
+    return findForecastDetour(visibleNetwork, options, result, new Set(sections.map(section => section.segmentId)), forecast.heatedWarningSegments);
+  }, [visibleNetwork, options, result, forecast.shade, forecast.incomplete, forecast.heatedWarningSegments]);
   const recommended = detour?.route ?? null;
   const route = recommended && selectedRoute !== 'normal' ? recommended : result?.normal ?? null;
   const step = navigation ? route?.steps[stepIndex] : undefined;
@@ -65,6 +76,7 @@ export default function App() {
     fetchNetwork(controller.signal, area).then(actual => { if (!controller.signal.aborted) setNetwork(actual); }).catch(error => {
       if (!controller.signal.aborted) setDataError(error instanceof Error && error.name === 'TimeoutError' ? '보행망 조회 시간이 초과되었습니다. 다시 불러와 주세요.' : error instanceof Error && error.name !== 'TypeError' && error.name !== 'SyntaxError' ? error.message : '실제 자료를 불러오지 못했습니다. 다시 불러와 주세요.');
     });
+    void fetchNetwork(controller.signal, 'gwanak').then(actual => { if (!controller.signal.aborted) setGwanak(actual); }).catch(() => {});
     return () => controller.abort();
   }, [reload]);
   useEffect(() => () => { pendingRoute.current?.abort(); window.speechSynthesis?.cancel(); }, []);
@@ -77,7 +89,7 @@ export default function App() {
   function change(next: Partial<SearchOptions>) {
     locationRequest.current += 1; setLocating(false);
     pendingRoute.current?.abort(); setRouting(false);
-    setOptions(old => ({ ...old, ...next })); setResult(null); setNavigation(false); setMessage('');
+    setOptions(old => ({ ...old, ...next })); setResult(null); setAnalysisNetwork(null); setAnalysisError(false); setNavigation(false); setMessage('');
     window.speechSynthesis?.cancel();
   }
   function select(kind: 'origin' | 'destination', place: Place) {
@@ -86,7 +98,7 @@ export default function App() {
   }
   function point(coordinate: Coordinate, kind: 'origin' | 'destination', name?: string) {
     if (!network) return;
-    const place = nearestPlace(network, coordinate) ?? coordinatePlace(coordinate, '지도에서 선택한 위치');
+    const place = nearestPlace(visibleNetwork ?? network, coordinate) ?? coordinatePlace(coordinate, '지도에서 선택한 위치');
     if (name) place.name = name;
     select(kind, place);
   }
@@ -107,34 +119,54 @@ export default function App() {
     const { origin, destination } = nextOptions;
     if (!origin || !destination) { setMessage('검색 결과나 지도에서 출발지와 목적지를 선택해 주세요.'); return; }
     pendingRoute.current?.abort();
-    setRouting(false);
+    locationRequest.current += 1; setLocating(false);
     window.speechSynthesis?.cancel(); setNavigation(false); setSelectionMode(null);
     setRecenterKey(k => k + 1); setMessage(''); setStepIndex(0);
-    const connect = (place: Place) => {
-      if (place.nodeId) return place;
-      const snapped = nearestPlace(network, place.coordinate);
-      return snapped ? { ...snapped, name: place.name, address: place.address } : place;
-    };
-    const localOptions = { ...nextOptions, origin: connect(origin), destination: connect(destination) };
-    const next = searchRoutes(network, localOptions);
     setSelectedRoute(selected);
-    if (next.normal) {
-      setOptions(localOptions); setResult(next); setShowForecast(true);
-      return;
-    }
-    if (nextOptions.maxSlopePercent !== null) {
-      setResult(next);
-      if (next.status === 'out-of-area') setMessage('이 지역에는 확인된 경사 정보가 부족해요. 경사 조건을 해제하면 일반 보행 경로를 검색할 수 있어요.');
-      return;
-    }
-    // Preserve the stricter stair filter where the local graph can be evaluated.
-    if (nextOptions.avoidStairs && next.status === 'no-route') { setResult(next); return; }
     const controller = new AbortController();
     pendingRoute.current = controller;
-    setResult(null); setRouting(true);
+    setResult(null); setAnalysisNetwork(null); setAnalysisError(false); setRouting(true);
     try {
+      const local = within(gwanak, nextOptions) ? gwanak : within(network, nextOptions) ? network : null;
+      const routeWith = (graph: Network) => {
+        const connect = (place: Place) => {
+          if (graph === local && place.nodeId) return place;
+          const snapped = nearestPlace(graph, place.coordinate);
+          return snapped ? { ...place, nodeId: snapped.nodeId, routeCoordinate: snapped.routeCoordinate, snapDistanceM: snapped.snapDistanceM } : place;
+        };
+        const settings = { ...nextOptions, origin: connect(origin), destination: connect(destination) };
+        return { settings, result: searchRoutes(graph, settings) };
+      };
+      let graph = local;
+      let calculated = graph ? routeWith(graph) : null;
+      // Use the full Seoul network if the route extends beyond a pilot map or its paths do not connect.
+      if (!graph || (!calculated?.result.normal && !forecast.replay)) {
+        try {
+          const seoul = await fetchSeoulNetwork(origin.coordinate, destination.coordinate, controller.signal);
+          if (seoul) { graph = seoul; calculated = routeWith(seoul); }
+        } catch {
+          if (!controller.signal.aborted && !graph) setAnalysisError(true);
+        }
+      }
+      controller.signal.throwIfAborted();
+      if (graph) {
+        setAnalysisNetwork(graph);
+        setShowForecast(true);
+      }
+      if (calculated?.result.normal) {
+        setOptions(calculated.settings); setResult(calculated.result);
+        return;
+      }
+      if (calculated && (nextOptions.maxSlopePercent !== null || nextOptions.avoidStairs)) {
+        setResult(calculated.result);
+        return;
+      }
+      if (nextOptions.maxSlopePercent !== null) {
+        setMessage('이 지역에는 확인된 경사 정보가 부족해요. 경사 조건을 해제하면 일반 보행 경로를 검색할 수 있어요.');
+        return;
+      }
       const normal = await fetchTmapWalkingRoute(origin, destination, nextOptions, controller.signal);
-      if (!controller.signal.aborted) setResult({ status: 'ok', message: '', run, normal, recommended: null, extraSeconds: null });
+      if (!controller.signal.aborted) setResult({ status: 'ok', message: '', run: calculated?.result.run ?? run, normal, recommended: null, extraSeconds: null });
     } catch (error) {
       if (!controller.signal.aborted) setMessage(error instanceof Error && error.name !== 'TypeError' && error.name !== 'TimeoutError'
         ? error.message : '보행 경로를 불러오지 못했어요. 다시 시도해 주세요.');
@@ -143,10 +175,10 @@ export default function App() {
     }
   }
   function showReplayRoute() {
-    if (!network || !forecast.replay || !forecast.active) return;
-    const ids = gangnamDemoPlaces;
-    const origin = network.places.find(place => place.id === ids.origin);
-    const destination = network.places.find(place => place.id === ids.destination);
+    if (!visibleNetwork || !forecast.replay || !forecast.active) return;
+    const ids = modelArea === 'gwanak' ? gwanakDemoPlaces : gangnamDemoPlaces;
+    const origin = visibleNetwork.places.find(place => place.id === ids.origin);
+    const destination = visibleNetwork.places.find(place => place.id === ids.destination);
     if (!origin || !destination) return;
     const sample = { ...defaults, origin, destination };
     locationRequest.current += 1; setLocating(false);
@@ -168,7 +200,7 @@ export default function App() {
   function back() {
     window.speechSynthesis?.cancel();
     if (step) { setNavigation(false); return; }
-    if (route) { setResult(null); return; }
+    if (route) { setResult(null); setAnalysisNetwork(null); setAnalysisError(false); return; }
   }
 
   function chooseOnMap(kind: 'origin' | 'destination') {
@@ -193,7 +225,7 @@ export default function App() {
         <h1>{title}</h1>
       </header>
 
-      {!network || !run ? <section className="flow-loading" role="status">
+      {!network || !run || !visibleNetwork || !searchNetwork ? <section className="flow-loading" role="status">
           <Map size={30} />
           <p>{dataError || '지도를 불러오는 중…'}</p>
           {dataError && <button type="button" className="flow-primary" onClick={() => { demoPending.current = startDemo; setReload(x => x + 1); }}><RefreshCw size={18} />다시 불러오기</button>}
@@ -202,8 +234,8 @@ export default function App() {
           {stage === 'search' && <form className="flow-inputs" id="route-search" onSubmit={event => { event.preventDefault(); calculate(); }}>
             <h2>어디로 가시나요?</h2>
             <div className="place-fields">
-              <PlaceInput network={network} selected={options.origin} label="출발지" kind="origin" value={originQuery} onChange={value => { setOriginQuery(value); change({ origin: null }); }} onSelect={place => select('origin', place)} />
-              <PlaceInput network={network} selected={options.destination} label="목적지" kind="destination" value={destinationQuery} onChange={value => { setDestinationQuery(value); change({ destination: null }); }} onSelect={place => select('destination', place)} />
+              <PlaceInput network={searchNetwork} selected={options.origin} label="출발지" kind="origin" value={originQuery} onChange={value => { setOriginQuery(value); change({ origin: null }); }} onSelect={place => select('origin', place)} />
+              <PlaceInput network={searchNetwork} selected={options.destination} label="목적지" kind="destination" value={destinationQuery} onChange={value => { setDestinationQuery(value); change({ destination: null }); }} onSelect={place => select('destination', place)} />
               <button type="button" className="swap-button" aria-label="출발지와 목적지 바꾸기" onClick={() => {
                 setOriginQuery(destinationQuery); setDestinationQuery(originQuery); change({ origin: options.destination, destination: options.origin });
               }}><ArrowUpDown size={19} /></button>
@@ -233,7 +265,7 @@ export default function App() {
           {step && <div className="flow-instruction"><Navigation size={30} aria-hidden="true" /><strong>{step.instruction}</strong></div>}
 
           <section className="flow-map" ref={mapSection} aria-label="보행 지도">
-            <WalkingMap network={network} run={result?.run ?? run} normal={result?.normal ?? null} recommended={recommended}
+            <WalkingMap network={visibleNetwork} run={result?.run ?? run} normal={result?.normal ?? null} recommended={recommended}
               selected={route?.type ?? 'normal'} stage={stage} showForecast={showForecast && allowForecast} allowForecast={allowForecast} forecast={forecast}
               onToggleForecast={() => setShowForecast(value => !value)} onReplayRoute={showReplayRoute}
               origin={options.origin ?? undefined}
@@ -245,7 +277,7 @@ export default function App() {
           {stage === 'search' && <div className="flow-actions"><button type="submit" form="route-search" className="flow-primary" disabled={routing}><Footprints size={24} />{routing ? '경로를 찾는 중…' : '경로 확인하기'}</button></div>}
 
           {stage === 'result' && result?.normal && route && <section className="flow-results" aria-label="경로 비교" aria-live="polite">
-            <WalkingRouteResult normal={result.normal} detour={detour} forecast={forecast} forecastEnabled={showForecast && allowForecast}
+            <WalkingRouteResult normal={result.normal} detour={detour} forecast={forecast} forecastEnabled={showForecast && allowForecast} analysisAvailable={allowForecast} analysisError={analysisError}
               selected={route.type} onSelect={setSelectedRoute} onNavigate={() => { setNavigation(true); setStepIndex(0); }} />
           </section>}
 

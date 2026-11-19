@@ -36,6 +36,12 @@ export async function handleApi(request, env) {
     }
     if (url.pathname === '/api/kma/grid') {
       if (request.method !== 'GET') return json({ error: '조회 요청만 지원합니다.' }, 405);
+      if (url.searchParams.has('lon') || url.searchParams.has('lat')) {
+        const lon = Number(url.searchParams.get('lon'));
+        const lat = Number(url.searchParams.get('lat'));
+        if (!(lon >= 126.73 && lon <= 127.20 && lat >= 37.39 && lat <= 37.72)) return json({ error: '서울 예보의 조회 범위를 벗어났습니다.' }, 400);
+        return json(await getKmaGrid(env, undefined, [Number(lon.toFixed(4)), Number(lat.toFixed(4))]));
+      }
       const area = url.searchParams.get('area') ?? 'gwanak';
       if (!Object.hasOwn(icingRegions, area)) return json({ error: '지원하지 않는 지역입니다.' }, 400);
       return json(await getKmaGrid(env, area));

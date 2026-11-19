@@ -39,6 +39,13 @@ export interface Network {
   shadingBuildings?: ShadingBuilding[];
   expandedShadingBuildings?: ShadingBuilding[];
   shadeSurface?: ShadeSurface;
+  shadeSurfaces?: ShadeSurface[];
+  forecastZones?: {
+    center: Coordinate;
+    bounds: [Coordinate, Coordinate];
+    segments: WalkSegment[];
+    buildings: ShadingBuilding[];
+  }[];
 }
 
 export interface OsmEntranceDataset {

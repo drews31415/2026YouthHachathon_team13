@@ -51,7 +51,7 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
   const [tilesFailed, setTilesFailed] = useState(false);
   const gangnam = forecast.area === 'gangnam';
   const crossings = gangnam ? gangnamCrossings : gwanakCrossings;
-  const areaLabel = icingRegions[forecast.area].label;
+  const areaLabel = forecast.city ? '서울' : icingRegions[forecast.area].label;
   selection.current = { onSelectCoordinate, selectionMode };
 
   function fitRoute() {
@@ -149,12 +149,12 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
       }).addTo(layer);
       if (!selectionMode) line.bindPopup(
         '<div class="flow-map-popup"><strong>결빙 위험 예상</strong><p>' + escape(segment.name) +
-        ' · ' + escape(forecastTemperature(hour)) + '°C</p></div>',
+        (forecast.city ? '' : ' · ' + escape(forecastTemperature(hour)) + '°C') + '</p></div>',
         { maxWidth: 200, minWidth: 120, closeButton: true },
       );
     }
     return () => { layer.remove(); };
-  }, [showForecast, forecast.active, forecast.shade, selectionMode, network]);
+  }, [showForecast, forecast.active, forecast.shade, forecast.city, selectionMode, network]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -169,7 +169,8 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
     if (!group) return;
     group.clearLayers();
     const riskById = new Map(run.estimates.map(estimate => [estimate.segmentId, estimate]));
-    network.segments.forEach(segment => {
+    const backgroundSegments = forecast.city && !showCoverage && !tilesFailed ? [] : network.segments;
+    backgroundSegments.forEach(segment => {
       const points = latlngs(segment.coordinates);
       const missingSurface = riskById.get(segment.id)?.level === 'unknown';
       const line = L.polyline(points, {
@@ -219,7 +220,7 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
       const icon = L.divIcon({ className: 'navigation-marker', html: '<span>▲</span>', iconSize: [42, 42], iconAnchor: [21, 21] });
       L.marker([step.coordinate[1], step.coordinate[0]], { icon, title: '선택한 경로 구간 · 실시간 위치가 아닙니다.', interactive: false }).addTo(group);
     }
-  }, [network, run, normal, recommended, selected, origin, destination, showCoverage, step, selectionMode, stage, tilesFailed]);
+  }, [network, run, normal, recommended, selected, origin, destination, showCoverage, step, selectionMode, stage, tilesFailed, forecast.city]);
 
   useEffect(() => {
     fitRoute();
@@ -245,12 +246,12 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
       <summary>예보·지도 설정</summary>
       {showForecast ? <IcingForecastControl forecast={forecast} onReplayRoute={onReplayRoute} />
         : <button type="button" className="flow-settings-button" onClick={onToggleForecast}>결빙 예보 켜기</button>}
-      <details className="flow-layer-settings">
+      {!forecast.city && <details className="flow-layer-settings">
         <summary>지도 표시 항목</summary>
         <label><input type="checkbox" checked={showCrossings} onChange={e => setShowCrossings(e.target.checked)} />횡단보도</label>
         {!gangnam && <label><input type="checkbox" checked={showDesignated} onChange={e => { if (!e.target.checked) fitRoute(); setShowDesignated(e.target.checked); }} />상습결빙 지정도로</label>}
         <label><input type="checkbox" checked={showCoverage} onChange={e => setShowCoverage(e.target.checked)} />노면 관측 미확인 구간</label>
-      </details>
+      </details>}
     </details>}
   </>;
 }
