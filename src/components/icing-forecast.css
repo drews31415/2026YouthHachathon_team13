@@ -26,6 +26,17 @@
   font: inherit;
 }
 .icing-forecast-control p { margin: 0 0 6px; }
+.icing-forecast-modes { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+.icing-forecast-modes button {
+  padding: 5px 7px;
+  color: #623711;
+  background: #fff;
+  border: 1px solid #d8b99c;
+  border-radius: 5px;
+  font: inherit;
+  cursor: pointer;
+}
+.icing-forecast-modes button[aria-pressed="true"] { color: #fff; background: #894009; border-color: #894009; }
 .icing-forecast-control strong { color: #893700; }
 .icing-forecast-control small { margin-top: 5px; font-size: 11px; }
 .real-data-map .risk-toggle.icing-forecast-toggle > span { display: inline; }

@@ -1,3 +1,5 @@
+import replaySource from '../icing-replay-source.json';
+
 export const icingForecastUrl = 'https://api.open-meteo.com/v1/forecast?latitude=37.4784&longitude=126.9516&hourly=temperature_2m,precipitation&past_days=1&forecast_days=2&timeformat=unixtime&timezone=GMT';
 const hourSeconds = 3600;
 export const icingWeatherMaxAgeMs = 30 * 60_000;
@@ -58,4 +60,24 @@ export async function fetchIcingHours(signal: AbortSignal) {
   requestSignal.throwIfAborted();
   const retrievedAt = Date.now();
   return { retrievedAt, hours: findIcingHours(data, retrievedAt) };
+}
+export async function readIcingReplay(raw: ArrayBuffer) {
+  const digest = await crypto.subtle.digest('SHA-256', raw);
+  const hash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+  if (hash !== replaySource.sha256) throw new Error('과거 예보 원본의 해시가 일치하지 않습니다.');
+  const time = Date.parse(replaySource.validAt);
+  const hour = findIcingHours(JSON.parse(new TextDecoder().decode(raw)), time).find(item => item.time === time);
+  if (!hour || !hasRefreezeConditions(hour)) throw new Error('시범 시각의 예보를 확인할 수 없습니다.');
+  return hour;
+}
+
+export async function fetchIcingReplay(signal: AbortSignal) {
+  const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(8_000)]);
+  const response = await fetch('/data/icing-replay.json', { signal: requestSignal });
+  if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
+    throw new Error('과거 예보 파일을 불러오지 못했습니다.');
+  }
+  const hour = await readIcingReplay(await response.arrayBuffer());
+  requestSignal.throwIfAborted();
+  return hour;
 }

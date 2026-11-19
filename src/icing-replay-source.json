@@ -1,0 +1,8 @@
+{
+  "source": "Open-Meteo Historical Forecast API",
+  "sourceUrl": "https://open-meteo.com/en/docs/historical-forecast-api",
+  "url": "https://historical-forecast-api.open-meteo.com/v1/forecast?latitude=37.4784&longitude=126.9516&hourly=temperature_2m,precipitation&start_date=2025-01-26&end_date=2025-01-27&timeformat=unixtime&timezone=GMT",
+  "retrievedAt": "2026-11-19T11:27:18.306Z",
+  "validAt": "2025-01-27T02:00:00.000Z",
+  "sha256": "418c6bc94b637d295d1d2fe4fb320bc301a553f3543821200a7b035106dd83dd"
+}

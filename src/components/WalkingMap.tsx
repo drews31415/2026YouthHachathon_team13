@@ -131,7 +131,8 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
       }).addTo(layer);
       if (!selectionMode) line.bindPopup(
         '<div class="risk-popup"><strong>재결빙 예상 주의구간</strong><p>' + escape(segment.name) +
-        ' · ' + escape(forecastTime(hour.time)) + ' KST</p><p>지역 기온 ' + escape(hour.temperatureC) +
+        ' · ' + escape(forecastTime(hour.time, forecast.replay)) + ' KST' + (forecast.replay ? ' · 과거 예보 시범' : '') +
+        '</p><p>지역 기온 ' + escape(hour.temperatureC) +
         '°C · 직전 6시간 강수 ' + escape(hour.precedingPrecipMm.toFixed(1)) +
         'mm · 건물 그늘 추정</p><a href="https://www.openstreetmap.org/way/' + section.buildingId +
         '" target="_blank" rel="noopener noreferrer">OSM 건물 높이 출처</a>' +
@@ -140,7 +141,16 @@ export function WalkingMap({ network, run, normal, recommended, selected, origin
       );
     }
     return () => { layer.remove(); };
-  }, [showForecast, forecast.active, forecast.shade, selectionMode, network]);
+  }, [showForecast, forecast.active, forecast.shade, forecast.replay, selectionMode, network]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const sections = forecast.shade?.sections;
+    if (!map || !forecast.replay || !sections?.length) return;
+    const top = Math.min(215, Math.round(map.getSize().y * .48));
+    const points = sections.flatMap(section => latlngs(section.coordinates));
+    map.fitBounds(L.latLngBounds(points), { maxZoom: 17, paddingTopLeft: [28, top], paddingBottomRight: [56, 65] });
+  }, [network, forecast.replay, forecast.shade]);
 
   useEffect(() => {
     const group = layers.current;
