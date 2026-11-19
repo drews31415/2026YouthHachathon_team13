@@ -1,15 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
-import { Layers3, LocateFixed, Minus, Plus, MapPin, Maximize2, MousePointer2, Info, Snowflake } from 'lucide-react';
+import { Maximize2, MousePointer2, Snowflake } from 'lucide-react';
 import type { Coordinate, ModelRun, Network, Place, Route, RouteStep, WalkSegment } from '../core/types';
-import { forecastTime, heatedWarningColor, IcingForecastControl, type useIcingForecast } from './IcingForecastControl';
-import { forecastTemperature, hasSnowmeltRefreeze, usesGridTemperature } from '../services/icing-weather';
-import { surfaceShadeSource } from '../core/icing-forecast';
+import { heatedWarningColor, IcingForecastControl, type useIcingForecast } from './IcingForecastControl';
+import { forecastTemperature } from '../services/icing-weather';
 import designated from '../designated-roads.json';
 import gwanakCrossings from '../crossings.json';
 import gangnamCrossings from '../gangnam-crossings.json';
 import icingRegions from '../../icing-regions.json';
-import { maljukgeoriFootbridge } from '../gangnam-pilot';
 import './public-map-layers.css';
 
 interface Props {
@@ -17,7 +15,7 @@ interface Props {
   run: ModelRun;
   normal: Route | null;
   recommended: Route | null;
-  partialDetour?: boolean;
+  stage: 'home' | 'search' | 'result' | 'guide';
   selected: 'normal' | 'recommended';
   origin?: Place;
   destination?: Place;
@@ -35,12 +33,12 @@ const latlngs = (coordinates: Coordinate[]) => coordinates.map(([lng, lat]) => [
 const escape = (value: string | number) => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!));
 
 function segmentPopup(segment: WalkSegment) {
-  const tags = Object.entries(segment.tags).filter(([key]) => ['highway', 'foot', 'access', 'sidewalk', 'incline', 'wheelchair', 'surface', 'oneway:foot'].includes(key));
-  const sourceUrl = `https://www.openstreetmap.org/way/${encodeURIComponent(segment.wayId)}`;
-  return `<div class="risk-popup real-segment-popup"><span>실제 OpenStreetMap 보행망 구간</span><strong>${escape(segment.name)}</strong><dl><div><dt>구간 거리</dt><dd>${Math.round(segment.lengthM)}m</dd></div><div><dt>계단</dt><dd>${segment.stairs === true ? '계단 태그 있음' : segment.stairs === false ? '계단 아님 태그 확인' : '자료 미기재'}</dd></div><div><dt>경사</dt><dd>${segment.slope === null ? '자료 미기재' : `${escape(segment.slope)}%`}</dd></div><div><dt>노면 결빙</dt><dd>관측자료 없음 · 판단 불가</dd></div></dl>${tags.length ? `<div class="osm-tags">${tags.map(([key, value]) => `<code>${escape(key)}=${escape(value)}</code>`).join('')}</div>` : ''}<a href="${sourceUrl}" target="_blank" rel="noopener noreferrer">OSM 원본 way ${escape(segment.wayId)} ↗</a><small>자료 미기재를 통행 가능·위험 낮음으로 해석하지 않습니다.</small></div>`;
+  const sourceUrl = 'https://www.openstreetmap.org/way/' + encodeURIComponent(segment.wayId);
+  return '<div class="flow-map-popup"><strong>' + escape(segment.name) +
+    '</strong><p>노면 상태 미확인</p><a href="' + sourceUrl + '" target="_blank" rel="noopener noreferrer">지도 원본</a></div>';
 }
 
-export function WalkingMap({ network, run, normal, recommended, partialDetour, selected, origin, destination, step, recenterKey,
+export function WalkingMap({ network, run, normal, recommended, stage, selected, origin, destination, step, recenterKey,
   onSelectCoordinate, selectionMode = null, showForecast, forecast, onToggleForecast, onReplayRoute }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -50,41 +48,41 @@ export function WalkingMap({ network, run, normal, recommended, partialDetour, s
   const [showCoverage, setShowCoverage] = useState(false);
   const [showDesignated, setShowDesignated] = useState(false);
   const [showCrossings, setShowCrossings] = useState(false);
-  const [layerMenu, setLayerMenu] = useState(false);
   const [tilesFailed, setTilesFailed] = useState(false);
   const gangnam = forecast.area === 'gangnam';
   const crossings = gangnam ? gangnamCrossings : gwanakCrossings;
   const areaLabel = icingRegions[forecast.area].label;
   selection.current = { onSelectCoordinate, selectionMode };
 
-  function fitNetwork() {
-    const [[west, south], [east, north]] = network.bounds;
-    mapRef.current?.fitBounds([[south, west], [north, east]], { padding: [48, 78] });
-  }
-
   function fitRoute() {
+    const map = mapRef.current;
+    if (!map) return;
     const route = selected === 'recommended' ? recommended : normal;
-    if (route?.coordinates.length) mapRef.current?.fitBounds(L.latLngBounds(latlngs(route.coordinates)), { padding: [65, 85], maxZoom: 18 });
-    else fitNetwork();
+    if (route?.coordinates.length) {
+      map.fitBounds(L.latLngBounds(latlngs(route.coordinates)), { paddingTopLeft: [37, 73], paddingBottomRight: [50, 62], maxZoom: 18 });
+      return;
+    }
+    const endpoints = [origin, destination].filter((place): place is Place => !!place);
+    if (endpoints.length) {
+      map.fitBounds(L.latLngBounds(latlngs(endpoints.map(place => place.coordinate))), { padding: [60, 55], maxZoom: 17 });
+      return;
+    }
+    const [[west, south], [east, north]] = network.bounds;
+    map.fitBounds([[south, west], [north, east]], { padding: [20, 20] });
   }
 
   function focusHeatingWarning() {
     const map = mapRef.current;
     const line = heatedLine.current;
     if (!map || !line) return;
-    const container = map.getContainer();
-    const panel = container.parentElement?.querySelector('.icing-forecast-control');
-    const width = map.getSize().x;
-    const panelRight = panel ? panel.getBoundingClientRect().right - container.getBoundingClientRect().left : 0;
-    const targetX = Math.min(width - 30, Math.max(width / 2, (panelRight + width - 52) / 2));
-    const zoom = Math.max(17, map.getZoom());
-    const center = map.project(line.getBounds().getCenter(), zoom).subtract([targetX - width / 2, 0]);
-    map.setView(map.unproject(center, zoom), zoom, { animate: false });
+    map.setView(line.getBounds().getCenter(), Math.max(17, map.getZoom()), { animate: false });
+    host.current?.scrollIntoView({ block: 'nearest' });
+    line.openPopup();
   }
 
   useEffect(() => {
     if (!host.current) return;
-    const map = L.map(host.current, { zoomControl: false, attributionControl: true, scrollWheelZoom: true, minZoom: 12, maxZoom: 19, preferCanvas: true, renderer: L.canvas({ tolerance: 6 }) });
+    const map = L.map(host.current, { zoomControl: false, attributionControl: true, scrollWheelZoom: false, minZoom: 12, maxZoom: 19, preferCanvas: true, renderer: L.canvas({ tolerance: 6 }) });
     mapRef.current = map;
     const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors', maxZoom: 19,
@@ -111,9 +109,11 @@ export function WalkingMap({ network, run, normal, recommended, partialDetour, s
     else map.getContainer().classList.remove('coordinate-selection-active');
   }, [selectionMode]);
 
+  useEffect(() => { mapRef.current?.closePopup(); }, [stage]);
+
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !showDesignated) return;
+    if (!map || !showDesignated || stage === 'home' || stage === 'guide') return;
     const markers = L.layerGroup().addTo(map);
     const points: L.LatLngTuple[] = [];
     for (const road of designated.records) {
@@ -127,11 +127,11 @@ export function WalkingMap({ network, run, normal, recommended, partialDetour, s
     }
     if (!selectionMode) map.fitBounds(L.latLngBounds(points), { padding: [40, 70], maxZoom: 15 });
     return () => { markers.remove(); };
-  }, [showDesignated, selectionMode, network]);
+  }, [showDesignated, selectionMode, network, stage]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !showCrossings) return;
+    if (!map || !showCrossings || stage === 'home' || stage === 'guide') return;
     const markers = L.layerGroup().addTo(map);
     for (const point of crossings.points) {
       const popup = '<strong>' + escape(point.name) + '</strong><p>' + escape(point.crossingType) +
@@ -141,7 +141,7 @@ export function WalkingMap({ network, run, normal, recommended, partialDetour, s
         .bindPopup(popup).addTo(markers);
     }
     return () => { markers.remove(); };
-  }, [showCrossings, selectionMode, network, crossings]);
+  }, [showCrossings, selectionMode, network, crossings, stage]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -152,51 +152,30 @@ export function WalkingMap({ network, run, normal, recommended, partialDetour, s
     for (const section of forecast.shade.sections) {
       const segment = segments.get(section.segmentId);
       if (!segment) continue;
-      const facility = segment.wayId === maljukgeoriFootbridge.osmWayId ? maljukgeoriFootbridge : undefined;
       const heatingApplied = forecast.heatedWarningSegments.has(segment.id);
       const line = L.polyline(latlngs(section.coordinates), {
-        pane: 'icingForecast', color: heatingApplied ? heatedWarningColor : '#a63f06', weight: heatingApplied ? 7 : 5,
-        opacity: .96, dashArray: heatingApplied ? '1 10' : '6 6',
+        pane: 'icingForecast', color: heatingApplied ? heatedWarningColor : '#1185dc', weight: heatingApplied ? 6 : 4,
+        opacity: .94, dashArray: heatingApplied ? '1 8' : '3 6',
         interactive: !selectionMode, bubblingMouseEvents: false,
       }).addTo(layer);
       if (heatingApplied) heatedLine.current = line;
       if (!selectionMode) line.bindPopup(
-        '<div class="risk-popup"><strong>' + (heatingApplied ? '열선 효과 추정 · 결빙 주의' : '재결빙 예상 주의구간') + '</strong><p>' + escape(segment.name) +
-        ' · ' + escape(forecastTime(hour.time, forecast.replay)) + ' KST' + (forecast.replay ? ' · 과거 예보 시범' : '') +
-        '</p><p>' + (usesGridTemperature(hour) ? '기상청 500m 분석' : hour.kma ? '기상청 예보' : 'Open-Meteo') + ' 기온 ' + escape(forecastTemperature(hour)) +
-        '°C · ' + (section.bridge ? '찬 공기에 노출되는 보행 교량' : section.buildingId === null ? '표면 높이로 추정한 그늘' : '건물 그늘 추정') + '</p>' +
-        (hasSnowmeltRefreeze(hour) ? '<p>전 12시간 적설과 영상 기온 예보 후 영하 도달</p>' : '') +
-        (hour.precedingPrecipMm !== null ? '<p>Open-Meteo 직전 6시간 강수 ' + escape(hour.precedingPrecipMm.toFixed(1)) + 'mm</p>' : '') +
-        (hour.kma?.wet ? '<p>기상청 1시간 강수 예보 ' + escape(hour.kma.precipitation ?? '강수 형태 확인') + '</p>' : '') +
-        (hour.nearbyPrecipitation ? '<p>기상청 ' + escape(hour.nearbyPrecipitation.station) + ' AWS · ' +
-          escape(forecastTime(hour.nearbyPrecipitation.time)) + ' · 최근 1시간 강수 ' + escape(hour.nearbyPrecipitation.mm) + 'mm</p>' : '') +
-        (hour.gridMoisture && hour.grid ? '<p>기상청 500m 분석의 최근 눈·강수 근거' +
-          (hour.grid.snowDepthCm === null ? '' : ' · 적설 ' + escape(hour.grid.snowDepthCm) + 'cm') + '</p>' : '') +
-        (segment.tags.surface ? '<p>OSM 노면 재질 ' + escape(segment.tags.surface) + '</p>' : '') +
-        (section.bridge
-          ? '<a href="https://www.openstreetmap.org/way/' + encodeURIComponent(segment.wayId) + '" target="_blank" rel="noopener noreferrer">보행 교량 OSM 원본</a>'
-          : section.buildingId === null
-          ? '<a href="' + surfaceShadeSource.url + '" target="_blank" rel="noopener noreferrer">Copernicus 표면 높이 출처</a>'
-          : '<a href="https://www.openstreetmap.org/way/' + section.buildingId +
-            '" target="_blank" rel="noopener noreferrer">OSM 건물 높이 출처</a>') +
-        (facility ? '<p><a href="' + facility.heatingSource + '" target="_blank" rel="noopener noreferrer">서울시 열선 설치 기록</a> · ' +
-          facility.heatingLengthM + 'm · 선택 시각 가동 미확인</p>' : '') +
-        (heatingApplied ? '<p>영하 기온과 강설 자료를 근거로 열선 효과를 추정해 경로 비교에 반영했습니다.</p>' : '') +
-        '<small>공개 기상과 보행로 특성으로 계산했습니다. 실제 노면은 미확인입니다.</small></div>',
-        { maxWidth: 280 },
+        '<div class="flow-map-popup"><strong>' + (heatingApplied ? '열선 반영 · 결빙 주의' : '결빙 위험 예상') +
+        '</strong><p>' + (heatingApplied ? '실제 가동 미확인'
+          : escape(segment.name) + ' · ' + escape(forecastTemperature(hour)) + '°C') + '</p></div>',
+        { maxWidth: 200, minWidth: 120, closeButton: true },
       );
     }
     return () => { heatedLine.current = null; layer.remove(); };
-  }, [showForecast, forecast.active, forecast.shade, forecast.replay, forecast.heatedWarningSegments, selectionMode, network]);
+  }, [showForecast, forecast.active, forecast.shade, forecast.heatedWarningSegments, selectionMode, network]);
 
   useEffect(() => {
     const map = mapRef.current;
     const sections = forecast.shade?.sections;
-    if (!map || !forecast.replay || !sections?.length) return;
-    const top = Math.min(215, Math.round(map.getSize().y * .48));
+    if (!map || normal || !forecast.replay || !sections?.length) return;
     const points = sections.flatMap(section => latlngs(section.coordinates));
-    map.fitBounds(L.latLngBounds(points), { maxZoom: 17, paddingTopLeft: [28, top], paddingBottomRight: [56, 65] });
-  }, [network, forecast.replay, forecast.shade]);
+    map.fitBounds(L.latLngBounds(points), { maxZoom: 17, padding: [30, 35] });
+  }, [network, normal, forecast.replay, forecast.shade]);
 
   useEffect(() => {
     const group = layers.current;
@@ -209,18 +188,18 @@ export function WalkingMap({ network, run, normal, recommended, partialDetour, s
       const line = L.polyline(points, {
         color: showCoverage && missingSurface ? '#8a7b9b' : '#748b94',
         weight: showCoverage && missingSurface ? 3 : 1.3,
-        opacity: showCoverage && missingSurface ? .65 : .3,
+        opacity: showCoverage && missingSurface ? .65 : tilesFailed ? .45 : .12,
         dashArray: showCoverage && missingSurface ? '3 6' : undefined,
-        interactive: !selectionMode, bubblingMouseEvents: false,
+        interactive: showCoverage && !selectionMode, bubblingMouseEvents: false,
       }).addTo(group);
-      if (!selectionMode) line.bindPopup(() => segmentPopup(segment), { maxWidth: 280 });
+      if (showCoverage && !selectionMode) line.bindPopup(() => segmentPopup(segment), { maxWidth: 200 });
     });
 
     const routeLine = (route: Route, active: boolean) => {
       const points = latlngs(route.coordinates);
-      const routeColor = route.type === 'recommended' ? '#08725e' : '#1765ef';
-      if (active) L.polyline(points, { color: '#fff', weight: 10, opacity: .95, interactive: false }).addTo(group);
-      L.polyline(points, { color: routeColor, weight: active ? 6 : 3.5, opacity: active ? 1 : .65, dashArray: active ? undefined : '7 8', lineJoin: 'round', interactive: false }).addTo(group);
+      const routeColor = active ? '#0758ef' : '#65738a';
+      if (active) L.polyline(points, { color: '#fff', weight: 12, opacity: .95, interactive: false }).addTo(group);
+      L.polyline(points, { color: routeColor, weight: active ? 8 : 4, opacity: active ? 1 : .82, dashArray: active ? undefined : '2 8', lineJoin: 'round', interactive: false }).addTo(group);
       if (active && route.coordinates.length) {
         const start = route.coordinates[0];
         const finish = route.coordinates[route.coordinates.length - 1];
@@ -232,7 +211,7 @@ export function WalkingMap({ network, run, normal, recommended, partialDetour, s
     };
     const inactive = selected === 'recommended' ? normal : recommended;
     const active = selected === 'recommended' ? recommended : normal;
-    if (inactive) routeLine(inactive, false);
+    if (inactive && stage !== 'guide') routeLine(inactive, false);
     if (active) routeLine(active, true);
 
     // Search exposes all registered places. Only selected endpoints are marked
@@ -240,45 +219,49 @@ export function WalkingMap({ network, run, normal, recommended, partialDetour, s
 
     const endpoint = (place: Place, kind: 'origin' | 'destination') => {
       const label = kind === 'origin' ? '출발' : '도착';
-      const icon = L.divIcon({ className: `endpoint-marker ${kind}-marker`, html: `<span>${label}</span>`, iconSize: [40, 40], iconAnchor: [20, 20] });
+      const icon = L.divIcon({ className: `endpoint-marker ${kind}-marker`, html: '<span></span>', iconSize: [28, 34], iconAnchor: [14, 31] });
       const connection = place.snapDistanceM > 1 ? ` · 보행망 연결점과 약 ${Math.round(place.snapDistanceM)}m 차이` : '';
       L.marker([place.coordinate[1], place.coordinate[0]], { icon, title: `${label}: ${place.name}${connection}`, interactive: !selectionMode }).addTo(group)
-        .bindTooltip(escape(place.name), { direction: 'right', permanent: true, offset: [22, 0], className: 'endpoint-label' });
+        .bindTooltip(escape(place.name), { direction: 'right', permanent: true, offset: [16, -20], className: 'endpoint-label' });
     };
-    if (origin) endpoint(origin, 'origin');
+    if (origin && stage !== 'guide') endpoint(origin, 'origin');
     if (destination) endpoint(destination, 'destination');
     if (step) {
       const icon = L.divIcon({ className: 'navigation-marker', html: '<span>▲</span>', iconSize: [42, 42], iconAnchor: [21, 21] });
       L.marker([step.coordinate[1], step.coordinate[0]], { icon, title: '선택한 경로 구간 · 실시간 위치가 아닙니다.', interactive: false }).addTo(group);
     }
-  }, [network, run, normal, recommended, selected, origin, destination, showCoverage, step, selectionMode]);
+  }, [network, run, normal, recommended, selected, origin, destination, showCoverage, step, selectionMode, stage, tilesFailed]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const route = selected === 'recommended' ? recommended : normal;
-    if (route?.coordinates.length) map.fitBounds(L.latLngBounds(latlngs(route.coordinates)), { paddingTopLeft: [65, 90], paddingBottomRight: [95, 90], maxZoom: 18, animate: true });
-    else { const [[west, south], [east, north]] = network.bounds; map.fitBounds([[south, west], [north, east]], { padding: [48, 78], animate: true }); }
-  }, [normal, recommended, selected, recenterKey, network]);
+    fitRoute();
+  }, [normal, recommended, selected, recenterKey, network, stage, origin, destination]);
 
-  return <div className="map-wrapper real-data-map">
-    <div className="walking-map" ref={host} role="region" aria-label={areaLabel + ' 실제 OpenStreetMap 보행망. 노면 결빙 관측자료는 확보되지 않았습니다.'} />
-    <div className="map-topline"><span className="area-chip"><span className="live-dot" /><MapPin size={14} />서울 {areaLabel}<span className="area-chip-sub">실제 OSM 보행망</span></span><span className="map-source-tag">공개 지도 자료</span></div>
-    {selectionMode && <div className="map-selection-notice" role="status"><MousePointer2 size={17} /><span>지도를 눌러 <strong>{selectionMode === 'origin' ? '출발 위치' : '도착 위치'}</strong>를 선택하세요.</span></div>}
-    <div className="map-tools">
-      <button type="button" title="공공자료 표시" aria-label="공공자료 표시" aria-expanded={layerMenu} aria-controls="public-map-layers" onClick={() => setLayerMenu(!layerMenu)}><Layers3 size={19} /></button>
-      {layerMenu && <fieldset id="public-map-layers" className="public-map-layers"><legend>공공자료 표시</legend>
-        <label><input type="checkbox" checked={showCrossings} onChange={e => setShowCrossings(e.target.checked)} />횡단보도 시설 {crossings.points.length}곳</label>
-        {!gangnam && <label><input type="checkbox" checked={showDesignated} onChange={e => { if (!e.target.checked) fitRoute(); setShowDesignated(e.target.checked); }} />상습결빙 지정도로 {designated.records.length}곳</label>}
-        <label><input type="checkbox" checked={showCoverage} onChange={e => setShowCoverage(e.target.checked)} />노면 관측 미확인 구간</label>
-      </fieldset>}
-      <button type="button" title="경로 전체 보기" aria-label="경로 전체 보기" onClick={fitRoute}><Maximize2 size={19} /></button>
-      <div className="zoom-buttons"><button type="button" aria-label="지도 확대" onClick={() => mapRef.current?.zoomIn()}><Plus size={21} /></button><button type="button" aria-label="지도 축소" onClick={() => mapRef.current?.zoomOut()}><Minus size={21} /></button></div>
-      <button type="button" title="수집된 생활권 전체 보기" aria-label="수집된 생활권 전체 보기" onClick={fitNetwork}><LocateFixed size={20} /></button>
+  useEffect(() => {
+    if (step) mapRef.current?.panInside([step.coordinate[1], step.coordinate[0]], { padding: [42, 42] });
+  }, [step]);
+
+  const mapControls = stage === 'search' || stage === 'result';
+
+  return <>
+    <div className="map-wrapper real-data-map flow-map-canvas">
+      <div className="walking-map" ref={host} role="region" aria-label={areaLabel + ' 보행 지도'} />
+      {selectionMode && <div className="flow-map-selection" role="status"><MousePointer2 size={16} />지도에서 {selectionMode === 'origin' ? '출발' : '도착'} 위치를 선택하세요</div>}
+      {mapControls && <button type="button" className="flow-map-forecast" aria-pressed={showForecast} onClick={onToggleForecast}>
+        <Snowflake size={19} />{showForecast ? forecast.replay ? '결빙 예상 · 과거 시범' : '결빙 위험 예상' : '결빙 예상 켜기'}
+      </button>}
+      {mapControls && <button type="button" className="flow-map-fit" aria-label="경로 전체 보기" onClick={fitRoute}><Maximize2 size={20} /></button>}
+      {tilesFailed && stage !== 'home' && <p className="flow-map-error" role="status">배경 지도 연결이 지연되고 있어요.</p>}
     </div>
-    {showForecast && <IcingForecastControl forecast={forecast} onReplayRoute={onReplayRoute} onFocusHeating={focusHeatingWarning} />}
-    <div className="map-bottomline"><div className="map-legend"><span><i className="legend-recommended" />일반 보행 경로</span>{recommended ? <span><i className="legend-forecast-detour" />{partialDetour ? '주의구간 일부 우회' : '예상구간 우회'}</span> : <span><i className="legend-network" />OSM 보행망</span>}</div><button type="button" className={`risk-toggle icing-forecast-toggle ${showForecast ? 'on' : ''}`} aria-pressed={showForecast} onClick={onToggleForecast}><Snowflake size={17} /><span>결빙 예상</span><i /></button></div>
-    {(showDesignated || showCrossings || showCoverage) && <div className="surface-data-notice" role="status"><Info size={15} /><span>{showDesignated && <>주황 점은 지정도로의 시점·종점입니다. {designated.date} <a href={designated.url} target="_blank" rel="noreferrer">행안부</a>. </>}{showCrossings && <>청록 점은 횡단보도 시설 위치입니다. {crossings.date} <a href={crossings.url} target="_blank" rel="noreferrer">서울시</a>. </>}{showCoverage && '점선은 노면 관측자료가 없는 구간입니다.'}</span></div>}
-    {tilesFailed && <div className="tile-warning" role="status">배경 지도를 불러오지 못했어요. 수집된 실제 OSM 보행망과 계산 경로는 계속 확인할 수 있습니다.</div>}
-  </div>;
+    {mapControls && <details className="flow-map-settings">
+      <summary>예보·지도 설정</summary>
+      {showForecast ? <IcingForecastControl forecast={forecast} onReplayRoute={onReplayRoute} onFocusHeating={focusHeatingWarning} />
+        : <button type="button" className="flow-settings-button" onClick={onToggleForecast}>결빙 예보 켜기</button>}
+      <details className="flow-layer-settings">
+        <summary>지도 표시 항목</summary>
+        <label><input type="checkbox" checked={showCrossings} onChange={e => setShowCrossings(e.target.checked)} />횡단보도</label>
+        {!gangnam && <label><input type="checkbox" checked={showDesignated} onChange={e => { if (!e.target.checked) fitRoute(); setShowDesignated(e.target.checked); }} />상습결빙 지정도로</label>}
+        <label><input type="checkbox" checked={showCoverage} onChange={e => setShowCoverage(e.target.checked)} />노면 관측 미확인 구간</label>
+      </details>
+    </details>}
+  </>;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { MapPin, TrainFront, Building2, Search, X, Bike, BusFront, DoorOpen } from 'lucide-react';
+import { MapPin, TrainFront, Building2, X, Bike, BusFront, DoorOpen } from 'lucide-react';
 import { findPlaces } from '../core/engine';
 import type { Network, Place } from '../core/types';
 
@@ -13,12 +13,15 @@ interface Props {
 }
 
 function placeDisplay(category: string) {
-  if (category.includes('출입구') || category.includes('subway_entrance')) return { Icon: DoorOpen, label: '지하철 출입구 · OSM' };
+  if (category.includes('출입구') || category.includes('subway_entrance')) return { Icon: DoorOpen, label: '지하철 출입구' };
   if (category === '시설 · bicycle_rental') return { Icon: Bike, label: '자전거 대여소' };
   if (category === '도로시설 · bus_stop') return { Icon: BusFront, label: '버스 정류장' };
   if (category === '대중교통 · platform') return { Icon: MapPin, label: '대중교통 승강장' };
-  if (category.startsWith('철도 ·')) return { Icon: TrainFront, label: category };
-  return { Icon: category.startsWith('기관 ·') ? Building2 : MapPin, label: category };
+  if (category.startsWith('철도 ·')) return { Icon: TrainFront, label: '철도역' };
+  if (category.includes('government')) return { Icon: Building2, label: '공공기관' };
+  if (category.includes('hospital')) return { Icon: Building2, label: '병원' };
+  if (category.startsWith('기관 ·')) return { Icon: Building2, label: '기관' };
+  return { Icon: MapPin, label: category.includes('교차로') ? '교차로' : '장소' };
 }
 
 export function PlaceInput({ network, label, value, kind, onChange, onSelect }: Props) {
@@ -37,7 +40,7 @@ export function PlaceInput({ network, label, value, kind, onChange, onSelect }: 
     <div className="place-field-body">
       <label htmlFor={id}>{label}</label>
       <div className="place-input-row">
-        <input ref={input} id={id} value={value} placeholder={`${label}를 검색하세요`}
+        <input ref={input} id={id} value={value} placeholder={kind === 'origin' ? '출발지를 검색하세요' : '목적지를 검색하세요'}
           role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={`${id}-list`}
           aria-activedescendant={open && places[active] ? `${id}-${places[active].id}` : undefined}
           autoComplete="off"
@@ -54,7 +57,6 @@ export function PlaceInput({ network, label, value, kind, onChange, onSelect }: 
       </div>
     </div>
     {open && <div className="place-dropdown" id={`${id}-list`} role="listbox" aria-label={`${label} 검색 결과`}>
-      <div className="dropdown-caption"><Search size={12} /> OpenStreetMap에 등록된 실제 장소</div>
       {places.length ? places.map((place, index) => {
         const { Icon, label } = placeDisplay(place.category);
         return <button type="button" role="option" aria-selected={active === index}
