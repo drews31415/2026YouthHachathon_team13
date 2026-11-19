@@ -315,6 +315,7 @@
 }
 .flow-journey span { min-width: 0; overflow-wrap: anywhere; }
 .flow-results { grid-area: result; padding-top: 14px; }
+.flow-route-date { margin: 0 0 8px; color: var(--flow-muted); font-size: 13px; line-height: 1.4; }
 .flow-route-card { border: 1px solid #c7d6eb; border-radius: 17px; padding: 4px; background: #fff; box-shadow: 0 3px 12px #17365d0f; }
 .flow-route-row {
   display: grid;
@@ -332,8 +333,8 @@
 }
 .flow-route-row[aria-pressed="true"] { background: var(--flow-pale); }
 .flow-route-row.recommended { min-height: 59px; }
-.flow-route-name { display: flex; align-items: center; gap: 7px; font-size: 16px; font-weight: 810; white-space: nowrap; }
-.flow-route-name svg { color: var(--flow-blue); }
+.flow-route-name { display: flex; align-items: center; gap: 7px; font-size: 16px; font-weight: 810; word-break: keep-all; }
+.flow-route-name svg { flex-shrink: 0; color: var(--flow-blue); }
 .flow-route-name i { flex: 0 0 20px; border-top: 3px dotted #667489; }
 .flow-route-row strong { font-size: 18px; font-weight: 870; letter-spacing: -.05em; }
 .flow-route-row.recommended strong { color: var(--flow-blue); font-size: clamp(20px, 5.4vw, 28px); }

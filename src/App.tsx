@@ -187,7 +187,7 @@ export default function App() {
           <nav className="flow-menu-items" aria-label="설정 및 다른 서비스">
             <a href="/" aria-current={view === 'map' && area === 'gwanak' ? 'page' : undefined}>관악구 보행 지도</a>
             <a href="/?area=gangnam" aria-current={view === 'map' && area === 'gangnam' ? 'page' : undefined}>강남구 보행 지도</a>
-            <a href="/?area=gangnam&demo=1">말죽거리 결빙 시범</a>
+            <a href="/?area=gangnam&demo=1">말죽거리 · 과거 예보 예시</a>
             <button type="button" onClick={() => section('weather')}>관악 기상 관측</button>
             <button type="button" onClick={() => section('tmap')}>TMAP 길찾기</button>
             <button type="button" aria-pressed={largeText} onClick={() => setLargeText(value => !value)}>{largeText ? '기본 글씨' : '큰 글씨'}</button>

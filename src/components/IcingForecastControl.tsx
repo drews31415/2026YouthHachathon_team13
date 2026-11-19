@@ -114,16 +114,16 @@ export function IcingForecastControl({ forecast, onReplayRoute, onFocusHeating }
   return <section className="icing-forecast-control" aria-label="결빙 예보 설정">
     <div className="icing-forecast-modes" role="group" aria-label="예보 조회 방식">
       <button type="button" aria-pressed={!replay} onClick={() => changeMode(false)}>최신 예보</button>
-      <button type="button" aria-pressed={replay} onClick={() => changeMode(true)}>과거 예보 시범</button>
+      <button type="button" aria-pressed={replay} onClick={() => changeMode(true)}>과거 예보로 비교</button>
     </div>
-    {replay && area === 'gwanak' && <label htmlFor={sceneId}>시범 사례
+    {replay && area === 'gwanak' && <label htmlFor={sceneId}>적용할 과거 예보
       <select id={sceneId} value={replayScene} onChange={e => changeReplayScene(e.target.value as IcingReplay)}>
         <option value="original">1월 27일 · 강수 뒤 재결빙</option>
         <option value="snow">1월 2일 · 녹은 눈 재결빙</option>
       </select>
     </label>}
     {!active ? <p role="status">{failed ? '예보를 불러오지 못했어요.' : '예보를 확인하는 중…'}</p> : <>
-      {replay ? <p><strong>{forecastTime(active.time, true)} KST</strong></p>
+      {replay ? <p><strong>결빙 예상 기준 · {forecastTime(active.time, true)} KST</strong></p>
         : <label htmlFor={selectId}>예상 시각 (한국 시간)
           <select id={selectId} value={active.time} onChange={e => setSelected(Number(e.target.value))}>
             {hours.map(hour => <option key={hour.time} value={hour.time}>{forecastTime(hour.time)}{hasFreezingRain(hour) ? ' · 어는 비' : hasRefreezeConditions(hour) ? ' · 재결빙 주의' : hasFrostConditions(hour) ? ' · 서리 주의' : ''}</option>)}
@@ -137,7 +137,7 @@ export function IcingForecastControl({ forecast, onReplayRoute, onFocusHeating }
       {forecast.heatedWarningSegments.size > 0 && <button type="button" className="heated-warning-key" onClick={onFocusHeating}>
         <i aria-hidden="true" />열선 반영 구간 보기
       </button>}
-      {replay && replayScene !== 'snow' && !!shade?.sections.length && <button type="button" className="icing-replay-route" onClick={onReplayRoute}>시범 경로 불러오기</button>}
+      {replay && replayScene !== 'snow' && !!shade?.sections.length && <button type="button" className="icing-replay-route" onClick={onReplayRoute}>예시 출발지·목적지 불러오기</button>}
       <details className="icing-external-data"><summary>예보 출처</summary>
         <p>{usesGridTemperature(active) ? '기상청 500m 분석' : active.kma ? '기상청 예보' : 'Open-Meteo'}</p>
         <p><a href={replay ? icingReplays[replayScene].sourceUrl : 'https://open-meteo.com/en/docs'} target="_blank" rel="noreferrer">{replay ? '과거 예보 원본' : 'Open-Meteo 명세'}</a> · <a href={surfaceShadeSource.url} target="_blank" rel="noreferrer">Copernicus 30m</a></p>

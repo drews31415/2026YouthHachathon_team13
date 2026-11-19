@@ -247,7 +247,7 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
       <div className="walking-map" ref={host} role="region" aria-label={areaLabel + ' 보행 지도'} />
       {selectionMode && <div className="flow-map-selection" role="status"><MousePointer2 size={16} />지도에서 {selectionMode === 'origin' ? '출발' : '도착'} 위치를 선택하세요</div>}
       {mapControls && <button type="button" className="flow-map-forecast" aria-pressed={showForecast} onClick={onToggleForecast}>
-        <Snowflake size={19} />{showForecast ? forecast.replay ? '결빙 예상 · 과거 시범' : '결빙 위험 예상' : '결빙 예상 켜기'}
+        <Snowflake size={19} />{showForecast ? '결빙 위험 예상' : '결빙 예상 켜기'}
       </button>}
       {mapControls && <button type="button" className="flow-map-fit" aria-label="경로 전체 보기" onClick={fitRoute}><Maximize2 size={20} /></button>}
       {tilesFailed && stage !== 'home' && <p className="flow-map-error" role="status">배경 지도 연결이 지연되고 있어요.</p>}

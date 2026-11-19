@@ -28,6 +28,7 @@ export function WalkingRouteResult({ normal, detour, forecast, forecastEnabled, 
   const heating = detour?.heatingComparison;
   const routes = alternate ? [alternate, normal] : [normal];
   const extra = alternate ? alternate.durationSeconds - normal.durationSeconds : 0;
+  const alternateLabel = detour?.partial ? '결빙 일부 우회 경로' : '결빙 우회 경로';
   const unavailable = forecast.failed && !forecast.active;
   const finding = forecastEnabled && !forecast.active && !unavailable;
   const status = alternate ? detour?.partial ? '예상 주의구간을 일부 피해가요' : '예상 주의구간을 피해가요'
@@ -38,10 +39,11 @@ export function WalkingRouteResult({ normal, detour, forecast, forecastEnabled, 
     : '';
 
   return <div className="flow-comparison">
+    {forecast.replay && forecast.active && <p className="flow-route-date">과거 예보 기준 · {forecastTime(forecast.active.time, true)} KST</p>}
     <div className="flow-route-card" aria-label="경로 선택">
       {routes.map(route => {
         const recommended = route.type === 'recommended';
-        const label = recommended ? '추천 경로' : '일반 경로';
+        const label = recommended ? alternateLabel : '일반 경로';
         return <button key={route.type} type="button" className={'flow-route-row ' + route.type}
           aria-pressed={selected === route.type} onClick={() => onSelect(route.type)}>
           <span className="flow-route-name">{recommended ? <Footprints size={21} aria-hidden="true" /> : <i aria-hidden="true" />}{label}</span>
@@ -57,11 +59,12 @@ export function WalkingRouteResult({ normal, detour, forecast, forecastEnabled, 
     <button className="flow-primary" type="button" onClick={onNavigate}><Navigation size={22} />이 길로 안내 보기</button>
     {(forecast.active || heating) && <details className="flow-result-details">
       <summary>경로 계산 상세</summary>
-      {forecast.active && <p>{forecastTime(forecast.active.time, forecast.replay)} KST{forecast.replay && ' · 과거 예보 시범'}</p>}
+      {forecast.active && !forecast.replay && <p>결빙 예상 기준 · {forecastTime(forecast.active.time)} KST</p>}
+      <p>일반 경로는 설정한 보행 조건에서 거리가 가장 짧은 경로예요.</p>
       {(detour?.crossings ?? 0) > 0 && <p>일반 경로가 예상 주의구간 {detour?.crossings}개를 지나요.</p>}
       {heating && routes.map(route => {
         const score = route.type === 'normal' ? heating.normal : heating.alternate;
-        return score && <p key={route.type}>{route.type === 'normal' ? '일반 경로' : '추천 경로'} 주의 점수{' '}
+        return score && <p key={route.type}>{route.type === 'normal' ? '일반 경로' : alternateLabel} 주의 점수{' '}
           {score.beforeHeating === score.afterHeating ? score.afterHeating.toFixed(1) + '점'
             : score.beforeHeating.toFixed(1) + '점 → ' + score.afterHeating.toFixed(1) + '점 (열선 추정 반영)'}</p>;
       })}
