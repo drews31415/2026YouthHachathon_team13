@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, ArrowUpDown, ChevronLeft, ChevronRight, Clock3, Footprints, Map, MapPin, Navigation, RefreshCw, Volume2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpDown, ChevronLeft, ChevronRight, Clock3, Footprints, Map, MapPin, Navigation, RefreshCw, Snowflake, Volume2 } from 'lucide-react';
 import { analyzeRisk, findForecastDetour, nearestPlace, searchRoutes } from './core/engine';
 import { coordinateInside } from './core/network';
 import type { Coordinate, Network, Place, Route, SearchOptions, SearchResult } from './core/types';
@@ -11,6 +11,7 @@ import { PlaceInput } from './components/PlaceInput';
 import { WalkingMap } from './components/WalkingMap';
 import { useIcingForecast } from './components/IcingForecastControl';
 import { WalkingRouteResult } from './components/WalkingRouteResult';
+import icingRegions from '../icing-regions.json';
 import './walking-flow.css';
 
 const defaults: SearchOptions = { origin: null, destination: null, walkingSpeedMps: 1, avoidStairs: false, maxSlopePercent: null };
@@ -25,6 +26,7 @@ function duration(seconds: number) {
 
 export default function App() {
   const [startDemo] = useState(() => new URLSearchParams(window.location.search).get('demo') === '1');
+  const [searchOpen, setSearchOpen] = useState(startDemo);
   const [network, setNetwork] = useState<Network | null>(null);
   const [gwanak, setGwanak] = useState<Network | null>(null);
   const [analysisNetwork, setAnalysisNetwork] = useState<Network | null>(null);
@@ -53,9 +55,9 @@ export default function App() {
     return !!candidate && [places.origin, places.destination].every(place => !place || coordinateInside(place.coordinate, candidate.bounds));
   }
   const focusedGwanak = !!(options.origin || options.destination) && within(gwanak);
-  const visibleNetwork = analysisNetwork ?? (focusedGwanak ? gwanak : network);
+  const visibleNetwork = searchOpen ? analysisNetwork ?? (focusedGwanak ? gwanak : network) : network;
   const modelArea = visibleNetwork && visibleNetwork === gwanak ? 'gwanak' : area;
-  const allowForecast = !!analysisNetwork || focusedGwanak || within(network);
+  const allowForecast = !searchOpen || !!analysisNetwork || focusedGwanak || within(network);
   const forecast = useIcingForecast(visibleNetwork, !!visibleNetwork && showForecast && allowForecast, modelArea, startDemo);
   const searchNetwork = useMemo(() => network && gwanak ? { ...network, places: [...network.places, ...gwanak.places] } : network, [network, gwanak]);
   const detour = useMemo(() => {
@@ -66,7 +68,7 @@ export default function App() {
   const recommended = detour?.route ?? null;
   const route = recommended && selectedRoute !== 'normal' ? recommended : result?.normal ?? null;
   const step = navigation ? route?.steps[stepIndex] : undefined;
-  const stage = step ? 'guide' : route ? 'result' : 'search';
+  const stage = !searchOpen ? 'home' : step ? 'guide' : route ? 'result' : 'search';
 
   useEffect(() => {
     const controller = new AbortController();
@@ -201,6 +203,10 @@ export default function App() {
     window.speechSynthesis?.cancel();
     if (step) { setNavigation(false); return; }
     if (route) { setResult(null); setAnalysisNetwork(null); setAnalysisError(false); return; }
+    change({});
+    setSelectionMode(null);
+    setShowForecast(false);
+    setSearchOpen(false);
   }
 
   function chooseOnMap(kind: 'origin' | 'destination') {
@@ -215,14 +221,17 @@ export default function App() {
   }
 
   const remaining = step && route ? route.steps.slice(stepIndex) : [];
-  const title = stage === 'guide' ? '이동 안내' : stage === 'result' ? '경로 확인' : '빙빙제로';
+  const title = stage === 'guide' ? '이동 안내' : stage === 'result' ? '경로 확인' : '경로 찾기';
 
   return <div className="app-shell flow-shell">
     <a className="skip-link" href="#walking-content">본문으로 바로가기</a>
     <main className="flow-workspace" id="walking-content">
-      <header className="flow-header">
-        {stage !== 'search' && <button className="flow-back" type="button" onClick={back} aria-label="이전 화면"><ArrowLeft size={22} /><span>이전</span></button>}
-        <h1>{title}</h1>
+      <header className={stage === 'home' ? 'flow-header flow-header-home' : 'flow-header'}>
+        {stage === 'home' ? <span className="flow-region"><MapPin size={15} aria-hidden="true" />{icingRegions[area].label}</span>
+          : <>
+            <button className="flow-back" type="button" onClick={back} aria-label="이전 화면"><ArrowLeft size={22} /><span>이전</span></button>
+            <h1>{title}</h1>
+          </>}
       </header>
 
       {!network || !run || !visibleNetwork || !searchNetwork ? <section className="flow-loading" role="status">
@@ -231,6 +240,12 @@ export default function App() {
           {dataError && <button type="button" className="flow-primary" onClick={() => { demoPending.current = startDemo; setReload(x => x + 1); }}><RefreshCw size={18} />다시 불러오기</button>}
         </section>
         : <div className={'flow-layout stage-' + stage}>
+          {stage === 'home' && <section className="flow-hero">
+            <div className="flow-brand"><Snowflake size={42} strokeWidth={2.6} aria-hidden="true" />빙빙제로</div>
+            <h1>빙판길을 피해<br />걸어가세요</h1>
+            <p>보행약자 우선 길안내</p>
+          </section>}
+
           {stage === 'search' && <form className="flow-inputs" id="route-search" onSubmit={event => { event.preventDefault(); calculate(); }}>
             <h2>어디로 가시나요?</h2>
             <div className="place-fields">
@@ -268,12 +283,13 @@ export default function App() {
             <WalkingMap network={visibleNetwork} run={result?.run ?? run} normal={result?.normal ?? null} recommended={recommended}
               selected={route?.type ?? 'normal'} stage={stage} showForecast={showForecast && allowForecast} allowForecast={allowForecast} forecast={forecast}
               onToggleForecast={() => setShowForecast(value => !value)} onReplayRoute={showReplayRoute}
-              origin={options.origin ?? undefined}
-              destination={options.destination ?? undefined}
+              origin={searchOpen ? options.origin ?? undefined : undefined}
+              destination={searchOpen ? options.destination ?? undefined : undefined}
               step={step} recenterKey={recenterKey} selectionMode={selectionMode}
               onSelectCoordinate={coordinate => { if (selectionMode) point(coordinate, selectionMode); }} />
           </section>
 
+          {stage === 'home' && <div className="flow-actions"><button type="button" className="flow-primary" onClick={() => setSearchOpen(true)}><MapPin size={25} aria-hidden="true" />목적지 입력하기</button></div>}
           {stage === 'search' && <div className="flow-actions"><button type="submit" form="route-search" className="flow-primary" disabled={routing}><Footprints size={24} />{routing ? '경로를 찾는 중…' : '경로 확인하기'}</button></div>}
 
           {stage === 'result' && result?.normal && route && <section className="flow-results" aria-label="경로 비교" aria-live="polite">
