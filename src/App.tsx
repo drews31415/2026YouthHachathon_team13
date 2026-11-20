@@ -26,7 +26,8 @@ function duration(seconds: number) {
 
 export default function App() {
   const [demo] = useState(() => new URLSearchParams(window.location.search).get('demo'));
-  const startDemo = demo === '1' || demo === 'aifs';
+  const aifsDemo = demo === 'aifs';
+  const startDemo = demo === '1' || aifsDemo;
   const [searchOpen, setSearchOpen] = useState(startDemo);
   const [network, setNetwork] = useState<Network | null>(null);
   const [gwanak, setGwanak] = useState<Network | null>(null);
@@ -59,13 +60,14 @@ export default function App() {
   const forecast = useIcingForecast(visibleNetwork, showForecast, modelArea, startDemo, demo === '1' ? 'gangnam' : 'aifs');
   const searchNetwork = useMemo(() => network && gwanak ? { ...network, places: [...network.places, ...gwanak.places] } : network, [network, gwanak]);
   const forecastReady = !!forecast.active && !forecast.incomplete;
+  const showDemoComparison = aifsDemo && !!forecast.aiModel;
   const { route, comparison } = useMemo(() => {
     if (!analysisNetwork || !result?.normal || !forecastReady) return { route: null, comparison: null };
     const icingSegments = new Set((forecast.shade?.sections ?? []).map(section => section.segmentId));
     const route = findHazardAvoidingRoute(analysisNetwork, options, result, icingSegments);
-    const warningCount = forecast.aiModel && route ? result.normal.segmentIds.filter(id => icingSegments.has(id)).length : 0;
+    const warningCount = showDemoComparison && route ? result.normal.segmentIds.filter(id => icingSegments.has(id)).length : 0;
     return { route, comparison: warningCount > 0 ? { normal: result.normal, warningCount } : null };
-  }, [analysisNetwork, options, result, forecast.shade, forecast.aiModel, forecastReady]);
+  }, [analysisNetwork, options, result, forecast.shade, showDemoComparison, forecastReady]);
   const step = route && navigationRouteId === route.id ? route.steps[stepIndex] : undefined;
   const stage = !searchOpen ? 'home' : step ? 'guide' : result?.normal ? 'result' : 'search';
 
