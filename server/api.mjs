@@ -1,8 +1,9 @@
-import { getKmaWeather } from './kma.mjs';
+import { getKmaRainHistory, getKmaWeather } from './kma.mjs';
 import { getKmaForecast } from './kma-forecast.mjs';
 import { getKmaGrid } from './kma-grid.mjs';
 import icingRegions from '../icing-regions.json' with { type: 'json' };
 import { getSeoulWeather } from './seoul.mjs';
+import { getSeoulRainHistory } from './seoul-rain.mjs';
 import { searchTmapPlaces, getTmapRoute } from './tmap.mjs';
 
 const pending = new Map();
@@ -50,6 +51,14 @@ export async function handleApi(request, env) {
       if (request.method !== 'GET') return json({ error: '조회 요청만 지원합니다.' }, 405);
       return json(await weather(provider, env));
     }
+    if (url.pathname === '/api/kma/rain-history') {
+      if (request.method !== 'GET') return json({ error: '조회 요청만 지원합니다.' }, 405);
+      return json(await getKmaRainHistory(env));
+    }
+    if (url.pathname === '/api/seoul/rain-history') {
+      if (request.method !== 'GET') return json({ error: '조회 요청만 지원합니다.' }, 405);
+      return json(await getSeoulRainHistory());
+    }
     if (url.pathname === '/api/tmap/places' && request.method === 'GET') {
       return json(await searchTmapPlaces(url.searchParams.get('q') ?? '', env));
     }
@@ -78,7 +87,7 @@ export async function handleApi(request, env) {
     if (provider === 'tmap' && /^TMAP_[A-Z_]+$/.test(error?.code) && Number.isInteger(error.status)) {
       return json({ code: error.code, error: error.message }, error.status);
     }
-    if (url.pathname === '/api/kma/weather' && error?.name === 'KmaDataError' && /^[a-z;-]+$/.test(error.code)) {
+    if ((url.pathname === '/api/kma/weather' || url.pathname === '/api/kma/rain-history') && error?.name === 'KmaDataError' && /^[a-z;-]+$/.test(error.code)) {
       return json({ error: publicMessages.kma, code: error.code }, 503);
     }
     const message = url.pathname === '/api/kma/forecast' ? '기상청 예보를 조회하지 못했습니다.' : publicMessages[provider];

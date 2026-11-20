@@ -1,18 +1,10 @@
 import { Footprints, Info, Navigation } from 'lucide-react';
-import type { ForecastDetour } from '../core/engine';
 import type { Route } from '../core/types';
-import { hasFreezingRain } from '../services/icing-weather';
 import { forecastTime, type useIcingForecast } from './IcingForecastControl';
 
 interface Props {
-  normal: Route;
-  detour: ForecastDetour | null;
+  route: Route | null;
   forecast: ReturnType<typeof useIcingForecast>;
-  forecastEnabled: boolean;
-  analysisAvailable: boolean;
-  analysisError: boolean;
-  selected: Route['type'];
-  onSelect: (type: Route['type']) => void;
   onNavigate: () => void;
 }
 
@@ -25,51 +17,41 @@ function time(seconds: number) {
   return (mins ? mins + '분' : '') + (rest || !mins ? (mins ? ' ' : '') + rest + '초' : '');
 }
 
-export function WalkingRouteResult({ normal, detour, forecast, forecastEnabled, analysisAvailable, analysisError, selected, onSelect, onNavigate }: Props) {
-  const alternate = detour?.route;
-  const routes = alternate ? [alternate, normal] : [normal];
-  const extra = alternate ? alternate.durationSeconds - normal.durationSeconds : 0;
-  const alternateLabel = detour?.partial ? '결빙 일부 우회 경로' : '결빙 우회 경로';
-  const unavailable = forecast.failed && !forecast.active;
-  const finding = forecastEnabled && !forecast.active && !unavailable;
-  const status = alternate ? detour?.partial ? '예상 주의구간을 일부 피해가요' : '예상 주의구간을 피해가요'
-    : unavailable ? '결빙 예보를 불러오지 못했어요'
-    : finding ? '결빙 예보를 확인하는 중…'
-    : forecastEnabled && forecast.incomplete ? '일부 구간의 예보가 없어 우회 경로를 계산하지 못했어요'
-    : forecastEnabled && (detour?.crossings ?? 0) > 0 ? '주의구간을 피하는 경로를 찾지 못했어요'
-    : forecastEnabled && forecast.shade?.sunTooLow ? '이 시각의 그늘은 평가되지 않았어요'
-    : forecastEnabled && normal.provider !== 'tmap' && forecast.active ? '이 경로에서 예상 주의구간이 확인되지 않았어요'
-    : '';
+export function WalkingRouteResult({ route, forecast, onNavigate }: Props) {
+  const status = route ? ''
+    : !forecast.active && forecast.hours.length ? '선택한 시각의 결빙 예보를 확인할 수 없어요. 예보·지도 설정에서 다른 시각을 골라 주세요.'
+    : !forecast.active && forecast.failed ? '결빙 예보를 불러오지 못했어요'
+    : !forecast.active ? '결빙 예보를 확인하는 중…'
+    : forecast.incomplete ? '재결빙 판단에 필요한 기상 자료가 부족해요'
+    : '결빙 예상구간과 지도에 등록된 계단·경사로를 모두 피하는 길을 찾지 못했어요';
+  const finding = !forecast.active && !forecast.failed && !forecast.hours.length;
 
-  return <div className="flow-comparison">
-    {forecastEnabled && forecast.replay && forecast.active && <p className="flow-route-date">과거 예보 기준 · {forecastTime(forecast.active.time, true)} KST</p>}
-    <div className="flow-route-card" aria-label="경로 선택">
-      {routes.map(route => {
-        const recommended = route.type === 'recommended';
-        const label = recommended ? alternateLabel : '일반 경로';
-        return <button key={route.type} type="button" className={'flow-route-row ' + route.type}
-          aria-pressed={selected === route.type} onClick={() => onSelect(route.type)}>
-          <span className="flow-route-name">{recommended ? <Footprints size={21} aria-hidden="true" /> : <i aria-hidden="true" />}{label}</span>
-          <strong>{time(route.durationSeconds)}</strong>
-          <small>{distance(route.distanceM)}</small>
-        </button>;
-      })}
-    </div>
-    {extra > 0 && <div className="flow-extra">{time(extra)} 더 걸려요</div>}
-    {status && <p className="flow-route-status" role="status">{status}</p>}
-    {forecastEnabled && forecast.active && hasFreezingRain(forecast.active) && <p className="flow-route-status" role="status">이 지역에 어는 비 예보가 있어요</p>}
-    <p className="flow-muted"><Info size={16} />{normal.provider === 'tmap'
-      ? analysisError ? 'TMAP 보행 경로 · 결빙 분석 자료를 불러오지 못했어요'
-        : analysisAvailable ? 'TMAP 보행 경로 · 두 장소를 잇는 공개 보행망이 끊겨 우회 경로를 비교할 수 없어요'
-        : 'TMAP 보행 경로 · 서울 결빙 분석 범위 밖이에요'
-      : '실제 노면 상태와 다를 수 있어요'}</p>
-    {normal.steps.length > 0 && <button className="flow-primary" type="button" onClick={onNavigate}><Navigation size={22} />이 길로 안내 보기</button>}
-    {forecastEnabled && forecast.active && <details className="flow-result-details">
-      <summary>경로 계산 상세</summary>
-      {forecast.active && !forecast.replay && <p>결빙 예상 기준 · {forecastTime(forecast.active.time)} KST</p>}
-      <p>일반 경로는 설정한 보행 조건에서 거리가 가장 짧은 경로예요.</p>
-      {(detour?.crossings ?? 0) > 0 && <p>일반 경로가 예상 주의구간 {detour?.crossings}개를 지나요.</p>}
-      <p>신호 대기와 보행망까지의 접근 시간은 제외돼요.</p>
-    </details>}
-  </div>;
+  return <>
+    {forecast.active && <p className="flow-route-date">{forecast.replay ? '과거 예보' : '결빙 예상'} 기준 · {forecastTime(forecast.active.time, forecast.replay)} KST</p>}
+    {route ? <div className="flow-route-card">
+      <div className="flow-route-row">
+        <span className="flow-route-name"><Footprints size={21} aria-hidden="true" />안내 경로</span>
+        <strong>{time(route.durationSeconds)}</strong>
+        <small>{distance(route.distanceM)}</small>
+      </div>
+    </div> : <div className="flow-route-status" role="status">
+      {!finding && <strong>안내 가능한 경로 없음</strong>}
+      <p>{status}</p>
+    </div>}
+    {forecast.shade?.sunTooLow && <p className="flow-route-status">태양 고도가 낮은 구간은 그늘을 평가하지 못했어요</p>}
+    {forecast.signals?.freezingRain && <p className="flow-route-status">주변에 어는 비·이슬비 예보가 있어요</p>}
+    {forecast.signals?.snowmelt ? <p className="flow-route-status">주변에서 녹은 눈이 다시 얼 수 있어요</p>
+      : forecast.signals?.refreeze && route && <p className="flow-route-status">주변에 재결빙 조건이 있어요</p>}
+    {forecast.signals?.lingeringRefreeze && <p className="flow-route-status">추위가 이어져 주변에 얼음이 남아 있을 수 있어요</p>}
+    {forecast.signals?.coldGround && <p className="flow-route-status">지표면이 0°C 이하로 예측돼 주변의 물기가 얼 수 있어요</p>}
+    {forecast.signals?.frost && <p className="flow-route-status">주변에 서리가 생길 수 있어요</p>}
+    {route && <>
+      <p className="flow-muted"><Info size={16} />지도에 기록된 위험을 피했어요. 실제 노면·계단·경사는 다를 수 있어요.</p>
+      {route.steps.length > 0 && <button className="flow-primary" type="button" onClick={onNavigate}><Navigation size={22} />이 길로 안내 보기</button>}
+      <details className="flow-result-details">
+        <summary>경로 계산 상세</summary>
+        <p>거리와 시간은 보행망 위 구간을 기준으로 계산했어요. 신호 대기는 시간에서 제외돼요.</p>
+      </details>
+    </>}
+  </>;
 }

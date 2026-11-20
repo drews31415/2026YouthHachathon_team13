@@ -133,8 +133,8 @@
 .flow-options summary, .flow-result-details summary { min-height: 36px; padding-block: 8px; cursor: pointer; }
 .flow-options .map-select-buttons { margin: 3px 0 8px; }
 .flow-options .map-select-buttons button { font-size: 14px; white-space: nowrap; }
-.flow-check, .flow-speed { display: flex; align-items: center; gap: 8px; min-height: 39px; }
-.flow-check input, .flow-layer-settings input { accent-color: var(--flow-blue); width: 16px; height: 16px; }
+.flow-speed { display: flex; align-items: center; gap: 8px; min-height: 39px; }
+.flow-layer-settings input { accent-color: var(--flow-blue); width: 16px; height: 16px; }
 .flow-speed select { min-height: 35px; padding: 4px 9px; border: 1px solid var(--flow-border); border-radius: 8px; background: white; }
 .flow-error { margin: 8px 0 0; color: #a03a08; font-size: 14px; line-height: 1.45; }
 
@@ -222,7 +222,7 @@
 .flow-map .leaflet-popup-close-button { color: var(--flow-ink); }
 .flow-map .leaflet-popup-content strong { color: var(--flow-ink); }
 
-.flow-map-forecast, .flow-map-fit, .flow-map-selection, .flow-map-error {
+.flow-map-fit, .flow-map-selection, .flow-map-error {
   position: absolute;
   z-index: 420;
   align-items: center;
@@ -234,9 +234,6 @@
   box-shadow: 0 3px 12px #1e46762a;
   font: inherit;
 }
-.flow-map-forecast { top: 10px; right: 10px; border-radius: 12px; min-height: 44px; padding: 5px 9px; font-size: 13px; font-weight: 800; }
-.flow-map-forecast svg { color: var(--flow-blue); }
-.flow-map-forecast[aria-pressed="false"] { color: #425774; }
 .flow-map-fit { right: 10px; bottom: 23px; border-radius: 11px; width: 44px; height: 44px; justify-content: center; color: #285180; }
 .flow-map-selection { left: 10px; bottom: 23px; border-radius: 9px; max-width: calc(100% - 65px); padding: 7px; color: #173f76; font-size: 13px; font-weight: 700; pointer-events: none; }
 .flow-map-error { z-index: 410; left: 9px; top: 10px; margin: 0; max-width: calc(100% - 150px); padding: 5px 7px; border-radius: 7px; font-size: 12px; pointer-events: none; }
@@ -255,7 +252,7 @@
 }
 .flow-map-settings .icing-forecast-control strong { color: var(--flow-ink); }
 .flow-map-settings .icing-forecast-control select { font: inherit; min-height: 40px; border-color: #b9cbe3; }
-.flow-map-settings .icing-forecast-modes button, .flow-map-settings .icing-replay-route, .flow-settings-button {
+.flow-map-settings .icing-forecast-modes button, .flow-map-settings .icing-replay-route {
   min-height: 40px;
   padding: 6px 10px;
   border: 1px solid #bdd1ef;
@@ -300,24 +297,20 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  min-height: 50px;
+  min-height: 59px;
   padding: 7px 9px;
   border-radius: 12px;
-  background: none;
+  background: var(--flow-pale);
   color: var(--flow-ink);
   text-align: left;
   font: inherit;
 }
-.flow-route-row[aria-pressed="true"] { background: var(--flow-pale); }
-.flow-route-row.recommended { min-height: 59px; }
 .flow-route-name { display: flex; align-items: center; gap: 7px; font-size: 16px; font-weight: 810; word-break: keep-all; }
 .flow-route-name svg { flex-shrink: 0; color: var(--flow-blue); }
-.flow-route-name i { flex: 0 0 20px; border-top: 3px dotted #667489; }
-.flow-route-row strong { font-size: 18px; font-weight: 870; letter-spacing: -.05em; }
-.flow-route-row.recommended strong { color: var(--flow-blue); font-size: clamp(20px, 5.4vw, 28px); }
+.flow-route-row strong { color: var(--flow-blue); font-size: clamp(20px, 5.4vw, 28px); font-weight: 870; letter-spacing: -.05em; }
 .flow-route-row small { color: var(--flow-muted); font-size: 13px; }
-.flow-extra { margin-top: 11px; padding: 7px; border-radius: 12px; background: #deecff; color: #0046c4; text-align: center; font-size: 19px; font-weight: 900; letter-spacing: -.045em; }
 .flow-route-status { margin: 9px 0 0; text-align: center; font-size: 15px; font-weight: 700; }
+.flow-route-status p { margin: 5px 0 0; }
 .flow-muted { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 11px 0; color: var(--flow-muted); font-size: 14px; line-height: 1.4; text-align: center; }
 .flow-muted svg { flex-shrink: 0; }
 .flow-result-details { margin-top: 5px; }

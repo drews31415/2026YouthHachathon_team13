@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpDown, ChevronLeft, ChevronRight, Clock3, Footprints, Map, MapPin, Navigation, RefreshCw, Snowflake, Volume2 } from 'lucide-react';
-import { analyzeRisk, findForecastDetour, nearestPlace, searchRoutes } from './core/engine';
+import { analyzeRisk, findHazardAvoidingRoute, nearestPlace, searchRoutes } from './core/engine';
 import { coordinateInside } from './core/network';
-import type { Coordinate, Network, Place, Route, SearchOptions, SearchResult } from './core/types';
+import type { Coordinate, Network, Place, SearchOptions, SearchResult } from './core/types';
 import { fetchNetwork } from './services/network';
 import { fetchSeoulNetwork } from './services/seoul-network';
-import { coordinatePlace, fetchTmapWalkingRoute } from './services/tmap';
+import { coordinatePlace } from './services/tmap';
 import { gangnamDemoPlaces } from './gangnam-pilot';
 import { PlaceInput } from './components/PlaceInput';
 import { WalkingMap } from './components/WalkingMap';
@@ -38,14 +38,11 @@ export default function App() {
   const [result, setResult] = useState<SearchResult | null>(null);
   const [routing, setRouting] = useState(false);
   const [message, setMessage] = useState('');
-  const [analysisError, setAnalysisError] = useState(false);
   const [locating, setLocating] = useState(false);
   const [selectionMode, setSelectionMode] = useState<'origin' | 'destination' | null>(null);
-  const [navigation, setNavigation] = useState(false);
+  const [navigationRouteId, setNavigationRouteId] = useState<string>();
   const [stepIndex, setStepIndex] = useState(0);
   const [recenterKey, setRecenterKey] = useState(0);
-  const [showForecast, setShowForecast] = useState(startDemo);
-  const [selectedRoute, setSelectedRoute] = useState<Route['type'] | null>(null);
   const mapSection = useRef<HTMLElement>(null);
   const locationRequest = useRef(0);
   const pendingRoute = useRef<AbortController | null>(null);
@@ -57,24 +54,23 @@ export default function App() {
   const focusedGwanak = !!(options.origin || options.destination) && within(gwanak);
   const visibleNetwork = searchOpen ? analysisNetwork ?? (focusedGwanak ? gwanak : network) : network;
   const modelArea = visibleNetwork && visibleNetwork === gwanak ? 'gwanak' : area;
-  const allowForecast = !searchOpen || !!analysisNetwork || focusedGwanak || within(network);
-  const forecast = useIcingForecast(visibleNetwork, !!visibleNetwork && showForecast && allowForecast, modelArea, startDemo);
+  const showForecast = searchOpen && (!!analysisNetwork || focusedGwanak || within(network));
+  const forecast = useIcingForecast(visibleNetwork, showForecast, modelArea, startDemo);
   const searchNetwork = useMemo(() => network && gwanak ? { ...network, places: [...network.places, ...gwanak.places] } : network, [network, gwanak]);
-  const detour = useMemo(() => {
-    const sections = forecast.shade?.sections;
-    if (!visibleNetwork || !result?.normal || result.normal.provider || forecast.incomplete || !sections?.length) return null;
-    return findForecastDetour(visibleNetwork, options, result, new Set(sections.map(section => section.segmentId)), forecast.heatedWarningSegments);
-  }, [visibleNetwork, options, result, forecast.shade, forecast.incomplete, forecast.heatedWarningSegments]);
-  const recommended = detour?.route ?? null;
-  const route = recommended && selectedRoute !== 'normal' ? recommended : result?.normal ?? null;
-  const step = navigation ? route?.steps[stepIndex] : undefined;
-  const stage = !searchOpen ? 'home' : step ? 'guide' : route ? 'result' : 'search';
+  const forecastReady = !!forecast.active && !forecast.incomplete;
+  const route = useMemo(() => {
+    if (!analysisNetwork || !result?.normal || !forecastReady) return null;
+    const icingSegments = new Set((forecast.shade?.sections ?? []).map(section => section.segmentId));
+    return findHazardAvoidingRoute(analysisNetwork, options, result, icingSegments);
+  }, [analysisNetwork, options, result, forecast.shade, forecastReady]);
+  const step = route && navigationRouteId === route.id ? route.steps[stepIndex] : undefined;
+  const stage = !searchOpen ? 'home' : step ? 'guide' : result?.normal ? 'result' : 'search';
 
   useEffect(() => {
     const controller = new AbortController();
     locationRequest.current += 1; setLocating(false);
     setDataError(''); setNetwork(null); setResult(null); setOptions(defaults);
-    setOriginQuery(''); setDestinationQuery(''); setNavigation(false);
+    setOriginQuery(''); setDestinationQuery(''); setNavigationRouteId(undefined);
     fetchNetwork(controller.signal, area).then(actual => { if (!controller.signal.aborted) setNetwork(actual); }).catch(error => {
       if (!controller.signal.aborted) setDataError(error instanceof Error && error.name === 'TimeoutError' ? '보행망 조회 시간이 초과되었습니다. 다시 불러와 주세요.' : error instanceof Error && error.name !== 'TypeError' && error.name !== 'SyntaxError' ? error.message : '실제 자료를 불러오지 못했습니다. 다시 불러와 주세요.');
     });
@@ -83,7 +79,7 @@ export default function App() {
   }, [reload]);
   useEffect(() => () => { pendingRoute.current?.abort(); window.speechSynthesis?.cancel(); }, []);
   useEffect(() => {
-    setNavigation(false); setStepIndex(0);
+    setNavigationRouteId(undefined); setStepIndex(0);
     window.speechSynthesis?.cancel();
   }, [route?.id]);
   useEffect(() => { window.scrollTo(0, 0); }, [stage]);
@@ -91,7 +87,7 @@ export default function App() {
   function change(next: Partial<SearchOptions>) {
     locationRequest.current += 1; setLocating(false);
     pendingRoute.current?.abort(); setRouting(false);
-    setOptions(old => ({ ...old, ...next })); setResult(null); setAnalysisNetwork(null); setAnalysisError(false); setNavigation(false); setMessage('');
+    setOptions(old => ({ ...old, ...next })); setResult(null); setAnalysisNetwork(null); setNavigationRouteId(undefined); setMessage('');
     window.speechSynthesis?.cancel();
   }
   function select(kind: 'origin' | 'destination', place: Place) {
@@ -116,23 +112,22 @@ export default function App() {
       setLocating(false); setMessage(error.code === 1 ? '위치 접근을 허용하지 않았습니다. 지도에서 출발지를 선택할 수 있습니다.' : '현재 위치를 가져오지 못했습니다. 지도에서 출발지를 선택해 주세요.');
     }, { timeout: 10000, maximumAge: 30000, enableHighAccuracy: true });
   }
-  async function calculate(nextOptions = options, selected: Route['type'] | null = null) {
+  async function calculate(nextOptions = options) {
     if (!network || !run) return;
     const { origin, destination } = nextOptions;
     if (!origin || !destination) { setMessage('검색 결과나 지도에서 출발지와 목적지를 선택해 주세요.'); return; }
     pendingRoute.current?.abort();
     locationRequest.current += 1; setLocating(false);
-    window.speechSynthesis?.cancel(); setNavigation(false); setSelectionMode(null);
+    window.speechSynthesis?.cancel(); setNavigationRouteId(undefined); setSelectionMode(null);
     setRecenterKey(k => k + 1); setMessage(''); setStepIndex(0);
-    setSelectedRoute(selected);
     const controller = new AbortController();
     pendingRoute.current = controller;
-    setResult(null); setAnalysisNetwork(null); setAnalysisError(false); setRouting(true);
+    setResult(null); setAnalysisNetwork(null); setRouting(true);
     try {
       const local = within(gwanak, nextOptions) ? gwanak : within(network, nextOptions) ? network : null;
       const routeWith = (graph: Network) => {
         const connect = (place: Place) => {
-          if (graph === local && place.nodeId) return place;
+          if (graph === local && graph.nodes.some(node => node.id === place.nodeId)) return place;
           const snapped = nearestPlace(graph, place.coordinate);
           return snapped ? { ...place, nodeId: snapped.nodeId, routeCoordinate: snapped.routeCoordinate, snapDistanceM: snapped.snapDistanceM } : place;
         };
@@ -141,34 +136,31 @@ export default function App() {
       };
       let graph = local;
       let calculated = graph ? routeWith(graph) : null;
-      // Use the full Seoul network if the route extends beyond a pilot map or its paths do not connect.
-      if (!graph || (!calculated?.result.normal && !forecast.replay)) {
+      // Use the shared Seoul graph for live searches so alternatives can leave the pilot map.
+      if (!local || !forecast.replay) {
         try {
           const seoul = await fetchSeoulNetwork(origin.coordinate, destination.coordinate, controller.signal);
-          if (seoul) { graph = seoul; calculated = routeWith(seoul); }
+          if (seoul) {
+            const cityRoute = routeWith(seoul);
+            if (cityRoute.result.normal || !calculated?.result.normal) { graph = seoul; calculated = cityRoute; }
+          }
         } catch {
-          if (!controller.signal.aborted && !graph) setAnalysisError(true);
+          if (!controller.signal.aborted && !calculated?.result.normal) {
+            setMessage('서울 보행망을 불러오지 못했어요. 다시 시도해 주세요.');
+            return;
+          }
         }
       }
       controller.signal.throwIfAborted();
-      if (graph) {
+      if (!graph || !calculated) {
+        setMessage('안내 가능한 경로 없음 · 서울 보행망 범위를 벗어났어요.');
+        return;
+      }
+      if (calculated.result.normal) {
         setAnalysisNetwork(graph);
-        setShowForecast(true);
+        setOptions(calculated.settings);
       }
-      if (calculated?.result.normal) {
-        setOptions(calculated.settings); setResult(calculated.result);
-        return;
-      }
-      if (calculated && (nextOptions.maxSlopePercent !== null || nextOptions.avoidStairs)) {
-        setResult(calculated.result);
-        return;
-      }
-      if (nextOptions.maxSlopePercent !== null) {
-        setMessage('이 지역에는 확인된 경사 정보가 부족해요. 경사 조건을 해제하면 일반 보행 경로를 검색할 수 있어요.');
-        return;
-      }
-      const normal = await fetchTmapWalkingRoute(origin, destination, nextOptions, controller.signal);
-      if (!controller.signal.aborted) setResult({ status: 'ok', message: '', run: calculated?.result.run ?? run, normal, recommended: null, extraSeconds: null });
+      setResult(calculated.result);
     } catch (error) {
       if (!controller.signal.aborted) setMessage(error instanceof Error && error.name !== 'TypeError' && error.name !== 'TimeoutError'
         ? error.message : '보행 경로를 불러오지 못했어요. 다시 시도해 주세요.');
@@ -185,7 +177,7 @@ export default function App() {
     const sample = { ...defaults, origin, destination };
     locationRequest.current += 1; setLocating(false);
     setOriginQuery(origin.name); setDestinationQuery(destination.name); setOptions(sample);
-    calculate(sample, 'recommended');
+    void calculate(sample);
   }
   useEffect(() => {
     if (!demoPending.current || !network || !forecast.replay || !forecast.active) return;
@@ -201,11 +193,10 @@ export default function App() {
 
   function back() {
     window.speechSynthesis?.cancel();
-    if (step) { setNavigation(false); return; }
-    if (route) { setResult(null); setAnalysisNetwork(null); setAnalysisError(false); return; }
+    if (step) { setNavigationRouteId(undefined); return; }
+    if (result?.normal) { setResult(null); setAnalysisNetwork(null); return; }
     change({});
     setSelectionMode(null);
-    setShowForecast(false);
     setSearchOpen(false);
   }
 
@@ -216,7 +207,7 @@ export default function App() {
 
   function nextStep(offset: number) {
     window.speechSynthesis?.cancel();
-    if (route && stepIndex + offset >= route.steps.length) setNavigation(false);
+    if (route && stepIndex + offset >= route.steps.length) setNavigationRouteId(undefined);
     else setStepIndex(index => Math.max(0, index + offset));
   }
 
@@ -266,11 +257,11 @@ export default function App() {
               <label className="flow-speed" htmlFor="walking-speed">보행속도<select id="walking-speed" value={options.walkingSpeedMps} onChange={e => change({ walkingSpeedMps: Number(e.target.value) })}>
                 <option value={.8}>0.8m/s</option><option value={1}>1.0m/s</option><option value={1.2}>1.2m/s</option>
               </select></label>
-              <label className="flow-check"><input type="checkbox" checked={options.avoidStairs} onChange={e => change({ avoidStairs: e.target.checked })} />계단 피하기</label>
-              <label className="flow-check"><input type="checkbox" checked={options.maxSlopePercent === 5} onChange={e => change({ maxSlopePercent: e.target.checked ? 5 : null })} />경사 5% 이하가 확인된 구간만</label>
             </details>
             {message && <p className="flow-error" role="status">{message}</p>}
-            {result && !result.normal && !message && <p className="flow-error" role="alert">{result.message}</p>}
+            {result && !result.normal && !message && <p className="flow-error" role="alert">
+              {result.status === 'no-route' && '안내 가능한 경로 없음 · '}{result.message}
+            </p>}
           </form>}
 
           {stage === 'result' && <div className="flow-journey" aria-label="선택한 출발지와 목적지">
@@ -280,9 +271,8 @@ export default function App() {
           {step && <div className="flow-instruction"><Navigation size={30} aria-hidden="true" /><strong>{step.instruction}</strong></div>}
 
           <section className="flow-map" ref={mapSection} aria-label="보행 지도">
-            <WalkingMap network={visibleNetwork} run={result?.run ?? run} normal={result?.normal ?? null} recommended={recommended}
-              selected={route?.type ?? 'normal'} stage={stage} showForecast={showForecast && allowForecast} allowForecast={allowForecast} forecast={forecast}
-              onToggleForecast={() => setShowForecast(value => !value)} onReplayRoute={showReplayRoute}
+            <WalkingMap network={visibleNetwork} run={result?.run ?? run} route={route}
+              stage={stage} showForecast={showForecast} forecast={forecast} onReplayRoute={showReplayRoute}
               origin={searchOpen ? options.origin ?? undefined : undefined}
               destination={searchOpen ? options.destination ?? undefined : undefined}
               step={step} recenterKey={recenterKey} selectionMode={selectionMode}
@@ -292,9 +282,8 @@ export default function App() {
           {stage === 'home' && <div className="flow-actions"><button type="button" className="flow-primary" onClick={() => setSearchOpen(true)}><MapPin size={25} aria-hidden="true" />목적지 입력하기</button></div>}
           {stage === 'search' && <div className="flow-actions"><button type="submit" form="route-search" className="flow-primary" disabled={routing}><Footprints size={24} />{routing ? '경로를 찾는 중…' : '경로 확인하기'}</button></div>}
 
-          {stage === 'result' && result?.normal && route && <section className="flow-results" aria-label="경로 비교" aria-live="polite">
-            <WalkingRouteResult normal={result.normal} detour={detour} forecast={forecast} forecastEnabled={showForecast && allowForecast} analysisAvailable={allowForecast} analysisError={analysisError}
-              selected={route.type} onSelect={setSelectedRoute} onNavigate={() => { setNavigation(true); setStepIndex(0); }} />
+          {stage === 'result' && <section className="flow-results" aria-label="경로 결과" aria-live="polite">
+            <WalkingRouteResult route={route} forecast={forecast} onNavigate={() => { if (route) { setNavigationRouteId(route.id); setStepIndex(0); } }} />
           </section>}
 
           {step && route && <section className="flow-guide" aria-label="이동 안내 미리보기">

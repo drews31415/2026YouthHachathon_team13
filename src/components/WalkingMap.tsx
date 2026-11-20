@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
-import { Maximize2, MousePointer2, Snowflake } from 'lucide-react';
+import { Maximize2, MousePointer2 } from 'lucide-react';
 import type { Coordinate, ModelRun, Network, Place, Route, RouteStep, WalkSegment } from '../core/types';
 import { IcingForecastControl, type useIcingForecast } from './IcingForecastControl';
 import { forecastTemperature } from '../services/icing-weather';
@@ -13,10 +13,8 @@ import './public-map-layers.css';
 interface Props {
   network: Network;
   run: ModelRun;
-  normal: Route | null;
-  recommended: Route | null;
+  route: Route | null;
   stage: 'home' | 'search' | 'result' | 'guide';
-  selected: 'normal' | 'recommended';
   origin?: Place;
   destination?: Place;
   step?: RouteStep;
@@ -24,9 +22,7 @@ interface Props {
   onSelectCoordinate?: (coordinate: Coordinate) => void;
   selectionMode?: 'origin' | 'destination' | null;
   showForecast: boolean;
-  allowForecast: boolean;
   forecast: ReturnType<typeof useIcingForecast>;
-  onToggleForecast: () => void;
   onReplayRoute: () => void;
 }
 
@@ -39,8 +35,8 @@ function segmentPopup(segment: WalkSegment) {
     '</strong><p>노면 상태 미확인</p><a href="' + sourceUrl + '" target="_blank" rel="noopener noreferrer">지도 원본</a></div>';
 }
 
-export function WalkingMap({ network, run, normal, recommended, stage, selected, origin, destination, step, recenterKey,
-  onSelectCoordinate, selectionMode = null, showForecast, allowForecast, forecast, onToggleForecast, onReplayRoute }: Props) {
+export function WalkingMap({ network, run, route, stage, origin, destination, step, recenterKey,
+  onSelectCoordinate, selectionMode = null, showForecast, forecast, onReplayRoute }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layers = useRef<L.LayerGroup | null>(null);
@@ -57,7 +53,6 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
   function fitRoute() {
     const map = mapRef.current;
     if (!map) return;
-    const route = selected === 'recommended' ? recommended : normal;
     if (route?.coordinates.length) {
       map.fitBounds(L.latLngBounds(latlngs(route.coordinates)), { paddingTopLeft: [37, 73], paddingBottomRight: [50, 62], maxZoom: 18 });
       return;
@@ -159,10 +154,10 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
   useEffect(() => {
     const map = mapRef.current;
     const sections = forecast.shade?.sections;
-    if (!map || normal || !showForecast || !forecast.replay || !sections?.length) return;
+    if (!map || route || stage !== 'search' || !showForecast || !forecast.replay || !sections?.length) return;
     const points = sections.flatMap(section => latlngs(section.coordinates));
     map.fitBounds(L.latLngBounds(points), { maxZoom: 17, padding: [30, 35] });
-  }, [network, normal, showForecast, forecast.replay, forecast.shade]);
+  }, [network, route, stage, showForecast, forecast.replay, forecast.shade]);
 
   useEffect(() => {
     const group = layers.current;
@@ -183,26 +178,18 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
       if (showCoverage && !selectionMode) line.bindPopup(() => segmentPopup(segment), { maxWidth: 200 });
     });
 
-    const routeLine = (route: Route, active: boolean) => {
-      const routeColor = active ? '#0758ef' : '#65738a';
-      for (const line of route.lines ?? [route.coordinates]) {
-        const points = latlngs(line);
-        if (active) L.polyline(points, { color: '#fff', weight: 12, opacity: .95, interactive: false }).addTo(group);
-        L.polyline(points, { color: routeColor, weight: active ? 8 : 4, opacity: active ? 1 : .82, dashArray: active ? undefined : '2 8', lineJoin: 'round', interactive: false }).addTo(group);
-      }
-      if (active && !route.provider && route.coordinates.length) {
-        const start = route.coordinates[0];
-        const finish = route.coordinates[route.coordinates.length - 1];
-        L.circleMarker([start[1], start[0]], { radius: 5, weight: 2, color: '#fff', fillColor: routeColor, fillOpacity: 1, interactive: !selectionMode }).addTo(group)
-          .bindTooltip('보행망 경로 시작점 · 장소까지의 접속로는 포함되지 않습니다.', { direction: 'top', className: 'endpoint-label' });
-        L.circleMarker([finish[1], finish[0]], { radius: 5, weight: 2, color: '#fff', fillColor: routeColor, fillOpacity: 1, interactive: !selectionMode }).addTo(group)
-          .bindTooltip('보행망 경로 끝점 · 장소까지의 접속로는 포함되지 않습니다.', { direction: 'top', className: 'endpoint-label' });
-      }
-    };
-    const inactive = selected === 'recommended' ? normal : recommended;
-    const active = selected === 'recommended' ? recommended : normal;
-    if (inactive && stage !== 'guide') routeLine(inactive, false);
-    if (active) routeLine(active, true);
+    if (route?.coordinates.length) {
+      const routeColor = '#0758ef';
+      const points = latlngs(route.coordinates);
+      L.polyline(points, { color: '#fff', weight: 12, opacity: .95, interactive: false }).addTo(group);
+      L.polyline(points, { color: routeColor, weight: 8, lineJoin: 'round', interactive: false }).addTo(group);
+      const start = route.coordinates[0];
+      const finish = route.coordinates[route.coordinates.length - 1];
+      L.circleMarker([start[1], start[0]], { radius: 5, weight: 2, color: '#fff', fillColor: routeColor, fillOpacity: 1, interactive: !selectionMode }).addTo(group)
+        .bindTooltip('보행망 경로 시작점 · 장소까지의 접속로는 포함되지 않습니다.', { direction: 'top', className: 'endpoint-label' });
+      L.circleMarker([finish[1], finish[0]], { radius: 5, weight: 2, color: '#fff', fillColor: routeColor, fillOpacity: 1, interactive: !selectionMode }).addTo(group)
+        .bindTooltip('보행망 경로 끝점 · 장소까지의 접속로는 포함되지 않습니다.', { direction: 'top', className: 'endpoint-label' });
+    }
 
     // Search exposes all registered places. Only selected endpoints are marked
     // so hundreds of source objects do not obscure the actual route.
@@ -220,11 +207,11 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
       const icon = L.divIcon({ className: 'navigation-marker', html: '<span>▲</span>', iconSize: [42, 42], iconAnchor: [21, 21] });
       L.marker([step.coordinate[1], step.coordinate[0]], { icon, title: '선택한 경로 구간 · 실시간 위치가 아닙니다.', interactive: false }).addTo(group);
     }
-  }, [network, run, normal, recommended, selected, origin, destination, showCoverage, step, selectionMode, stage, tilesFailed, forecast.city]);
+  }, [network, run, route, origin, destination, showCoverage, step, selectionMode, stage, tilesFailed, forecast.city]);
 
   useEffect(() => {
     fitRoute();
-  }, [normal, recommended, selected, recenterKey, network, stage, origin, destination]);
+  }, [route, recenterKey, network, stage, origin, destination]);
 
   useEffect(() => {
     if (step) mapRef.current?.panInside([step.coordinate[1], step.coordinate[0]], { padding: [42, 42] });
@@ -234,18 +221,14 @@ export function WalkingMap({ network, run, normal, recommended, stage, selected,
 
   return <>
     <div className="map-wrapper real-data-map flow-map-canvas">
-      <div className="walking-map" ref={host} role="region" aria-label={allowForecast ? areaLabel + ' 보행 지도' : '보행 경로 지도'} />
+      <div className="walking-map" ref={host} role="region" aria-label={areaLabel + ' 보행 지도'} />
       {selectionMode && <div className="flow-map-selection" role="status"><MousePointer2 size={16} />지도에서 {selectionMode === 'origin' ? '출발' : '도착'} 위치를 선택하세요</div>}
-      {mapControls && allowForecast && <button type="button" className="flow-map-forecast" aria-pressed={showForecast} onClick={onToggleForecast}>
-        <Snowflake size={19} />{showForecast ? '결빙 위험 예상' : '결빙 예상 켜기'}
-      </button>}
       {mapControls && <button type="button" className="flow-map-fit" aria-label="경로 전체 보기" onClick={fitRoute}><Maximize2 size={20} /></button>}
       {tilesFailed && stage !== 'home' && <p className="flow-map-error" role="status">배경 지도 연결이 지연되고 있어요.</p>}
     </div>
-    {mapControls && allowForecast && <details className="flow-map-settings">
+    {mapControls && showForecast && <details className="flow-map-settings">
       <summary>예보·지도 설정</summary>
-      {showForecast ? <IcingForecastControl forecast={forecast} onReplayRoute={onReplayRoute} />
-        : <button type="button" className="flow-settings-button" onClick={onToggleForecast}>결빙 예보 켜기</button>}
+      <IcingForecastControl forecast={forecast} onReplayRoute={onReplayRoute} />
       {!forecast.city && <details className="flow-layer-settings">
         <summary>지도 표시 항목</summary>
         <label><input type="checkbox" checked={showCrossings} onChange={e => setShowCrossings(e.target.checked)} />횡단보도</label>

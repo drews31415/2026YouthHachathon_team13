@@ -1,11 +1,50 @@
-import { test } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { test, vi } from 'vitest';
 import assert from 'node:assert/strict';
 import capture from '../public/data/kma-source.json' with { type: 'json' };
 import stationMetadata from './kma-stations.json' with { type: 'json' };
-import { KMA_MAX_AGE_MS, parseKmaAws, parseKmaCapture } from './kma-parser.mjs';
+import { KMA_MAX_AGE_MS, kmaAwsMinute, parseKmaAws, parseKmaCapture, parseKmaHourlyRain } from './kma-parser.mjs';
+import { handleApi } from './api.mjs';
 
 const now = Date.parse(capture.retrievedAt);
 const options = { retrievedAt: capture.retrievedAt, now };
+const wetSource = readFileSync(new URL('../../data/kma/aws-509-20250304-positive.txt', import.meta.url), 'utf8');
+const wetAt = Date.parse('2025-03-04T10:00:00+09:00');
+
+test('extracts only positive AWS amounts from the exact requested hour', () => {
+  const { name, lat, lon } = stationMetadata.stations.find(station => station.id === 509);
+  assert.deepEqual(parseKmaHourlyRain(wetSource, wetAt), [
+    { id: 509, name, lat, lon, observedAt: new Date(wetAt).toISOString(), rain60mMm: 0.5 },
+  ]);
+  assert.throws(() => parseKmaHourlyRain(wetSource, wetAt + 60_000), /no-local-hourly-rain/);
+  const dry = wetSource.replace(/^(\d{12},509,(?:[^,]*,){9})0\.5,/m, '$10.0,');
+  assert.deepEqual(parseKmaHourlyRain(dry, wetAt), []);
+  const conflictingRow = dry.split(/\r?\n/).find(line => line.startsWith('202503041000,'));
+  assert.throws(() => parseKmaHourlyRain(wetSource.replace('#7777END', `${conflictingRow}\n#7777END`), wetAt), /no-local-hourly-rain/);
+});
+
+test('serves partial AWS history and shares cached hours across overlapping requests', async () => {
+  const requestTime = wetAt + 2 * 3_600_000 + 10 * 60_000;
+  const mock = vi.fn(async url => new URL(url).searchParams.get('tm2') === kmaAwsMinute(wetAt)
+    ? new Response(wetSource) : new Response(null, { status: 503 }));
+  vi.spyOn(Date, 'now').mockReturnValue(requestTime);
+  vi.stubGlobal('fetch', mock);
+  const request = new Request('https://example.test/api/kma/rain-history');
+  try {
+    const env = { KMA_API_KEY: 'test-only-key' };
+    const responses = await Promise.all([handleApi(request, env), handleApi(request, env)]);
+    for (const response of responses) {
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), { stations: parseKmaHourlyRain(wetSource, wetAt), receivedHours: 1, requestedHours: 11 });
+    }
+    assert.equal(mock.mock.calls.length, 11);
+    assert.equal((await handleApi(request, env)).status, 200);
+    assert.equal(mock.mock.calls.length, 11);
+  } finally {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  }
+});
 
 test('joins actual local station rows to official metadata, with KST converted to UTC', () => {
   const result = parseKmaAws(capture.rawText, options);

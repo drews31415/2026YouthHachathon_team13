@@ -134,7 +134,8 @@ export function estimateBuildingShade(network: Pick<Network, 'bounds' | 'segment
   const sections: ShadedSection[] = [];
   for (const segment of network.segments) {
     const { highway, indoor, covered, tunnel, bridge, location } = segment.tags;
-    if (!['footway', 'pedestrian', 'path', 'steps'].includes(highway) || covered === 'yes' ||
+    const walkway = ['footway', 'pedestrian', 'path', 'steps'].includes(highway) || (expanded && highway === 'cycleway');
+    if (!walkway || covered === 'yes' ||
         (indoor && indoor !== 'no') || (tunnel && tunnel !== 'no') ||
         location === 'underground') continue;
     const [start, end] = segment.coordinates;

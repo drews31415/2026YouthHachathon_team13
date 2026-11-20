@@ -1,16 +1,15 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { analyzeRisk, findForecastDetour, findPlaces, nearestPlace, searchRoutes } from './engine';
+import { analyzeRisk, findForecastDetour, findHazardAvoidingRoute, findPlaces, nearestPlace, searchRoutes } from './engine';
 import { estimateBuildingShade } from './icing-forecast';
-import { buildNetwork, coordinateInside, distanceBetween, geometryLength, isFootAccessible } from './network';
+import { addOsmSubwayEntrances, buildNetwork, coordinateInside, distanceBetween, geometryLength, isFootAccessible } from './network';
 import { expireResult } from './resultLifecycle';
 import type { OsmElement, OsmPayload, Place, SearchOptions, ShadeSurface, ShadingBuilding, SourceProvenance } from './types';
 import { gangnamDemoPlaces, heatedWalkWarnings, maljukgeoriFootbridge } from '../gangnam-pilot';
 import { findIcingHours, readIcingReplay } from '../services/icing-weather';
 
-// These tests use the checked-in, independently sourced OSM snapshot itself.
-// No synthetic graph, risk labels, weather readings or coordinates are created.
+// The graph, coordinates and archived weather come from the checked-in sources.
 const rawText = readFileSync(new URL('../../public/data/osm.json', import.meta.url), 'utf8');
 const payload = JSON.parse(rawText) as OsmPayload;
 const provenance = JSON.parse(readFileSync(new URL('../../public/data/provenance.json', import.meta.url), 'utf8')) as SourceProvenance;
@@ -18,6 +17,15 @@ const network = buildNetwork(payload, provenance);
 const rawNodes = new Map(payload.elements.filter(element => element.type === 'node').map(element => [element.id, element]));
 const rawWays = new Map(payload.elements.filter(element => element.type === 'way').map(element => [element.id, element]));
 const connected = new Map(network.nodes.map(node => [node.id, node]));
+
+it('evaluates shared walking and cycling paths in the expanded shade estimate', async () => {
+  const raw = readFileSync(new URL('../../public/data/icing-snow-replay.json', import.meta.url));
+  const hour = await readIcingReplay(Uint8Array.from(raw).buffer, 'snow');
+  const sharedPaths = network.segments.filter(segment => segment.tags.highway === 'cycleway');
+  const estimate = estimateBuildingShade({ ...network, segments: sharedPaths }, hour.time, true);
+  expect(estimate.sections.length).toBeGreaterThan(0);
+  expect(estimate.sections.every(section => sharedPaths.some(segment => segment.id === section.segmentId && isFootAccessible(segment.tags)))).toBe(true);
+});
 
 function actualEndpoint(nodeId: string): Place {
   const node = connected.get(nodeId)!;
@@ -33,6 +41,59 @@ function optionsBetween(origin: Place, destination: Place): SearchOptions {
 
 const firstTwoWay = network.segments.find(segment => segment.direction === 'both')!;
 const sourceOptions = optionsBetween(actualEndpoint(firstTwoWay.from), actualEndpoint(firstTwoWay.to));
+
+it('excludes icing, stairs and ramps in one search and returns no route when every alternative is blocked', async () => {
+  const entrances = JSON.parse(readFileSync(new URL('../subway-entrances.json', import.meta.url), 'utf8'));
+  const graph = addOsmSubwayEntrances(network, entrances);
+  const origin = graph.places.find(place => place.id === 'node/3404830015')!;
+  const destination = graph.places.find(place => place.id === 'node/3404830009')!;
+  const options = optionsBetween(origin, destination);
+  const archive = readFileSync(new URL('../../public/data/icing-replay.json', import.meta.url));
+  const hour = await readIcingReplay(Uint8Array.from(archive).buffer, 'original');
+  const icing = new Set(estimateBuildingShade(graph, hour.time).sections.map(section => section.segmentId));
+  const result = searchRoutes(graph, options);
+  const normal = result.normal!;
+  expect(normal.segmentIds.some(id => icing.has(id))).toBe(true);
+  const safe = findHazardAvoidingRoute(graph, options, result, icing)!;
+  expect(safe.distanceM).toBeGreaterThan(normal.distanceM);
+  expect(safe.segmentIds.some(id => icing.has(id))).toBe(false);
+
+  // Keep the original graph and coordinates, then put each route hazard on the known alternative.
+  const changed = safe.segmentIds.slice(0, 3);
+  expect(changed).toHaveLength(3);
+  const hazards = graph.segments.map(segment => {
+    if (segment.id === changed[0]) return { ...segment, stairs: true };
+    if (segment.id === changed[1]) return { ...segment, slope: -0.5 };
+    if (segment.id === changed[2]) return { ...segment, tags: { ...segment.tags, ramp: 'yes' } };
+    return segment;
+  });
+  const longer = findHazardAvoidingRoute({ ...graph, segments: hazards }, options, result, icing);
+  expect(longer?.segmentIds ?? []).not.toEqual(safe.segmentIds);
+  expect(longer?.segmentIds.some(id => changed.includes(id) || icing.has(id)) ?? false).toBe(false);
+  const exits = graph.segments.filter(segment => segment.from === origin.nodeId || segment.to === origin.nodeId);
+  expect(exits.length).toBeGreaterThan(0);
+  expect(findHazardAvoidingRoute(graph, options, result, new Set(exits.map(segment => segment.id)))).toBeNull();
+});
+
+it('keeps the original route geometry on a flat or unmarked way and blocks directional inclines and explicit ramps', () => {
+  const segment = { ...firstTwoWay, stairs: null, slope: null, tags: { highway: 'footway' } };
+  const graph = { ...network, segments: [segment] };
+  const result = searchRoutes(graph, sourceOptions);
+  expect(result.normal?.segmentIds).toEqual([segment.id]);
+  expect(findHazardAvoidingRoute(graph, sourceOptions, result, new Set())?.coordinates).toEqual(result.normal?.coordinates);
+  const flat = { ...segment, slope: 0, tags: { ...segment.tags, incline: '0%', ramp: 'separate' } };
+  expect(findHazardAvoidingRoute({ ...graph, segments: [flat] }, sourceOptions, result, new Set())?.segmentIds).toEqual([segment.id]);
+  const hazardTags: Record<string, string>[] = [
+    { incline: 'up' }, { incline: 'down' }, { incline: 'up/down' }, { footway: 'ramp' }, { ramp: 'yes' }, { ramp: 'wheelchair' },
+  ];
+  for (const tags of hazardTags) {
+    const upgraded = { ...segment, tags: { ...segment.tags, ...tags } };
+    expect(findHazardAvoidingRoute({ ...graph, segments: [upgraded] }, sourceOptions, result, new Set())).toBeNull();
+  }
+  for (const blocked of [{ ...segment, stairs: true }, { ...segment, slope: -0.5 }, { ...segment, slope: 0.5 }]) {
+    expect(findHazardAvoidingRoute({ ...graph, segments: [blocked] }, sourceOptions, result, new Set())).toBeNull();
+  }
+});
 
 it('keeps the real Gangnam bridge warning without accepting the former roadway detour', async () => {
   const files = new URL('../../public/data/gangnam/', import.meta.url);
@@ -67,6 +128,7 @@ it('keeps the real Gangnam bridge warning without accepting the former roadway d
   expect(compared.crossings).toBeGreaterThan(0);
   expect(baseline.route).toBeNull();
   expect(compared.route).toBeNull();
+  expect(findHazardAvoidingRoute(gangnam, options, result, warningIds)).toBeNull();
   const normalWarningLength = gangnam.segments.filter(segment => warningIds.has(segment.id) && result.normal!.segmentIds.includes(segment.id))
     .reduce((total, segment) => total + segment.lengthM, 0);
   expect(compared.heatingComparison?.normal.beforeHeating).toBeCloseTo(normalWarningLength);

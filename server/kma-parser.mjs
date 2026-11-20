@@ -6,6 +6,7 @@ export const KMA_ENDPOINT = 'https://apihub.kma.go.kr/api/typ01/cgi-bin/url/nph-
 export const KMA_PUBLIC_REQUEST = `${KMA_ENDPOINT}?disp=1&help=1&stn=0`;
 export const KMA_MAX_AGE_MS = 30 * 60 * 1000;
 const FUTURE_TOLERANCE_MS = 2 * 60 * 1000;
+const metadataById = new Map(stationMetadata.stations.map(station => [station.id, station]));
 const units = Object.freeze({ temperature: '°C', humidity: '%', dewPoint: '°C', rain15mMm: 'mm/15min', rain60mMm: 'mm/60min', rain12hMm: 'mm/12h', rainDayMm: 'mm/KST calendar day', windSpeedMps: 'm/s', windDirectionDegrees: 'degree', stationPressureHpa: 'hPa', seaLevelPressureHpa: 'hPa' });
 
 export class KmaDataError extends Error {
@@ -14,14 +15,18 @@ export class KmaDataError extends Error {
 
 export function kmaAwsQueryMinute(now = Date.now()) {
   // Use a recent completed minute to avoid waiting on the newest collection.
-  return new Date(now + 9 * 3_600_000 - 5 * 60_000).toISOString().replace(/[-:T]/g, '').slice(0, 12);
+  return kmaAwsMinute(now - 5 * 60_000);
+}
+
+export function kmaAwsMinute(time) {
+  return new Date(time + 9 * 3_600_000).toISOString().replace(/[-:T]/g, '').slice(0, 12);
 }
 
 function timeFromKst(raw) {
   if (!/^\d{12}$/.test(raw)) return null;
   const iso = `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}T${raw.slice(8,10)}:${raw.slice(10,12)}:00+09:00`;
   const ms = Date.parse(iso);
-  if (!Number.isFinite(ms) || new Date(ms + 9 * 3600000).toISOString().replace(/[-:T]/g, '').slice(0,12) !== raw) return null;
+  if (!Number.isFinite(ms) || kmaAwsMinute(ms) !== raw) return null;
   return ms;
 }
 
@@ -32,23 +37,45 @@ function observation(value, min, max) {
   return number <= -50 || number < min || number > max ? null : number;
 }
 
-export function parseKmaAws(raw, { retrievedAt, now = Date.now(), retrievalMode = 'live', sha256 = null } = {}) {
-  const retrievedMs = Date.parse(retrievedAt);
-  if (!Number.isFinite(now) || !Number.isFinite(retrievedMs) || retrievedMs > now + FUTURE_TOLERANCE_MS) throw new KmaDataError('invalid-retrieval-time');
+function* stationRows(raw) {
   if (typeof raw !== 'string' || !raw.startsWith('#START7777') || !raw.includes('#7777END') || !/#\s+KST\s+ID\s+deg\s+m\/s/.test(raw) || !/# YYMMDDHHMI\s+STN\s+WD1\s+WS1\s+WDS\s+WSS\s+WD10\s+WS10\s+TA\s+RE\s+RN-15m\s+RN-60m\s+RN-12H\s+RN-DAY\s+HM\s+PA\s+PS\s+TD/.test(raw)) throw new KmaDataError('unknown-response-format');
-  const metadataById = new Map(stationMetadata.stations.map(station => [station.id, station]));
-  const latest = new Map();
   for (const line of raw.split(/\r?\n/)) {
     if (!/^\d{12},/.test(line)) continue;
     const cells = line.trim().split(',');
     if (cells.at(-1) === '=') cells.pop();
     if (cells.length !== 18 || !/^\d+$/.test(cells[1])) throw new KmaDataError('invalid-row');
-    const id = Number(cells[1]);
-    if (!metadataById.has(id)) continue;
+    const metadata = metadataById.get(Number(cells[1]));
+    if (metadata) yield { metadata, cells };
+  }
+}
+
+export function parseKmaHourlyRain(raw, time) {
+  const expectedMinute = kmaAwsMinute(time);
+  const amounts = new Map();
+  for (const { metadata, cells } of stationRows(raw)) {
+    if (cells[0] !== expectedMinute) continue;
+    const amount = observation(cells[11], 0, 2000);
+    const previous = amounts.get(metadata.id);
+    amounts.set(metadata.id, previous !== undefined && previous !== amount ? null : amount);
+  }
+  if (![...amounts.values()].some(amount => amount !== null)) throw new KmaDataError('no-local-hourly-rain');
+  const observedAt = new Date(time).toISOString();
+  return [...amounts].flatMap(([id, rain60mMm]) => {
+    if (!(rain60mMm > 0)) return [];
+    const { name, lat, lon } = metadataById.get(id);
+    return [{ id, name, lat, lon, observedAt, rain60mMm }];
+  });
+}
+
+export function parseKmaAws(raw, { retrievedAt, now = Date.now(), retrievalMode = 'live', sha256 = null } = {}) {
+  const retrievedMs = Date.parse(retrievedAt);
+  if (!Number.isFinite(now) || !Number.isFinite(retrievedMs) || retrievedMs > now + FUTURE_TOLERANCE_MS) throw new KmaDataError('invalid-retrieval-time');
+  const latest = new Map();
+  for (const { metadata, cells } of stationRows(raw)) {
+    const { id } = metadata;
     const observedMs = timeFromKst(cells[0]);
     if (observedMs === null || observedMs > retrievedMs + FUTURE_TOLERANCE_MS || observedMs > now + FUTURE_TOLERANCE_MS) throw new KmaDataError('invalid-observation-time');
     if ((latest.get(id)?.observedMs ?? -Infinity) >= observedMs) continue;
-    const metadata = metadataById.get(id);
     const values = {
       temperature: observation(cells[8], -49.9, 60),
       humidity: observation(cells[14], 0, 100),

@@ -73,7 +73,7 @@ function inclinePercent(tags: Record<string, string>): number | null {
 }
 
 function stairsStatus(tags: Record<string, string>): boolean | null {
-  if (tags.highway === 'steps' || tags.stairs === 'yes') return true;
+  if (tags.highway === 'steps' || tags.stairs === 'yes' || tags.steps === 'yes') return true;
   if (tags.step_count && /^\d+$/.test(tags.step_count)) return Number(tags.step_count) > 0;
   if (tags.stairs === 'no' || tags.steps === 'no') return false;
   // A non-steps highway tag alone is not a verified no-stairs survey.

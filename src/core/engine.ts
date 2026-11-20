@@ -195,6 +195,22 @@ export interface ForecastDetour {
   heatingComparison?: { normal: ForecastWarningScore; alternate: ForecastWarningScore | null };
 }
 
+export function findHazardAvoidingRoute(network: Network, options: SearchOptions, result: SearchResult,
+  icingSegments: ReadonlySet<string>): Route | null {
+  const { normal } = result;
+  if (!normal || normal.provider || !options.origin || !options.destination) return null;
+  const excluded = new Set(icingSegments);
+  for (const segment of network.segments) {
+    const { incline, footway, ramp } = segment.tags;
+    const hasIncline = (segment.slope ?? 0) !== 0 || /^(up(?:\/down)?|down(?:\/up)?|yes)$/i.test(incline?.trim() ?? '');
+    if (segment.stairs === true || hasIncline || footway === 'ramp' || ramp === 'yes' || ramp === 'wheelchair') {
+      excluded.add(segment.id);
+    }
+  }
+  const { crossings, route } = findForecastDetour(network, options, result, excluded);
+  return crossings ? route : { ...normal, type: 'recommended' };
+}
+
 /** A joint in the OSM graph is required on both sides of a flagged section. */
 export function findForecastDetour(network: Network, options: SearchOptions, result: SearchResult,
   excluded: ReadonlySet<string>, heatedWarningSegments?: ReadonlySet<string>): ForecastDetour {
