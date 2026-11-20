@@ -47,7 +47,10 @@ it('keeps the real Gangnam bridge warning without accepting the former roadway d
   const { sections } = estimateBuildingShade(gangnam, hour.time, true);
   const heated = heatedWalkWarnings(gangnam, sections, hour);
   const bridge = gangnam.segments.find(segment => segment.wayId === maljukgeoriFootbridge.osmWayId)!;
-  expect([...heated]).toEqual([bridge.id]);
+  const yangjaecheonBridge = gangnam.segments.find(segment => segment.wayId === '396143389')!;
+  expect(yangjaecheonBridge.tags.bridge).toBe('yes');
+  expect(heated).toEqual(new Set([bridge.id, yangjaecheonBridge.id]));
+  expect(gangnam.segments.filter(segment => segment.wayId === '396143390' && heated.has(segment.id))).toHaveLength(0);
   const warningIds = new Set(sections.map(section => section.segmentId));
   expect(warningIds.has(bridge.id)).toBe(true);
 

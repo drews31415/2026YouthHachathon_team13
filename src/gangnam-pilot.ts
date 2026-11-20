@@ -17,6 +17,8 @@ export const maljukgeoriFootbridge = {
 
 const installations = new Map([
   [maljukgeoriFootbridge.osmWayId, maljukgeoriFootbridge.heatingEligibleFrom],
+  // Seoul heating inventory 869 and footbridge link 175537 cross Yangjaecheon-ro with this deck.
+  ['396143389', Date.parse('2024-12-01T00:00:00+09:00')],
   // Seoul heating inventory 870, Gangnam footbridge register, and OSM bridge:name agree.
   ['922445013', Date.parse('2024-12-01T00:00:00+09:00')],
 ]);
