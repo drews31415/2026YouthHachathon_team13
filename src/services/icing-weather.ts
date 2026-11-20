@@ -1,6 +1,7 @@
 import replaySource from '../icing-replay-source.json';
 import snowReplaySource from '../icing-snow-replay-source.json';
 import gangnamReplaySource from '../icing-gangnam-replay-source.json';
+import aifsReplaySource from '../icing-aifs-replay-source.json';
 import gangnamGridReplay from '../icing-gangnam-grid-replay.json';
 import icingRegions from '../../icing-regions.json';
 import { distanceBetween } from '../core/network';
@@ -17,6 +18,7 @@ export const icingReplays = {
   original: { ...replaySource, path: '/data/icing-replay.json' },
   snow: { ...snowReplaySource, path: '/data/icing-snow-replay.json' },
   gangnam: { ...gangnamReplaySource, path: '/data/gangnam/icing-replay.json' },
+  aifs: { ...aifsReplaySource, path: '/data/gangnam/icing-aifs-replay.json' },
 };
 export type IcingReplay = keyof typeof icingReplays;
 

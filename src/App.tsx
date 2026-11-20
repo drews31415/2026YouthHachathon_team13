@@ -6,7 +6,7 @@ import type { Coordinate, Network, Place, SearchOptions, SearchResult } from './
 import { fetchNetwork } from './services/network';
 import { fetchSeoulNetwork } from './services/seoul-network';
 import { coordinatePlace } from './services/tmap';
-import { gangnamDemoPlaces } from './gangnam-pilot';
+import { aifsDemoPlaces, gangnamDemoPlaces } from './gangnam-pilot';
 import { PlaceInput } from './components/PlaceInput';
 import { WalkingMap } from './components/WalkingMap';
 import { useIcingForecast } from './components/IcingForecastControl';
@@ -25,7 +25,8 @@ function duration(seconds: number) {
 }
 
 export default function App() {
-  const [startDemo] = useState(() => new URLSearchParams(window.location.search).get('demo') === '1');
+  const [demo] = useState(() => new URLSearchParams(window.location.search).get('demo'));
+  const startDemo = demo === '1' || demo === 'aifs';
   const [searchOpen, setSearchOpen] = useState(startDemo);
   const [network, setNetwork] = useState<Network | null>(null);
   const [gwanak, setGwanak] = useState<Network | null>(null);
@@ -55,14 +56,16 @@ export default function App() {
   const visibleNetwork = searchOpen ? analysisNetwork ?? (focusedGwanak ? gwanak : network) : network;
   const modelArea = visibleNetwork && visibleNetwork === gwanak ? 'gwanak' : area;
   const showForecast = searchOpen && (!!analysisNetwork || focusedGwanak || within(network));
-  const forecast = useIcingForecast(visibleNetwork, showForecast, modelArea, startDemo);
+  const forecast = useIcingForecast(visibleNetwork, showForecast, modelArea, startDemo, demo === '1' ? 'gangnam' : 'aifs');
   const searchNetwork = useMemo(() => network && gwanak ? { ...network, places: [...network.places, ...gwanak.places] } : network, [network, gwanak]);
   const forecastReady = !!forecast.active && !forecast.incomplete;
-  const route = useMemo(() => {
-    if (!analysisNetwork || !result?.normal || !forecastReady) return null;
+  const { route, comparison } = useMemo(() => {
+    if (!analysisNetwork || !result?.normal || !forecastReady) return { route: null, comparison: null };
     const icingSegments = new Set((forecast.shade?.sections ?? []).map(section => section.segmentId));
-    return findHazardAvoidingRoute(analysisNetwork, options, result, icingSegments);
-  }, [analysisNetwork, options, result, forecast.shade, forecastReady]);
+    const route = findHazardAvoidingRoute(analysisNetwork, options, result, icingSegments);
+    const warningCount = forecast.aiModel && route ? result.normal.segmentIds.filter(id => icingSegments.has(id)).length : 0;
+    return { route, comparison: warningCount > 0 ? { normal: result.normal, warningCount } : null };
+  }, [analysisNetwork, options, result, forecast.shade, forecast.aiModel, forecastReady]);
   const step = route && navigationRouteId === route.id ? route.steps[stepIndex] : undefined;
   const stage = !searchOpen ? 'home' : step ? 'guide' : result?.normal ? 'result' : 'search';
 
@@ -170,7 +173,8 @@ export default function App() {
   }
   function showReplayRoute() {
     if (!visibleNetwork || !forecast.replay || !forecast.active) return;
-    const ids = modelArea === 'gwanak' ? gwanakDemoPlaces : gangnamDemoPlaces;
+    const ids = forecast.replayScene === 'aifs' ? aifsDemoPlaces
+      : modelArea === 'gwanak' ? gwanakDemoPlaces : gangnamDemoPlaces;
     const origin = visibleNetwork.places.find(place => place.id === ids.origin);
     const destination = visibleNetwork.places.find(place => place.id === ids.destination);
     if (!origin || !destination) return;
@@ -272,6 +276,7 @@ export default function App() {
 
           <section className="flow-map" ref={mapSection} aria-label="보행 지도">
             <WalkingMap network={visibleNetwork} run={result?.run ?? run} route={route}
+              comparisonRoute={stage === 'result' ? comparison?.normal : undefined}
               stage={stage} showForecast={showForecast} forecast={forecast} onReplayRoute={showReplayRoute}
               origin={searchOpen ? options.origin ?? undefined : undefined}
               destination={searchOpen ? options.destination ?? undefined : undefined}
@@ -283,7 +288,7 @@ export default function App() {
           {stage === 'search' && <div className="flow-actions"><button type="submit" form="route-search" className="flow-primary" disabled={routing}><Footprints size={24} />{routing ? '경로를 찾는 중…' : '경로 확인하기'}</button></div>}
 
           {stage === 'result' && <section className="flow-results" aria-label="경로 결과" aria-live="polite">
-            <WalkingRouteResult route={route} forecast={forecast} onNavigate={() => { if (route) { setNavigationRouteId(route.id); setStepIndex(0); } }} />
+            <WalkingRouteResult route={route} comparison={comparison} forecast={forecast} onNavigate={() => { if (route) { setNavigationRouteId(route.id); setStepIndex(0); } }} />
           </section>}
 
           {step && route && <section className="flow-guide" aria-label="이동 안내 미리보기">

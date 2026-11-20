@@ -13,15 +13,17 @@ export const forecastTime = (value: number, includeYear = false) => new Intl.Dat
   year: includeYear ? 'numeric' : undefined,
 }).format(value);
 
-export function useIcingForecast(network: Network | null, enabled: boolean, area: IcingArea = 'gwanak', startReplay = false) {
+export function useIcingForecast(network: Network | null, enabled: boolean, area: IcingArea = 'gwanak',
+  startReplay = false, initialGangnamScene: 'aifs' | 'gangnam' = 'aifs') {
   const [data, setData] = useState<Awaited<ReturnType<typeof fetchIcingHours>>>();
   const [dataArea, setDataArea] = useState<IcingArea>();
   const [failed, setFailed] = useState(false);
   const [clock, setClock] = useState(Date.now);
   const [selected, setSelected] = useState<number>();
   const [replayEnabled, setReplay] = useState(startReplay);
-  const [gwanakScene, setReplayScene] = useState<IcingReplay>('original');
-  const replayScene = area === 'gangnam' ? 'gangnam' : gwanakScene;
+  const [gwanakScene, setGwanakScene] = useState<'original' | 'snow'>('original');
+  const [gangnamScene, setGangnamScene] = useState(initialGangnamScene);
+  const replayScene = area === 'gangnam' ? gangnamScene : gwanakScene;
   const [replayed, setReplayHour] = useState<{ scene: IcingReplay; hour: IcingHour }>();
   const [rain, setRain] = useState<NearbyPrecipitation[]>([]);
   const [rainHistory, setRainHistory] = useState<{ history?: unknown; seoul?: unknown }>({});
@@ -201,11 +203,16 @@ export function useIcingForecast(network: Network | null, enabled: boolean, area
     if (next !== replay && !city) { setFailed(false); setClock(Date.now()); setReplay(next); }
   }
   function changeReplayScene(next: IcingReplay) {
-    if (next !== replayScene) { setFailed(false); setReplayHour(undefined); setReplayScene(next); }
+    if (next === replayScene) return;
+    setFailed(false);
+    setReplayHour(undefined);
+    if (next === 'aifs' || next === 'gangnam') setGangnamScene(next);
+    else setGwanakScene(next);
   }
   const latestRain = !replay ? rain.find(record => record.time <= clock && clock - record.time < icingWeatherMaxAgeMs) : undefined;
+  const aiModel = replay && replayScene === 'aifs' ? icingReplays.aifs.model : undefined;
   return { active, hours, summaries, signals, shade, failed: city ? cityFailed : failed, retrievedAt: city ? cityData?.retrievedAt : data?.retrievedAt, setSelected,
-    replay, changeMode, replayScene, changeReplayScene, expanded, latestRain, buildingCount, area, city, incomplete, gridStatus: grid?.status };
+    replay, changeMode, replayScene, changeReplayScene, aiModel, expanded, latestRain, buildingCount, area, city, incomplete, gridStatus: grid?.status };
 }
 
 export function IcingForecastControl({ forecast, onReplayRoute }: {
@@ -222,10 +229,15 @@ export function IcingForecastControl({ forecast, onReplayRoute }: {
       <button type="button" aria-pressed={!replay} onClick={() => changeMode(false)}>최신 예보</button>
       <button type="button" aria-pressed={replay} onClick={() => changeMode(true)}>과거 예보로 비교</button>
     </div>}
-    {replay && area === 'gwanak' && <label htmlFor={sceneId}>적용할 과거 예보
+    {replay && <label htmlFor={sceneId}>적용할 과거 예보
       <select id={sceneId} value={replayScene} onChange={e => changeReplayScene(e.target.value as IcingReplay)}>
-        <option value="original">1월 27일 · 강수 뒤 재결빙</option>
-        <option value="snow">1월 2일 · 녹은 눈 재결빙</option>
+        {area === 'gangnam' ? <>
+          <option value="aifs">2월 2일 13시 · 양재역 AI 예보</option>
+          <option value="gangnam">2월 2일 09시 · 말죽거리</option>
+        </> : <>
+          <option value="original">1월 27일 · 강수 뒤 재결빙</option>
+          <option value="snow">1월 2일 · 녹은 눈 재결빙</option>
+        </>}
       </select>
     </label>}
     {!replay && hours.length > 0 && <label htmlFor={selectId}>예상 시각 (한국 시간)
@@ -253,7 +265,7 @@ export function IcingForecastControl({ forecast, onReplayRoute }: {
       {signals?.frost && <p className="icing-area-alert">서리가 생길 수 있어요.</p>}
       {replay && replayScene !== 'snow' && !!shade?.sections.length && <button type="button" className="icing-replay-route" onClick={onReplayRoute}>예시 출발지·목적지 불러오기</button>}
       <details className="icing-external-data"><summary>예보 출처</summary>
-        <p>{forecast.city ? '구역별 기상청 및 Open-Meteo 자료' : usesGridTemperature(active) ? '기상청 500m 분석' : active.kma ? '기상청 예보' : 'Open-Meteo'}</p>
+        <p>{forecast.aiModel ?? (forecast.city ? '구역별 기상청 및 Open-Meteo 자료' : usesGridTemperature(active) ? '기상청 500m 분석' : active.kma ? '기상청 예보' : 'Open-Meteo')}</p>
         <p><a href={replay ? icingReplays[replayScene].sourceUrl : 'https://open-meteo.com/en/docs'} target="_blank" rel="noreferrer">{replay ? '과거 예보 원본' : 'Open-Meteo 명세'}</a> · <a href={surfaceShadeSource.url} target="_blank" rel="noreferrer">Copernicus 30m</a></p>
         {!replay && <p><a href="https://data.seoul.go.kr/dataList/OA-23092/S/1/datasetView.do" target="_blank" rel="noreferrer">서울시 10분 강우량</a></p>}
         <small lang="en">{surfaceShadeSource.attribution}</small>

@@ -1,9 +1,11 @@
 import { Footprints, Info, Navigation } from 'lucide-react';
 import type { Route } from '../core/types';
+import { icingReplays } from '../services/icing-weather';
 import { forecastTime, type useIcingForecast } from './IcingForecastControl';
 
 interface Props {
   route: Route | null;
+  comparison: { normal: Route; warningCount: number } | null;
   forecast: ReturnType<typeof useIcingForecast>;
   onNavigate: () => void;
 }
@@ -17,7 +19,7 @@ function time(seconds: number) {
   return (mins ? mins + '분' : '') + (rest || !mins ? (mins ? ' ' : '') + rest + '초' : '');
 }
 
-export function WalkingRouteResult({ route, forecast, onNavigate }: Props) {
+export function WalkingRouteResult({ route, comparison, forecast, onNavigate }: Props) {
   const status = route ? ''
     : !forecast.active && forecast.hours.length ? '선택한 시각의 결빙 예보를 확인할 수 없어요. 예보·지도 설정에서 다른 시각을 골라 주세요.'
     : !forecast.active && forecast.failed ? '결빙 예보를 불러오지 못했어요'
@@ -25,15 +27,33 @@ export function WalkingRouteResult({ route, forecast, onNavigate }: Props) {
     : forecast.incomplete ? '재결빙 판단에 필요한 기상 자료가 부족해요'
     : '결빙 예상구간과 지도에 등록된 계단·경사로를 모두 피하는 길을 찾지 못했어요';
   const finding = !forecast.active && !forecast.failed && !forecast.hours.length;
+  const aiHour = forecast.aiModel ? forecast.active : undefined;
 
   return <>
     {forecast.active && <p className="flow-route-date">{forecast.replay ? '과거 예보' : '결빙 예상'} 기준 · {forecastTime(forecast.active.time, forecast.replay)} KST</p>}
+    {aiHour && <section className="flow-ai-evidence" aria-label="AI 예보 근거">
+      <p><strong>AI 예보 근거</strong> · {forecast.aiModel}</p>
+      <p>기온 {aiHour.temperatureC.toFixed(1)}°C
+        {aiHour.precedingPrecipMm !== null && <> · 직전 6시간 강수 {aiHour.precedingPrecipMm.toFixed(1)}mm</>}
+        {aiHour.recentSnowfall && ' · 최근 강설 신호'}</p>
+      <a href={icingReplays.aifs.sourceUrl} target="_blank" rel="noreferrer">과거 AI 예보 원본</a>
+    </section>}
     {route ? <div className="flow-route-card">
+      {comparison && <div className="flow-route-row flow-route-reference">
+        <span className="flow-route-name"><span className="flow-route-key" aria-hidden="true" />일반 경로</span>
+        <strong>{time(comparison.normal.durationSeconds)}</strong>
+        <small>{distance(comparison.normal.distanceM)}</small>
+      </div>}
       <div className="flow-route-row">
-        <span className="flow-route-name"><Footprints size={21} aria-hidden="true" />안내 경로</span>
+        <span className="flow-route-name">{comparison
+          ? <><span className="flow-route-key" aria-hidden="true" />결빙 우회 경로</>
+          : <><Footprints size={21} aria-hidden="true" />안내 경로</>}</span>
         <strong>{time(route.durationSeconds)}</strong>
         <small>{distance(route.distanceM)}</small>
       </div>
+      {comparison && <p className="flow-route-difference">
+        결빙 예상 주의구간 {comparison.warningCount}곳 회피 · {distance(route.distanceM - comparison.normal.distanceM)} 추가
+      </p>}
     </div> : <div className="flow-route-status" role="status">
       {!finding && <strong>안내 가능한 경로 없음</strong>}
       <p>{status}</p>

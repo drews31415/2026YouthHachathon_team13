@@ -309,6 +309,14 @@
 .flow-route-name svg { flex-shrink: 0; color: var(--flow-blue); }
 .flow-route-row strong { color: var(--flow-blue); font-size: clamp(20px, 5.4vw, 28px); font-weight: 870; letter-spacing: -.05em; }
 .flow-route-row small { color: var(--flow-muted); font-size: 13px; }
+.flow-route-reference { margin-bottom: 4px; background: #f0f3f7; }
+.flow-route-reference strong { color: #47576d; }
+.flow-route-key { width: 17px; flex: 0 0 17px; border-top: 3px solid #0758ef; }
+.flow-route-reference .flow-route-key { border-top: 3px dashed #56657a; }
+.flow-route-difference { margin: 8px 8px 6px; color: var(--flow-muted); font-size: 13px; line-height: 1.45; }
+.flow-ai-evidence { margin: 0 0 9px; padding: 8px 11px; border-left: 3px solid var(--flow-blue); background: var(--flow-pale); font-size: 13px; line-height: 1.5; }
+.flow-ai-evidence p { margin: 0; }
+.flow-ai-evidence a { color: #0345b9; }
 .flow-route-status { margin: 9px 0 0; text-align: center; font-size: 15px; font-weight: 700; }
 .flow-route-status p { margin: 5px 0 0; }
 .flow-muted { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 11px 0; color: var(--flow-muted); font-size: 14px; line-height: 1.4; text-align: center; }

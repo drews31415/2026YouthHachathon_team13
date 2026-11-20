@@ -3,6 +3,7 @@ import type { Network } from './core/types';
 import { hasHeatingWeather, type IcingHour } from './services/icing-weather';
 
 export const gangnamDemoPlaces = { origin: 'node/12372983292', destination: 'node/9061817575' };
+export const aifsDemoPlaces = { origin: 'node/9316589412', destination: 'node/14257553956' };
 export const maljukgeoriFootbridge = {
   name: '말죽거리보도육교',
   osmWayId: '724658649',

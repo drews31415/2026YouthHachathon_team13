@@ -14,6 +14,7 @@ interface Props {
   network: Network;
   run: ModelRun;
   route: Route | null;
+  comparisonRoute?: Route;
   stage: 'home' | 'search' | 'result' | 'guide';
   origin?: Place;
   destination?: Place;
@@ -35,7 +36,7 @@ function segmentPopup(segment: WalkSegment) {
     '</strong><p>노면 상태 미확인</p><a href="' + sourceUrl + '" target="_blank" rel="noopener noreferrer">지도 원본</a></div>';
 }
 
-export function WalkingMap({ network, run, route, stage, origin, destination, step, recenterKey,
+export function WalkingMap({ network, run, route, comparisonRoute, stage, origin, destination, step, recenterKey,
   onSelectCoordinate, selectionMode = null, showForecast, forecast, onReplayRoute }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -54,7 +55,8 @@ export function WalkingMap({ network, run, route, stage, origin, destination, st
     const map = mapRef.current;
     if (!map) return;
     if (route?.coordinates.length) {
-      map.fitBounds(L.latLngBounds(latlngs(route.coordinates)), { paddingTopLeft: [37, 73], paddingBottomRight: [50, 62], maxZoom: 18 });
+      const points = [...route.coordinates, ...(comparisonRoute?.coordinates ?? [])];
+      map.fitBounds(L.latLngBounds(latlngs(points)), { paddingTopLeft: [37, 73], paddingBottomRight: [50, 62], maxZoom: 18 });
       return;
     }
     const endpoints = [origin, destination].filter((place): place is Place => !!place);
@@ -178,6 +180,11 @@ export function WalkingMap({ network, run, route, stage, origin, destination, st
       if (showCoverage && !selectionMode) line.bindPopup(() => segmentPopup(segment), { maxWidth: 200 });
     });
 
+    if (comparisonRoute?.coordinates.length) {
+      const points = latlngs(comparisonRoute.coordinates);
+      L.polyline(points, { color: '#fff', weight: 8, opacity: .95, interactive: false }).addTo(group);
+      L.polyline(points, { color: '#56657a', weight: 5, dashArray: '8 6', interactive: false }).addTo(group);
+    }
     if (route?.coordinates.length) {
       const routeColor = '#0758ef';
       const points = latlngs(route.coordinates);
@@ -207,11 +214,11 @@ export function WalkingMap({ network, run, route, stage, origin, destination, st
       const icon = L.divIcon({ className: 'navigation-marker', html: '<span>▲</span>', iconSize: [42, 42], iconAnchor: [21, 21] });
       L.marker([step.coordinate[1], step.coordinate[0]], { icon, title: '선택한 경로 구간 · 실시간 위치가 아닙니다.', interactive: false }).addTo(group);
     }
-  }, [network, run, route, origin, destination, showCoverage, step, selectionMode, stage, tilesFailed, forecast.city]);
+  }, [network, run, route, comparisonRoute, origin, destination, showCoverage, step, selectionMode, stage, tilesFailed, forecast.city]);
 
   useEffect(() => {
     fitRoute();
-  }, [route, recenterKey, network, stage, origin, destination]);
+  }, [route, comparisonRoute, recenterKey, network, stage, origin, destination]);
 
   useEffect(() => {
     if (step) mapRef.current?.panInside([step.coordinate[1], step.coordinate[0]], { padding: [42, 42] });

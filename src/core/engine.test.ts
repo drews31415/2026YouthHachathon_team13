@@ -6,8 +6,8 @@ import { estimateBuildingShade } from './icing-forecast';
 import { addOsmSubwayEntrances, buildNetwork, coordinateInside, distanceBetween, geometryLength, isFootAccessible } from './network';
 import { expireResult } from './resultLifecycle';
 import type { OsmElement, OsmPayload, Place, SearchOptions, ShadeSurface, ShadingBuilding, SourceProvenance } from './types';
-import { gangnamDemoPlaces, heatedWalkWarnings, maljukgeoriFootbridge } from '../gangnam-pilot';
-import { findIcingHours, readIcingReplay } from '../services/icing-weather';
+import { aifsDemoPlaces, gangnamDemoPlaces, heatedWalkWarnings, maljukgeoriFootbridge } from '../gangnam-pilot';
+import { findIcingHours, hasRefreezeConditions, readIcingReplay } from '../services/icing-weather';
 
 // The graph, coordinates and archived weather come from the checked-in sources.
 const rawText = readFileSync(new URL('../../public/data/osm.json', import.meta.url), 'utf8');
@@ -95,15 +95,36 @@ it('keeps the original route geometry on a flat or unmarked way and blocks direc
   }
 });
 
+const gangnamFile = (name: string) => readFileSync(new URL('../../public/data/gangnam/' + name, import.meta.url), 'utf8');
+const gangnamPayload = JSON.parse(gangnamFile('osm.json')) as OsmPayload;
+const gangnam = {
+  ...buildNetwork(gangnamPayload, JSON.parse(gangnamFile('provenance.json'))),
+  expandedShadingBuildings: (JSON.parse(gangnamFile('buildings.json')) as { buildings: ShadingBuilding[] }).buildings,
+  shadeSurface: JSON.parse(gangnamFile('surface.json')) as ShadeSurface,
+};
+
+it('replays the archived AIFS forecast and avoids the six flagged segments around Yangjae Station', async () => {
+  const raw = new TextEncoder().encode(gangnamFile('icing-aifs-replay.json')).buffer;
+  const hour = await readIcingReplay(raw, 'aifs');
+  expect(hour).toMatchObject({ time: Date.parse('2026-02-02T13:00:00+09:00'),
+    temperatureC: -1, precedingPrecipMm: 0.2, recentSnowfall: true });
+  expect(hasRefreezeConditions(hour)).toBe(true);
+  const { sections } = estimateBuildingShade(gangnam, hour.time, true);
+  const warnings = new Set(sections.map(section => section.segmentId));
+  const options = optionsBetween(gangnam.places.find(place => place.id === aifsDemoPlaces.origin)!,
+    gangnam.places.find(place => place.id === aifsDemoPlaces.destination)!);
+  const result = searchRoutes(gangnam, options);
+  const baseline = findHazardAvoidingRoute(gangnam, options, result, new Set());
+  const alternate = findHazardAvoidingRoute(gangnam, options, result, warnings);
+  expect(Math.round(result.normal?.distanceM ?? 0)).toBe(294);
+  expect(baseline?.segmentIds).toEqual(result.normal?.segmentIds);
+  expect(result.normal?.segmentIds.filter(id => warnings.has(id))).toHaveLength(6);
+  expect(Math.round(alternate?.distanceM ?? 0)).toBe(360);
+  expect(alternate?.segmentIds.filter(id => warnings.has(id))).toHaveLength(0);
+});
+
 it('keeps the real Gangnam bridge warning without accepting the former roadway detour', async () => {
-  const files = new URL('../../public/data/gangnam/', import.meta.url);
-  const read = (name: string) => readFileSync(new URL(name, files), 'utf8');
-  const raw = JSON.parse(read('osm.json')) as OsmPayload;
-  const graph = buildNetwork(raw, JSON.parse(read('provenance.json')));
-  const buildings = JSON.parse(read('buildings.json')) as { buildings: ShadingBuilding[] };
-  const surface = JSON.parse(read('surface.json')) as ShadeSurface;
-  const gangnam = { ...graph, expandedShadingBuildings: buildings.buildings, shadeSurface: surface };
-  const weather = read('icing-replay.json');
+  const weather = gangnamFile('icing-replay.json');
   const hour = await readIcingReplay(new TextEncoder().encode(weather).buffer, 'gangnam');
   const { sections } = estimateBuildingShade(gangnam, hour.time, true);
   const heated = heatedWalkWarnings(gangnam, sections, hour);
@@ -123,7 +144,7 @@ it('keeps the real Gangnam bridge warning without accepting the former roadway d
   expect(result.normal?.segmentIds).toContain(bridge.id);
   expect(result.normal?.distanceM).toBeCloseTo(591.648, 2);
   const formerRoadways = new Set([521770120, 494822058, 494822057, 218966989]);
-  expect(raw.elements.filter(item => item.type === 'way' && formerRoadways.has(item.id))).toHaveLength(formerRoadways.size);
+  expect(gangnamPayload.elements.filter(item => item.type === 'way' && formerRoadways.has(item.id))).toHaveLength(formerRoadways.size);
   expect(gangnam.segments.some(segment => formerRoadways.has(Number(segment.wayId)))).toBe(false);
   expect(compared.crossings).toBeGreaterThan(0);
   expect(baseline.route).toBeNull();
