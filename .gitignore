@@ -7,3 +7,4 @@ dist/
 .sites-cache/
 .sites/
 playwright-output/
+.openai/
